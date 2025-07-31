@@ -1,0 +1,22 @@
+meta {
+  name: admin login
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3030/api/users/login
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "salman@salman",
+    "password": "salman"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

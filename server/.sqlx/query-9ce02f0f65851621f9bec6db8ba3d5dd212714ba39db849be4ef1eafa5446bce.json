@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n            m.id,\n            m.name,\n            m.gender as \"gender: Gender\",\n            m.birthday,\n            m.last_name,\n            m.image,\n            m.image_type,\n            m.personal_info,\n            mother.id as mother_id,\n            mother.name AS mother_name,\n            mother.gender AS \"mother_gender: Gender\",\n            mother.birthday AS mother_birthday,\n            mother.last_name AS mother_last_name,\n            father.id as father_id,\n            father.name AS father_name,\n            father.gender AS \"father_gender: Gender\",\n            father.birthday AS father_birthday,\n            father.last_name AS father_last_name\n        FROM\n            members m\n        LEFT JOIN\n            members mother ON m.mother_id = mother.id\n        LEFT JOIN\n            members father ON m.father_id = father.id\n        ORDER BY\n            m.id, m.name ASC\n        OFFSET $1\n        LIMIT $2;\n            ",
+  "query": "\nSELECT\n    m.id,\n    m.name,\n    m.gender as \"gender: Gender\",\n    m.birthday,\n    m.last_name,\n    m.image,\n    m.image_type,\n    m.personal_info,\n    m.email,\n    mother.id AS mother_id,\n    mother.name AS mother_name,\n    mother.gender AS \"mother_gender: Gender\",\n    mother.birthday AS mother_birthday,\n    mother.last_name AS mother_last_name,\n    father.id AS father_id,\n    father.name AS father_name,\n    father.gender AS \"father_gender: Gender\",\n    father.birthday AS father_birthday,\n    father.last_name AS father_last_name\nFROM\n    members m\nLEFT JOIN\n    members mother ON m.mother_id = mother.id\nLEFT JOIN\n    members father ON m.father_id = father.id;\n    ",
   "describe": {
     "columns": [
       {
@@ -55,16 +55,21 @@
       },
       {
         "ordinal": 8,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
         "name": "mother_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "mother_name",
         "type_info": "Text"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "mother_gender: Gender",
         "type_info": {
           "Custom": {
@@ -79,27 +84,27 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "mother_birthday",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "mother_last_name",
         "type_info": "Text"
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "father_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "father_name",
         "type_info": "Text"
       },
       {
-        "ordinal": 15,
+        "ordinal": 16,
         "name": "father_gender: Gender",
         "type_info": {
           "Custom": {
@@ -114,21 +119,18 @@
         }
       },
       {
-        "ordinal": 16,
+        "ordinal": 17,
         "name": "father_birthday",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 17,
+        "ordinal": 18,
         "name": "father_last_name",
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8",
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -139,17 +141,18 @@
       true,
       true,
       true,
-      false,
-      false,
-      false,
       true,
-      false,
-      false,
-      false,
-      false,
       true,
-      false
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "f2d6a42bdedba0412d30598b1d4d8e6f897822a0eeb40a35e76cc6874e79c23d"
+  "hash": "9ce02f0f65851621f9bec6db8ba3d5dd212714ba39db849be4ef1eafa5446bce"
 }

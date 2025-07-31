@@ -1,24 +1,35 @@
 use std::sync::Arc;
 
+use aes_gcm::KeyInit;
 use axum::{
     extract::DefaultBodyLimit,
     http::{HeaderValue, Method},
     routing::{get, post, put},
     Router,
 };
+use lettre::{
+    message::header::ContentType, transport::smtp::authentication::Credentials, Message,
+    SmtpTransport, Transport,
+};
 use rand::Rng;
 use server::{
     api::{
         members::routes::{
             add_member, approve_member_request, delete_member, disapprove_member_request,
-            edit_member, export_members, get_members, get_members_flat, request_add_member,
-            upload_members_csv,
+            edit_member, export_members, get_member_invites, get_members, get_members_flat,
+            invite_member, request_add_member, upload_members_csv,
         },
         sessions::refresh_session,
-        users::routes::{login, logout, me},
+        users::routes::{
+            accept_member_invite, admin_login, decline_member_invite, logout, me, member_login,
+            verify_totp,
+        },
     },
-    pages::{add_request_page, admin_page, login_page, register_page},
-    AppState, Config, ConfigError, InnerAppState,
+    pages::{
+        add_request_page, admin_login_page, admin_page, admin_register_page, invite_reply_page,
+        members_login_page,
+    },
+    AppState, Config, ConfigError, EmailMessage, InnerAppState,
 };
 
 use server::api::users::routes::create_user;
@@ -26,7 +37,7 @@ use server::api::users::routes::create_user;
 use clap::Parser;
 use sqlx::PgPool;
 use std::net::{Ipv4Addr, SocketAddrV4};
-use tower_cookies::{CookieManagerLayer, Key};
+use tower_cookies::CookieManagerLayer;
 use tower_http::{cors::CorsLayer, limit::RequestBodyLimitLayer, services::ServeDir};
 
 #[derive(Parser)]
@@ -67,10 +78,16 @@ async fn main() {
                 let mut secret = [0u8; 64];
                 rand::thread_rng().fill(&mut secret);
 
-                let secret = String::from_utf8_lossy(&secret).to_string();
+                let cookies_secret = String::from_utf8_lossy(&secret).to_string();
+
+                let totp_encryption_key =
+                    aes_gcm::Aes256Gcm::generate_key(rand::thread_rng()).to_vec();
 
                 let config = Config {
-                    cookie_secret: secret,
+                    cookie_secret: cookies_secret,
+                    email_config: None,
+                    totp_encryption_key,
+                    base_url: "http://localhost:3030".parse().unwrap(),
                 };
 
                 let config_str =
@@ -82,23 +99,75 @@ async fn main() {
                 config
             }
             _ => {
-                panic!("{:#?}", err);
+                panic!("{err:#?}");
             }
         },
     };
 
+    let (email_sender, mut email_receiver) = tokio::sync::mpsc::channel::<EmailMessage>(10);
+
+    if let Some(email_config) = config.email_config {
+        tokio::spawn(async move {
+            let creds = Credentials::new(
+                email_config.credentials.username.clone(),
+                email_config.credentials.password,
+            );
+
+            #[cfg(debug_assertions)]
+            let mailer = SmtpTransport::builder_dangerous(&email_config.smtp_server)
+                .port(1025)
+                .credentials(creds)
+                .build();
+
+            #[cfg(not(debug_assertions))]
+            let mailer = SmtpTransport::relay(&email_config.smtp_server)
+                .unwrap()
+                .credentials(creds)
+                .build();
+
+            while let Some(email_message) = email_receiver.recv().await {
+                let Ok(m) = Message::builder()
+                    .from(email_config.credentials.username.parse().unwrap())
+                    .to(lettre::message::Mailbox {
+                        name: None,
+                        email: email_message.to.parse().unwrap(),
+                    })
+                    .subject("Invite")
+                    .header(ContentType::TEXT_PLAIN)
+                    .body(email_message.content)
+                else {
+                    log::error!("Failed to send email");
+                    continue;
+                };
+
+                if let Err(e) = mailer.send(&m) {
+                    log::error!("Could not send email: {e:?}");
+                }
+            }
+        });
+    }
+
+    let totp_encryption_key =
+        aes_gcm::Key::<aes_gcm::Aes256Gcm>::from_exact_iter(config.totp_encryption_key)
+            .expect("Slice must be the same length as the array");
+
     let app_state = AppState {
         inner: Arc::new(InnerAppState {
             db_pool: pool,
-            cookies_secret: Key::from(config.cookie_secret.as_bytes()),
+            cookies_secret: tower_cookies::Key::from(config.cookie_secret.as_bytes()),
+            email_sender,
+            base_url: config.base_url,
+            totp_encryption_key,
         }),
     };
 
     let mut app = Router::new()
         .route("/admin", get(admin_page))
-        .route("/login", get(login_page))
-        .route("/register", get(register_page))
+        .route("/admin/login", get(admin_login_page))
+        .route("/admin/register", get(admin_register_page))
+        .route("/login", get(members_login_page))
         .route("/add", get(add_request_page))
+        .route("/invite/:id", get(invite_reply_page))
         .route("/api/members", get(get_members).post(add_member))
         .route("/api/members/:id", put(edit_member).delete(delete_member))
         .route("/api/members/flat", get(get_members_flat))
@@ -110,8 +179,14 @@ async fn main() {
             "/api/members/disapprove/:id",
             put(disapprove_member_request),
         )
+        .route("/api/members/invite/", get(get_member_invites))
+        .route("/api/members/invite/:id", post(invite_member))
+        .route("/api/users/invite/accept/:id", put(accept_member_invite))
+        .route("/api/users/invite/decline/:id", put(decline_member_invite))
+        .route("/api/users/invite/verify/:id", put(verify_totp))
         .route("/api/users/logout", get(logout))
-        .route("/api/users/login", post(login))
+        .route("/api/users/admin/login", post(admin_login))
+        .route("/api/users/login", post(member_login))
         .route("/api/users/me", get(me))
         .route("/api/users", post(create_user));
 

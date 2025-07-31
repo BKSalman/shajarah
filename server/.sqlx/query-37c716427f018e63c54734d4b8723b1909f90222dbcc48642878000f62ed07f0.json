@@ -1,17 +1,17 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nINSERT INTO users (id, first_name, last_name, username, email, password, role, created_at)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8)\nRETURNING id, username, email, role as \"role: UserRole\"\n        ",
+  "query": "\n                        SELECT users.id as user_id, sessions.id as session_id, users.email, users.first_name, users.role as \"role: UserRole\" FROM sessions\n                        INNER JOIN users\n                          ON sessions.user_id = users.id\n                        WHERE sessions.id = $1 AND sessions.expires_at > $2\n                    ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "user_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 1,
-        "name": "username",
-        "type_info": "Text"
+        "name": "session_id",
+        "type_info": "Uuid"
       },
       {
         "ordinal": 2,
@@ -20,6 +20,11 @@
       },
       {
         "ordinal": 3,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
         "name": "role: UserRole",
         "type_info": {
           "Custom": {
@@ -37,22 +42,6 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Text",
-        "Text",
-        "Text",
-        "Text",
-        "Text",
-        {
-          "Custom": {
-            "name": "userrole",
-            "kind": {
-              "Enum": [
-                "admin",
-                "user"
-              ]
-            }
-          }
-        },
         "Timestamptz"
       ]
     },
@@ -60,8 +49,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "5477c4e0572ab9fdcda7713f0d70711a14c2e4cb14d433db366c3af618d24c89"
+  "hash": "37c716427f018e63c54734d4b8723b1909f90222dbcc48642878000f62ed07f0"
 }

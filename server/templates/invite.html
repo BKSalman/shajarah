@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}دعوة{% endblock %}
+
+{% block content %}
+<div x-data="{
+    showTOTP: false,
+    imageUrl: '',
+    totpCode: '',
+    async accept(invite_id) {
+      const image = await acceptInvite(invite_id);
+      if (image != undefined) {
+        this.showTOTP = true;
+        this.imageUrl = 'data:image/png;base64,' + image;
+      }
+    },
+  }">
+  <button x-show="!showTOTP" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+    @click="declineInvite('{{ invite_id }}')">الرفض</button>
+  <button x-show="!showTOTP" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded"
+    @click="accept('{{ invite_id }}')">القبول</button>
+  <img x-show="showTOTP" :src="imageUrl" alt="Qr code">
+  <label x-show="showTOTP">كلمة المرور المؤقتة (TOTP):</label>
+  <input x-show="showTOTP" type="text" x-model="totpCode" class="w-full border rounded px-3 py-2" />
+  <button @click="verify('{{ invite_id }}', totpCode)" x-show="showTOTP"
+    class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded">إرسال</button>
+</div>
+
+<script>
+  async function acceptInvite(invite_id) {
+    try {
+      const response = await fetch(`/api/users/invite/accept/${invite_id}`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "PUT",
+      });
+
+      if (response.status === 200) {
+        return await response.text();
+      } else {
+        const body = await response.json();
+        alert(body.error);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function declineInvite(invite_id) {
+    try {
+      const response = await fetch(`/api/users/invite/decline/${invite_id}`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "PUT",
+      });
+
+      if (response.status !== 200) {
+        const body = await response.json();
+        alert(body.error);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function verify(invite_id, totpCode) {
+    try {
+      const response = await fetch(`/api/users/invite/verify/${invite_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          totp_code: totpCode,
+        })
+      });
+
+      if (response.status === 200) {
+        window.location.href = "/login";
+      } else {
+        const body = await response.json();
+        alert(body.error);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+</script>
+{% endblock %}

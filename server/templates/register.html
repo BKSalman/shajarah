@@ -6,11 +6,6 @@
   <form id="register-form" onsubmit="register(event)" class="bg-white p-8 rounded shadow-md w-full max-w-md space-y-4">
     <h2 class="text-2xl font-bold text-center">تسجيل حساب جديد</h2>
     <div>
-      <label for="username" class="block mb-1">اسم المستخدم:</label>
-      <input dir="auto" name="username" id="username" type="text" class="w-full border rounded px-3 py-2" required />
-    </div>
-
-    <div>
       <label for="first_name" class="block mb-1">الاسم الأول:</label>
       <input dir="auto" name="first_name" id="first_name" type="text" class="w-full border rounded px-3 py-2"
         required />
@@ -40,7 +35,7 @@
 
     <button type="submit" class="w-full bg-green-600 hover:bg-blue-700 text-white py-2 rounded">تسجيل</button>
 
-    <p class="text-sm text-center mt-2">هل لديك حساب؟ <a href="/login" class="text-blue-600 hover:underline">تسجيل
+    <p class="text-sm text-center mt-2">هل لديك حساب؟ <a href="/admin/login" class="text-blue-600 hover:underline">تسجيل
         الدخول</a></p>
   </form>
 
@@ -52,7 +47,6 @@
     const formData = new FormData(document.getElementById('register-form'));
 
     const data = {
-      username: formData.get('username'),
       first_name: formData.get('first_name'),
       last_name: formData.get('last_name'),
       email: formData.get('email'),
@@ -74,7 +68,7 @@
       .then(response => {
         if (response.status === 200) {
           alert('تم إنشاء الحساب بنجاح');
-          window.location.href = '/login';
+          window.location.href = '/admin/login';
         } else if (response.status === 400) {
           alert("التسجيل غير مسموح");
         } else {

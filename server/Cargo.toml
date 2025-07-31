@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+aes-gcm = { version = "0.10.3", features = ["std"] }
 anyhow = { workspace = true }
 argon2 = { version = "0.5.3", features = ["std"] }
 askama = { version = "0.12.1", features = ["with-axum", "serde-json"] }
@@ -18,6 +19,7 @@ dotenvy = "0.15.7"
 env_logger = "0.11.4"
 garde = { version = "0.22.0", features = ["derive", "email"] }
 indexmap = { workspace = true }
+lettre = "0.11.18"
 log = { workspace = true }
 rand = "0.8.5"
 serde = { workspace = true }
@@ -28,6 +30,8 @@ thiserror = "1.0.63"
 time = "0.3.36"
 tokio = { version = "1.38.1", features = ["full"] }
 toml = "0.8.16"
+totp-rs = { version = "5.7.0", features = ["qr"] }
 tower-cookies = { version = "0.10.0", features = ["private"] }
 tower-http = { version = "0.5.0", features = ["cors", "limit", "fs"] }
+url = { version = "2.5.4", features = ["serde"] }
 uuid = { version = "1.10.0", features = ["serde", "v4"] }

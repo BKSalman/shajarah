@@ -7,7 +7,7 @@ pub mod routes;
 
 #[derive(thiserror::Error, Debug)]
 pub enum UsersError {
-    #[error("internal server error")]
+    #[error("something went wrong")]
     InternalServerError,
 
     #[error("something went wrong")]
@@ -31,16 +31,37 @@ pub enum UsersError {
     #[error(transparent)]
     Argon2(#[from] argon2::password_hash::Error),
 
+    #[error(transparent)]
+    AES(#[from] aes_gcm::Error),
+
     #[error("{0}")]
     Conflict(String),
 
     #[error(transparent)]
     Garde(#[from] garde::Report),
+
+    #[error("Invalid invitation")]
+    InvalidInvitation,
+
+    #[error("Invalid invitation")]
+    InvitationAlreadyUsed,
+
+    #[error(transparent)]
+    TOTPURL(#[from] totp_rs::TotpUrlError),
+
+    #[error("{0}")]
+    TOTPQr(String),
+
+    #[error(transparent)]
+    SystemTime(#[from] std::time::SystemTimeError),
+
+    #[error(transparent)]
+    SecretParse(#[from] totp_rs::SecretParseError),
 }
 
 impl IntoResponse for UsersError {
     fn into_response(self) -> axum::response::Response {
-        log::error!("{:#?}", self);
+        log::error!("{self:#?}");
 
         match self {
             UsersError::UserNotFound => (
@@ -86,6 +107,7 @@ impl IntoResponse for UsersError {
             UsersError::InternalServerError => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
             UsersError::Sqlx(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
             UsersError::Argon2(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
+            UsersError::AES(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
             UsersError::AlreadyLoggedIn => (
                 StatusCode::BAD_REQUEST,
                 ErrorResponse {
@@ -95,6 +117,26 @@ impl IntoResponse for UsersError {
             )
                 .into_response(),
             UsersError::Garde(_) => (StatusCode::BAD_REQUEST).into_response(),
+            UsersError::InvalidInvitation => (
+                StatusCode::BAD_REQUEST,
+                ErrorResponse {
+                    error: self.to_string(),
+                    ..Default::default()
+                },
+            )
+                .into_response(),
+            UsersError::InvitationAlreadyUsed => (
+                StatusCode::BAD_REQUEST,
+                ErrorResponse {
+                    error: self.to_string(),
+                    ..Default::default()
+                },
+            )
+                .into_response(),
+            UsersError::TOTPURL(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
+            UsersError::TOTPQr(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
+            UsersError::SystemTime(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
+            UsersError::SecretParse(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
         }
     }
 }

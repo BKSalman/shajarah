@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nSELECT users.id, users.password FROM users\nWHERE users.email = $1\n        ",
+  "query": "\nSELECT users.id, users.totp_secret FROM users\nWHERE users.email = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -10,8 +10,8 @@
       },
       {
         "ordinal": 1,
-        "name": "password",
-        "type_info": "Text"
+        "name": "totp_secret",
+        "type_info": "Bytea"
       }
     ],
     "parameters": {
@@ -24,5 +24,5 @@
       true
     ]
   },
-  "hash": "2d96ced70bfcb6f776c4f8d65bf00422f6a3efb1a261649f5358cdbe4463df6d"
+  "hash": "6ca3d9e8f394530003c48dcabf520e654b85e3efe13d998a093b068fa3f82bed"
 }

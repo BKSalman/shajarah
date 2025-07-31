@@ -1,13 +1,17 @@
-use crate::api::members::models::RequestStatus;
+use crate::api::members::{
+    models::{MemberInvite, MemberInviteResponse, RequestStatus},
+    routes::get_member_invites,
+};
 use std::sync::Arc;
 
 use askama::Template;
 use axum::{
-    extract::{Query, State},
+    extract::{Path, Query, State},
     response::{IntoResponse, Redirect},
     Json,
 };
 use serde::Deserialize;
+use uuid::Uuid;
 
 use crate::{
     api::{
@@ -51,7 +55,7 @@ pub enum PagesError {
 
 impl IntoResponse for PagesError {
     fn into_response(self) -> axum::response::Response {
-        log::error!("{:#?}", self);
+        log::error!("{self:#?}");
 
         match self {
             PagesError::Auth(e) => e.into_response(),
@@ -76,6 +80,7 @@ pub struct AdminTemplate {
     name: String,
     members: Vec<MemberResponseBrief>,
     add_requests: Vec<RequestedMemberResponseBrief>,
+    member_invites: Vec<MemberInviteResponse>,
     members_query: Option<String>,
     requests_query: Option<String>,
 }
@@ -107,19 +112,26 @@ pub async fn admin_page(
                 };
             let requests_query = params.0.requests_params.query.clone();
             let Json(add_requests) =
-                get_requested_members_flat(state, Query(params.0.requests_params)).await?;
+                get_requested_members_flat(state.clone(), Query(params.0.requests_params)).await?;
+
+            let name = auth.current_user.first_name.clone();
+
+            // TODO: display this in the admin page
+            let Json(member_invites) = get_member_invites(auth, state).await?;
+
             Ok(AdminTemplate {
-                name: auth.current_user.username,
+                name,
                 members,
                 add_requests,
                 members_query,
                 requests_query,
+                member_invites,
             }
             .into_response())
         }
         Err(e) => match e {
             AuthError::InvalidSession | AuthError::SessionError(_) => {
-                Ok(Redirect::to("/login").into_response())
+                Ok(Redirect::to("/admin/login").into_response())
             }
             e => Err(e.into()),
         },
@@ -128,23 +140,32 @@ pub async fn admin_page(
 
 #[derive(Template)]
 #[template(path = "login.html")]
-pub struct LoginTemplate;
+pub struct AdminLoginTemplate;
 
-pub async fn login_page(
+pub async fn admin_login_page(
     auth: Option<Result<AuthExtractor<{ UserRole::Admin as u8 }>, AuthError>>,
 ) -> impl IntoResponse {
+    // if already logged in, redirect to admin page
     if auth.is_some_and(|a| a.is_ok()) {
         return Redirect::to("/admin").into_response();
     }
 
-    LoginTemplate.into_response()
+    AdminLoginTemplate.into_response()
+}
+
+#[derive(Template)]
+#[template(path = "members-login.html")]
+pub struct MembersLoginTemplate;
+
+pub async fn members_login_page() -> impl IntoResponse {
+    MembersLoginTemplate.into_response()
 }
 
 #[derive(Template)]
 #[template(path = "register.html")]
 pub struct RegisterTemplate;
 
-pub async fn register_page(
+pub async fn admin_register_page(
     state: State<Arc<InnerAppState>>,
 ) -> Result<impl IntoResponse, PagesError> {
     if sqlx::query!(
@@ -181,4 +202,28 @@ pub async fn add_request_page(
     };
 
     Ok(AddRequestTemplate { members })
+}
+
+#[derive(Template)]
+#[template(path = "invite.html")]
+pub struct InviteTemplate {
+    invite_id: Uuid,
+}
+
+pub async fn invite_reply_page(
+    state: State<Arc<InnerAppState>>,
+    Path(invite_id): Path<Uuid>,
+) -> Result<InviteTemplate, PagesError> {
+    let query = sqlx::query!(
+        r#"SELECT id FROM member_invites WHERE id = $1 AND status = 'pending'"#,
+        invite_id
+    )
+    .fetch_optional(&state.db_pool)
+    .await?;
+
+    if query.is_some() {
+        Ok(InviteTemplate { invite_id })
+    } else {
+        Err(PagesError::NotFound)
+    }
 }

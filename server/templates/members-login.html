@@ -11,15 +11,11 @@
     </div>
 
     <div>
-      <label class="block mb-1">كلمة المرور:</label>
-      <input dir="auto" name="password" type="password" required class="w-full border rounded px-3 py-2" />
+      <label class="block mb-1">الكلمة المؤقتة (TOTP):</label>
+      <input dir="auto" name="totp" type="password" required class="w-full border rounded px-3 py-2" />
     </div>
 
     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">تسجيل الدخول</button>
-
-    <p class="text-sm text-center mt-2">
-      لا تملك حساباً؟ <a href="/admin/register" class="text-blue-600 hover:underline">أنشئ حساب</a>
-    </p>
   </form>
 </div>
 
@@ -29,14 +25,14 @@
     const form = event.target;
     const data = Object.fromEntries(new FormData(form).entries());
 
-    const response = await fetch("/api/users/admin/login", {
+    const response = await fetch("/api/users/login", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify(data)
     });
 
     if (response.ok) {
-      window.location.href = "/admin";
+      window.location.href = "/";
     } else {
       alert("فشل تسجيل الدخول");
     }

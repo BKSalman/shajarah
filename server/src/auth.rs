@@ -36,7 +36,7 @@ pub enum AuthError {
 
 impl IntoResponse for AuthError {
     fn into_response(self) -> axum::response::Response {
-        log::error!("{:#?}", self);
+        log::error!("{self:#?}");
 
         match self {
             AuthError::SomethingWentWrong => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
@@ -78,7 +78,7 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
         struct AuthRow {
             user_id: Uuid,
             session_id: Uuid,
-            username: String,
+            first_name: String,
             email: String,
             role: UserRole,
         }
@@ -88,7 +88,7 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
                 let Some(rec) = sqlx::query_as!(
                     AuthRow,
                     r#"
-                        SELECT users.id as user_id, sessions.id as session_id, users.username, users.email, users.role as "role: UserRole" FROM sessions
+                        SELECT users.id as user_id, sessions.id as session_id, users.first_name, users.email, users.role as "role: UserRole" FROM sessions
                         INNER JOIN users
                           ON sessions.user_id = users.id
                         WHERE sessions.id = $1 AND sessions.expires_at > $2 AND users.role = 'admin'
@@ -107,7 +107,7 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
                 Ok(AuthExtractor {
                     current_user: UserResponseBrief {
                         id: rec.user_id,
-                        username: rec.username,
+                        first_name: rec.first_name,
                         email: rec.email,
                         role: rec.role,
                     },
@@ -118,7 +118,7 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
                 let Some(rec) = sqlx::query_as!(
                     AuthRow,
                     r#"
-                        SELECT users.id as user_id, sessions.id as session_id, users.username, users.email, users.role as "role: UserRole" FROM sessions
+                        SELECT users.id as user_id, sessions.id as session_id, users.email, users.first_name, users.role as "role: UserRole" FROM sessions
                         INNER JOIN users
                           ON sessions.user_id = users.id
                         WHERE sessions.id = $1 AND sessions.expires_at > $2
@@ -137,7 +137,7 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
                 Ok(AuthExtractor {
                     current_user: UserResponseBrief {
                         id: rec.user_id,
-                        username: rec.username,
+                        first_name: rec.first_name,
                         email: rec.email,
                         role: rec.role,
                     },

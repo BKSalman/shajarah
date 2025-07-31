@@ -24,8 +24,6 @@ pub struct ProfileImage {
 #[derive(Deserialize, Validate)]
 pub struct CreateUser {
     #[garde(skip)]
-    pub username: String,
-    #[garde(skip)]
     pub first_name: String,
     #[garde(skip)]
     pub last_name: String,
@@ -37,12 +35,12 @@ pub struct CreateUser {
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct CreateUserReponse {
+pub struct CreateUserResponse {
     pub user_id: Uuid,
 }
 
 #[derive(Deserialize, Validate)]
-pub struct UserLogin {
+pub struct AdminLogin {
     #[garde(email)]
     pub email: String,
     // TODO: add password rules
@@ -50,10 +48,17 @@ pub struct UserLogin {
     pub password: String,
 }
 
+#[derive(Deserialize, Validate)]
+pub struct MemberLogin {
+    #[garde(email)]
+    pub email: String,
+    #[garde(skip)]
+    pub totp: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct UserResponse {
     pub id: Uuid,
-    pub username: String,
     pub email: String,
     pub role: UserRole,
 }
@@ -61,7 +66,7 @@ pub struct UserResponse {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserResponseBrief {
     pub id: Uuid,
-    pub username: String,
+    pub first_name: String,
     pub email: String,
     pub role: UserRole,
 }
@@ -75,4 +80,10 @@ pub struct UserClaims {
 pub struct UserToken {
     pub access_token: String,
     pub r#type: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate)]
+pub struct VerifyTOTP {
+    #[garde(length(min = 6, max = 6))]
+    pub totp_code: String,
 }

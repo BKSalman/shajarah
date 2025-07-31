@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                        SELECT users.id as user_id, sessions.id as session_id, users.username, users.email, users.role as \"role: UserRole\" FROM sessions\n                        INNER JOIN users\n                          ON sessions.user_id = users.id\n                        WHERE sessions.id = $1 AND sessions.expires_at > $2\n                    ",
+  "query": "\n                        SELECT users.id as user_id, sessions.id as session_id, users.first_name, users.email, users.role as \"role: UserRole\" FROM sessions\n                        INNER JOIN users\n                          ON sessions.user_id = users.id\n                        WHERE sessions.id = $1 AND sessions.expires_at > $2 AND users.role = 'admin'\n                    ",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "username",
+        "name": "first_name",
         "type_info": "Text"
       },
       {
@@ -53,5 +53,5 @@
       false
     ]
   },
-  "hash": "3de920a9f349d1b46ae3aa12c97b7605532ca4aa6647260eebcd362d2cd43f4a"
+  "hash": "d31737eaf2f019c57483af628ef19e10d953db6d6b0c747ee2e02ed04b59278a"
 }

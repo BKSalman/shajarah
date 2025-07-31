@@ -1,0 +1,21 @@
+meta {
+  name: invite member
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3030/api/members/invite/1
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "salman.f.abuhaimed@gmail.com"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

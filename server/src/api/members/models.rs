@@ -234,7 +234,6 @@ impl UpdateMemberBuilder {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct MemberRow {
     pub id: i64,
@@ -252,23 +251,23 @@ pub struct MemberRow {
     pub father_id: Option<i64>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, sqlx::FromRow)]
 pub struct MemberRowWithParents {
     pub id: i64,
     pub name: String,
     pub gender: Gender,
     pub birthday: Option<chrono::DateTime<chrono::Utc>>,
+    pub email: Option<String>,
     pub last_name: String,
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
-    pub mother_id: Option<i64>,
-    pub father_id: Option<i64>,
     pub personal_info: Option<serde_json::Value>,
+    pub mother_id: Option<i64>,
     pub mother_name: Option<String>,
     pub mother_gender: Option<Gender>,
     pub mother_birthday: Option<chrono::DateTime<chrono::Utc>>,
     pub mother_last_name: Option<String>,
+    pub father_id: Option<i64>,
     pub father_name: Option<String>,
     pub father_gender: Option<Gender>,
     pub father_birthday: Option<chrono::DateTime<chrono::Utc>>,
@@ -340,7 +339,6 @@ pub struct MemberResponseBrief {
     pub image_type: Option<String>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, sqlx::FromRow)]
 pub struct RequestedMemberRow {
     pub id: Uuid,
@@ -356,7 +354,6 @@ pub struct RequestedMemberRow {
     pub status: RequestStatus,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, sqlx::FromRow)]
 pub struct RequestedMemberRowWithParents {
     pub id: Uuid,
@@ -405,8 +402,39 @@ pub enum RequestStatus {
     Disapproved,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[derive(Default, Debug, Clone, Copy, sqlx::Type, Serialize, Deserialize, PartialEq)]
+#[sqlx(type_name = "invite_status", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum InviteStatus {
+    #[default]
+    Pending,
+    Accepted,
+    Declined,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MemberInvite {
+    pub id: Uuid,
+    pub member_id: i64,
+    pub email: String,
+    pub status: InviteStatus,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+    pub totp_secret: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct MemberInviteResponse {
+    pub id: Uuid,
+    pub member_id: i64,
+    pub email: String,
+    pub status: InviteStatus,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+pub struct CreateMemberInvite {
     #[garde(email)]
     pub email: String,
 }

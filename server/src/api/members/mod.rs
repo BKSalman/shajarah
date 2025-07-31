@@ -39,11 +39,20 @@ pub enum MembersError {
 
     #[error(transparent)]
     Garde(#[from] garde::Report),
+
+    #[error(transparent)]
+    AES(#[from] aes_gcm::Error),
+
+    #[error("{0}")]
+    TOTPQr(String),
+
+    #[error(transparent)]
+    TOTPURL(#[from] totp_rs::TotpUrlError),
 }
 
 impl IntoResponse for MembersError {
     fn into_response(self) -> axum::response::Response {
-        log::error!("{:#?}", self);
+        log::error!("{self:#?}");
 
         match self {
             MembersError::SomethingWentWrong => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
@@ -99,6 +108,9 @@ impl IntoResponse for MembersError {
             )
                 .into_response(),
             MembersError::Garde(_) => (StatusCode::BAD_REQUEST).into_response(),
+            MembersError::AES(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
+            MembersError::TOTPQr(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
+            MembersError::TOTPURL(_) => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
         }
     }
 }

@@ -7,7 +7,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tower_cookies::Key;
 
 pub mod api;
 pub mod auth;
@@ -37,8 +36,23 @@ pub enum ConfigError {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct EmailCredentials {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct EmailConfig {
+    pub smtp_server: String,
+    pub credentials: EmailCredentials,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Config {
     pub cookie_secret: String,
+    pub totp_encryption_key: Vec<u8>,
+    pub email_config: Option<EmailConfig>,
+    pub base_url: url::Url,
 }
 
 impl Config {
@@ -51,7 +65,7 @@ impl Config {
         config_path.set_file_name("config.toml");
 
         let config_file = std::fs::read_to_string(config_path)?;
-        toml::from_str::<Config>(&config_file).map_err(Into::into)
+        Ok(toml::from_str::<Config>(&config_file)?)
     }
 }
 
@@ -122,9 +136,18 @@ pub struct Pagination {
     pub per_page: Option<usize>,
 }
 
+#[derive(Debug)]
+pub struct EmailMessage {
+    pub to: String,
+    pub content: String,
+}
+
 pub struct InnerAppState {
     pub db_pool: PgPool,
-    pub cookies_secret: Key,
+    pub cookies_secret: tower_cookies::Key,
+    pub totp_encryption_key: aes_gcm::Key<aes_gcm::Aes256Gcm>,
+    pub base_url: url::Url,
+    pub email_sender: tokio::sync::mpsc::Sender<EmailMessage>,
 }
 
 #[derive(Clone, FromRef)]

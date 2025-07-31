@@ -3,14 +3,13 @@
 {% block title %}صفحة الإدارة{% endblock %}
 
 {% block content %}
-<div dir="rtl" class="mx-auto space-y-8 p-8 font-sans bg-gray-100">
+<div dir="rtl" class="mx-auto space-y-8 p-8 font-sans bg-gray-100" x-data="adminPage()">
   <div class="flex justify-between items-center">
     <span class="text-lg font-bold">اهلا، {{ name }}!</span>
-    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">تسجيل الخروج</button>
+    <button @click="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">تسجيل الخروج</button>
   </div>
 
-  <form id="new-member-form" onsubmit="new_member(event)" class="bg-white p-6 rounded shadow-md space-y-4"
-    enctype="multipart/form-data">
+  <form class="bg-white p-6 rounded shadow-md space-y-4" @submit.prevent="newMember($event)">
     <h2 class="text-xl font-bold mb-2">إضافة عضو جديد</h2>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -56,8 +55,20 @@
 
     <div class="space-y-2">
       <label class="block mb-1">معلومات شخصية:</label>
-      <div id="new-member-key-value-pairs" class="space-y-1"></div>
-      <button type="button" id="new-member-add-pair-btn" class="text-blue-500 hover:underline">+ إضافة حقل</button>
+      <div class="space-y-1">
+        <template x-for="(pair, index) in newMemberPairs" :key="index">
+          <div class="flex gap-2">
+            <input dir="auto" x-model="pair.key" type="text" class="border rounded px-3 py-2"
+              placeholder="مثال: المهنة" />
+            <input dir="auto" x-model="pair.value" type="text" class="border rounded px-3 py-2"
+              placeholder="مثال: محامي" />
+            <button type="button" @click="newMemberPairs.splice(index, 1)"
+              class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">x</button>
+          </div>
+        </template>
+      </div>
+      <button type="button" @click="newMemberPairs.push({key: '', value: ''})" class="text-blue-500 hover:underline">+
+        إضافة حقل</button>
     </div>
 
     <div>
@@ -69,21 +80,17 @@
   </form>
 
   <div class="bg-white p-6 rounded shadow space-y-4">
-
-    <h2 class="text-xl font-bold mb-2">
-      طلبات إضافة الأفراد
-    </h2>
+    <h2 class="text-xl font-bold mb-2">طلبات إضافة الأفراد</h2>
 
     <div>
-      <form class="flex gap-2 items-center" id="requests-search" onsubmit="requests_search(event)">
+      <form class="flex gap-2 items-center" @submit.prevent="requestsSearch($event)">
         {% match requests_query %}
         {% when Some with (query) %}
-        <input name="query" dir="auto" id="search-bar" type="text" value="{{ query }}"
-          class="border px-3 py-2 rounded w-full" />
+        <input name="query" dir="auto" type="text" value="{{ query }}" class="border px-3 py-2 rounded w-full" />
         {% when None %}
-        <input name="query" dir="auto" id="search-bar" type="text" class="border px-3 py-2 rounded w-full" />
+        <input name="query" dir="auto" type="text" class="border px-3 py-2 rounded w-full" />
         {% endmatch %}
-        <button id="search-button" class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded">ابحث</button>
+        <button class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded">ابحث</button>
       </form>
     </div>
 
@@ -100,6 +107,7 @@
             <th class="p-2 border">معرف الام</th>
             <th class="p-2 border">معلومات شخصية</th>
             <th class="p-2 border">الصورة</th>
+            <th class="p-2 border">الدعوات</th>
             <th colspan="2" class="p-2 border">إجراءات</th>
           </tr>
         </thead>
@@ -158,11 +166,11 @@
             {% endmatch %}
             <td class="p-2 border">
               <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-                onclick="confirm_disapprove('{{ requested_member.id }}')">الرفض</button>
+                @click="confirmDisapprove('{{ requested_member.id }}')">الرفض</button>
             </td>
             <td class="p-2 border">
               <button class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded"
-                onclick="confirm_approve('{{ requested_member.id }}')">القبول</button>
+                @click="confirmApprove('{{ requested_member.id }}')">القبول</button>
             </td>
           </tr>
           {% endif %}
@@ -172,9 +180,9 @@
     </div>
 
     <div class="flex justify-between mt-4">
-      <button onclick="requests_prev_page()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">الصفحة
+      <button @click="requestsPrevPage()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">الصفحة
         السابقة</button>
-      <button onclick="requests_next_page()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">الصفحة
+      <button @click="requestsNextPage()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">الصفحة
         التالية</button>
     </div>
   </div>
@@ -184,8 +192,7 @@
       <a href="/api/members/export" download="exported-members.csv">
         <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">تصدير قائمة العائلة</button>
       </a>
-      <form id="upload-members-form" onsubmit="upload_members(event)" enctype="multipart/form-data"
-        class="flex items-center gap-2">
+      <form @submit.prevent="uploadMembers($event)" enctype="multipart/form-data" class="flex items-center gap-2">
         <input dir="auto" type="file" name="members_csv" accept="text/csv" class="border px-2 py-1 rounded" />
         <button type="submit" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded">رفع
           القائمة</button>
@@ -193,15 +200,14 @@
     </div>
 
     <div>
-      <form class="flex items-center gap-2" id="members-search" onsubmit="members_search(event)">
+      <form class="flex items-center gap-2" @submit.prevent="membersSearch($event)">
         {% match members_query %}
         {% when Some with (query) %}
-        <input name="query" dir="auto" id="search-bar" type="text" value="{{ query }}"
-          class="border px-3 py-2 rounded w-full" />
+        <input name="query" dir="auto" type="text" value="{{ query }}" class="border px-3 py-2 rounded w-full" />
         {% when None %}
-        <input name="query" dir="auto" id="search-bar" type="text" class="border px-3 py-2 rounded w-full" />
+        <input name="query" dir="auto" type="text" class="border px-3 py-2 rounded w-full" />
         {% endmatch %}
-        <button id="search-button" class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded">ابحث</button>
+        <button class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded">ابحث</button>
       </form>
     </div>
 
@@ -218,12 +224,13 @@
             <th class="p-2 border">معرف الام</th>
             <th class="p-2 border">معلومات شخصية</th>
             <th class="p-2 border">الصورة</th>
-            <th colspan="2" class="p-2 border">إجراءات</th>
+            <th class="p-2 border">الدعوات</th>
+            <th colspan="3" class="p-2 border">إجراءات</th>
           </tr>
         </thead>
         <tbody>
           {% for member in members %}
-          <tr>
+          <tr x-data="{ editing: false, editPairs: [] }">
             <td class="p-2 border">{{ member.id|e }}</td>
             <td class="p-2 border">{{ member.name|e }}</td>
             <td class="p-2 border">{{ member.last_name|e }}</td>
@@ -273,29 +280,43 @@
             {% when None %}
             <td class="p-2 border">NULL</td>
             {% endmatch %}
+            <td x-data="{ email: '' }" class="p-2 border">
+              <input type="email" class="border px-3 py-2 rounded w-full" x-model="email" />
+
+              <button class="bg-yellow-500 hover:bg-yellow-600 text-white my-2 px-4 py-2 rounded"
+                @click="inviteMember({{ member.id }}, email)">دعوة بريدية</button>
+            </td>
             <td class="p-2 border">
               <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-                onclick="confirm_delete({{ member.id }})">حذف</button>
+                @click="confirmDelete({{ member.id }})">حذف</button>
             </td>
             <td dir="rtl" class="p-2 border text-right">
-              <button class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded" id="edit-toggle"
-                onclick="toggle_edit_member_form(this, {{ member.id }})">تعديل</button>
+              <button class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded" @click="editing = !editing; if(editing) { editPairs = [
+                  {% match member.personal_info %}
+                  {% when Some with (personal_info) %}
+                  {% for (key, value) in personal_info %}
+                  {key: '{{key}}', value: '{{value}}'},
+                  {% endfor %}
+                  {% when None %}
+                  {% endmatch %}
+                ]; }" x-text="editing ? 'إغلاق التعديل' : 'تعديل'"></button>
 
-              <form autocomplete="off" onsubmit="edit_member(event, {{ member.id }})" class="hidden edit-member-form"
-                id="edit-member-form-{{ member.id }}" enctype="multipart/form-data" action="#" method="post">
+              <form x-show="editing" x-transition @submit.prevent="editMember($event, {{ member.id }})"
+                class="mt-2 space-y-2" enctype="multipart/form-data">
                 <div>
-                  <label for="edit-member-name">الاسم:</label>
-                  <input dir="auto" class="w-full border rounded px-3 py-2" id="edit-member-name" type="text"
-                    name="name" value={{ member.name }} />
+                  <label>الاسم:</label>
+                  <input dir="auto" x-on:change="$el.classList.add('changed')" class="w-full border rounded px-3 py-2"
+                    type="text" name="name" value="{{ member.name }}" />
                 </div>
                 <div>
-                  <label for="edit-member-last-name">الاسم الاخير:</label>
-                  <input dir="auto" class="w-full border rounded px-3 py-2" id="edit-member-last-name" type="text"
-                    name="last_name" value={{ member.last_name }} />
+                  <label>الاسم الاخير:</label>
+                  <input dir="auto" x-on:change="$el.classList.add('changed')" class="w-full border rounded px-3 py-2"
+                    type="text" name="last_name" value="{{ member.last_name }}" />
                 </div>
                 <div>
-                  <label for="edit-member-gender">الجنس:</label>
-                  <select class="w-full border rounded px-3 py-2" id="edit-member-gender" name="gender">
+                  <label>الجنس:</label>
+                  <select x-on:change="$el.classList.add('changed')" class="w-full border rounded px-3 py-2"
+                    name="gender">
                     {% if member.gender == "male" %}
                     <option selected value="male">ذكر</option>
                     <option value="female">انثى</option>
@@ -306,101 +327,78 @@
                   </select>
                 </div>
                 <div>
-                  <label for="edit-member-gender">تاريخ الولادة:</label>
+                  <label>تاريخ الولادة:</label>
                   {% match member.birthday %}
                   {% when Some with (birthday) %}
-                  <input dir="auto" class="w-full border rounded px-3 py-2" id="edit-member-birthday" type="date"
-                    name="birthday" value={{ birthday.format("%Y-%m-%d").to_string() }} />
+                  <input dir="auto" x-on:change="$el.classList.add('changed')" class="w-full border rounded px-3 py-2"
+                    type="date" name="birthday" value="{{ birthday.format(" %Y-%m-%d").to_string() }}" />
                   {% when None %}
-                  <input dir="auto" class="w-full border rounded px-3 py-2" id="edit-member-birthday" type="date"
-                    name="birthday" />
+                  <input dir="auto" x-on:change="$el.classList.add('changed')" class="w-full border rounded px-3 py-2"
+                    type="date" name="birthday" />
                   {% endmatch %}
                 </div>
                 <div>
-                  <label for="edit-mother_id">معرف الام:</label>
+                  <label>معرف الام:</label>
                   {% match member.mother_id %}
                   {% when Some with (mother_id) %}
-                  <input name="mother_id" id="edit-mother_id" type="text" list="edit-mother_ids"
-                    class="w-full border rounded px-3 py-2" value="{{mother_id}}" />
+                  <input x-on:change="$el.classList.add('changed')" name="mother_id" type="text"
+                    list="edit-mother_ids-{{member.id}}" class="w-full border rounded px-3 py-2"
+                    value="{{mother_id}}" />
                   {% when None %}
-                  <input name="mother_id" id="edit-mother_id" type="text" list="edit-mother_ids"
-                    class="w-full border rounded px-3 py-2" />
+                  <input x-on:change="$el.classList.add('changed')" name="mother_id" type="text"
+                    list="edit-mother_ids-{{member.id}}" class="w-full border rounded px-3 py-2" />
                   {% endmatch %}
-                  <datalist id="edit-mother_ids">
+                  <datalist id="edit-mother_ids-{{member.id}}">
                     {% for other_member in members %}
-                    {% if other_member.gender == "female" %}
-                    {% match member.mother_id %}
-                    {% when Some with (mother_id) %}
-                    {% if other_member.id == mother_id|deref_i64 %}
-                    <option selected value={{other_member.id}}>{{ other_member.id }} {{ other_member.name }}</option>
-                    {% else if other_member.id != member.id %}
-                    <option value={{other_member.id}}>{{ other_member.id }} {{ other_member.name }}</option>
-                    {% endif %}
-                    {% when None %}
-                    {% if other_member.id != member.id %}
-                    <option value={{other_member.id}}>{{ other_member.id }} {{ other_member.name }}</option>
-                    {% endif %}
-                    {% endmatch %}
+                    {% if other_member.gender == "female" && other_member.id != member.id %}
+                    <option value="{{other_member.id}}">{{ other_member.id }} {{ other_member.name }}</option>
                     {% endif %}
                     {% endfor %}
                   </datalist>
                 </div>
                 <div>
-                  <label for="edit-father_id">معرف الاب:</label>
+                  <label>معرف الاب:</label>
                   {% match member.father_id %}
                   {% when Some with (father_id) %}
-                  <input name="father_id" id="edit-father_id" type="text" list="edit-father_ids"
-                    class="w-full border rounded px-3 py-2" value="{{father_id}}" />
+                  <input x-on:change="$el.classList.add('changed')" name="father_id" type="text"
+                    list="edit-father_ids-{{member.id}}" class="w-full border rounded px-3 py-2"
+                    value="{{father_id}}" />
                   {% when None %}
-                  <input name="father_id" id="edit-father_id" type="text" list="edit-father_ids"
-                    class="w-full border rounded px-3 py-2" />
+                  <input x-on:change="$el.classList.add('changed')" name="father_id" type="text"
+                    list="edit-father_ids-{{member.id}}" class="w-full border rounded px-3 py-2" />
                   {% endmatch %}
-                  <datalist id="edit-father_ids">
+                  <datalist id="edit-father_ids-{{member.id}}">
                     {% for other_member in members %}
-                    {% if other_member.gender == "male" %}
-                    {% match member.father_id %}
-                    {% when Some with (father_id) %}
-                    {% if other_member.id == father_id|deref_i64 %}
-                    <option selected value={{other_member.id}}>{{ other_member.id }} {{ other_member.name }}</option>
-                    {% else if other_member.id != member.id %}
-                    <option value={{other_member.id}}>{{ other_member.id }} {{ other_member.name }}</option>
-                    {% endif %}
-                    {% when None %}
-                    {% if other_member.id != member.id %}
-                    <option value={{other_member.id}}>{{ other_member.id }} {{ other_member.name }}</option>
-                    {% endif %}
-                    {% endmatch %}
+                    {% if other_member.gender == "male" && other_member.id != member.id %}
+                    <option value="{{other_member.id}}">{{ other_member.id }} {{ other_member.name }}</option>
                     {% endif %}
                     {% endfor %}
                   </datalist>
                 </div>
                 <div>
-                  <label for="edit-member-info">المعلومات الشخصية:</label>
-                  <div id="edit-member-key-value-pairs">
-                    {% match member.personal_info %}
-                    {% when Some with (personal_info) %}
-                    {% for (key, value) in personal_info %}
-                    <div class="flex" id="edit-member-pair">
-                      <div class="flex" id="edit-member-pair-fields">
-                        <input dir="auto" class="border rounded px-3 py-2" id="json-key" value="{{key}}" />
-                        <input dir="auto" class="border rounded px-3 py-2" id="json-value" value="{{value}}" />
+                  <label>المعلومات الشخصية:</label>
+                  <div class="space-y-1">
+                    <template x-for="(pair, index) in editPairs" :key="index">
+                      <div class="flex gap-2">
+                        <input dir="auto" x-model="pair.key" class="border rounded px-3 py-2"
+                          placeholder="مثال: المهنة" />
+                        <input dir="auto" x-model="pair.value" class="border rounded px-3 py-2"
+                          placeholder="مثال: محامي" />
+                        <button type="button" @click="editPairs.splice(index, 1)"
+                          class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">x</button>
                       </div>
-                      <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded" type="button"
-                        id="edit-member-remove-pair-btn" onclick="removePair(this)">x</button>
-                    </div>
-                    {% endfor %}
-                    {% when None %}
-                    {% endmatch %}
+                    </template>
                   </div>
-                  <button class="text-blue-500 hover:underline" type="button" id="edit-member-add-pair-btn">+ إضافة
-                    حقل</button>
+                  <button type="button" @click="editPairs.push({key: '', value: ''})"
+                    class="text-blue-500 hover:underline">+ إضافة حقل</button>
                 </div>
                 <div>
-                  <label for="edit-member-image">الصورة:</label>
-                  <input dir="auto" class="border px-2 py-1 rounded" id="edit-member-image" type="file" name="image" />
+                  <label>الصورة:</label>
+                  <input dir="auto" x-on:change="$el.classList.add('changed')" class="border px-2 py-1 rounded"
+                    type="file" name="image" />
                 </div>
-                <button class="my-3 bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded" type="submit"
-                  name="submit">إرسال التعديل</button>
+                <button class="my-3 bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded" type="submit">إرسال
+                  التعديل</button>
               </form>
             </td>
           </tr>
@@ -410,373 +408,236 @@
     </div>
 
     <div class="flex justify-between mt-4">
-      <button onclick="members_prev_page()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">الصفحة
-        السابقة</button>
-      <button onclick="members_next_page()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">الصفحة
-        التالية</button>
+      <button @click="membersPrevPage()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">الصفحة السابقة</button>
+      <button @click="membersNextPage()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">الصفحة التالية</button>
     </div>
-
   </div>
 </div>
 
 <script>
-  async function members_search(e) {
-    e.preventDefault();
-    let formData = new FormData(e.target);
+  function adminPage() {
+    return {
+      newMemberPairs: [],
 
-    if ('URLSearchParams' in window) {
-      let searchParams = new URLSearchParams(window.location.search);
-      const query = formData.get("query");
-      if (query == "") {
-        if (searchParams.has("members_query")) {
+      async inviteMember(id, email) {
+        try {
+          const response = await fetch(`/api/members/invite/${id}`, {
+            headers: {
+              "Content-Type": "application/json",
+            },
+            method: "POST",
+            body: JSON.stringify({
+              email: email,
+            })
+          });
+
+          if (response.status === 200) {
+            location.reload();
+          } else {
+            const body = await response.json();
+            alert(body.error);
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      },
+
+      async membersSearch(e) {
+        const formData = new FormData(e.target);
+        const searchParams = new URLSearchParams(window.location.search);
+        const query = formData.get("query");
+
+        if (query === "") {
           searchParams.delete("members_query");
-          window.location.search = searchParams.toString();
+        } else {
+          searchParams.set("members_query", query);
         }
-      } else {
-        searchParams.set("members_query", query);
         window.location.search = searchParams.toString();
-      }
-    }
-  }
+      },
 
-  async function requests_search(e) {
-    e.preventDefault();
-    let formData = new FormData(e.target);
+      async requestsSearch(e) {
+        const formData = new FormData(e.target);
+        const searchParams = new URLSearchParams(window.location.search);
+        const query = formData.get("query");
 
-    if ('URLSearchParams' in window) {
-      let searchParams = new URLSearchParams(window.location.search);
-      const query = formData.get("query");
-      if (query == "") {
-        if (searchParams.has("requests_query")) {
+        if (query === "") {
           searchParams.delete("requests_query");
-          window.location.search = searchParams.toString();
+        } else {
+          searchParams.set("requests_query", query);
         }
-      } else {
-        searchParams.set("requests_query", query);
         window.location.search = searchParams.toString();
-      }
-    }
-  }
+      },
 
-  async function members_next_page() {
-    if ('URLSearchParams' in window) {
-      let searchParams = new URLSearchParams(window.location.search);
-      const currentPage = parseInt(searchParams.get("members_page"));
-      if (Number.isNaN(currentPage)) {
-        searchParams.append("members_page", "1");
-        window.location.search = searchParams.toString();
-      } else {
+      membersNextPage() {
+        const searchParams = new URLSearchParams(window.location.search);
+        const currentPage = parseInt(searchParams.get("members_page")) || 0;
         searchParams.set("members_page", currentPage + 1);
         window.location.search = searchParams.toString();
-      }
-    }
-  }
+      },
 
-  async function members_prev_page() {
-    if ('URLSearchParams' in window) {
-      let searchParams = new URLSearchParams(window.location.search);
-      const currentPage = parseInt(searchParams.get("members_page"));
-      if (Number.isNaN(currentPage)) {
-        searchParams.append("members_page", "0");
-        window.location.search = searchParams.toString();
-      } else {
-        if (currentPage !== 0) {
-          searchParams.set("members_page", Math.max(currentPage - 1, 0));
+      membersPrevPage() {
+        const searchParams = new URLSearchParams(window.location.search);
+        const currentPage = parseInt(searchParams.get("members_page")) || 0;
+        if (currentPage > 0) {
+          searchParams.set("members_page", currentPage - 1);
           window.location.search = searchParams.toString();
         }
-      }
-    }
-  }
+      },
 
-  async function requests_next_page() {
-    if ('URLSearchParams' in window) {
-      let searchParams = new URLSearchParams(window.location.search);
-      const currentPage = parseInt(searchParams.get("requests_page"));
-      if (Number.isNaN(currentPage)) {
-        searchParams.append("requests_page", "1");
-        window.location.search = searchParams.toString();
-      } else {
+      requestsNextPage() {
+        const searchParams = new URLSearchParams(window.location.search);
+        const currentPage = parseInt(searchParams.get("requests_page")) || 0;
         searchParams.set("requests_page", currentPage + 1);
         window.location.search = searchParams.toString();
-      }
-    }
-  }
+      },
 
-  async function requests_prev_page() {
-    if ('URLSearchParams' in window) {
-      let searchParams = new URLSearchParams(window.location.search);
-      const currentPage = parseInt(searchParams.get("requests_page"));
-      if (Number.isNaN(currentPage)) {
-        searchParams.append("requests_page", "0");
-        window.location.search = searchParams.toString();
-      } else {
-        if (currentPage !== 0) {
-          searchParams.set("requests_page", Math.max(currentPage - 1, 0));
+      requestsPrevPage() {
+        const searchParams = new URLSearchParams(window.location.search);
+        const currentPage = parseInt(searchParams.get("requests_page")) || 0;
+        if (currentPage > 0) {
+          searchParams.set("requests_page", currentPage - 1);
           window.location.search = searchParams.toString();
         }
-      }
-    }
-  }
+      },
 
-  async function logout() {
-    const response = await fetch("/api/users/logout");
-
-    if (response.status == 200) {
-      window.location.href = "/login";
-    }
-  }
-
-  async function new_member(e) {
-    e.preventDefault();
-    const formElement = e.currentTarget;
-
-    const formData = new FormData();
-    for (e of formElement.querySelectorAll("input[name], select[name]")) {
-      if (e.name === "image") {
-        if (e.files[0]) {
-          const buf = await e.files[0].arrayBuffer();
-          formData.append(e.name, new Blob([buf], {type: e.files[0].type}));
+      async logout() {
+        const response = await fetch("/api/users/logout");
+        if (response.status === 200) {
+          window.location.href = "/admin/login";
         }
-      } else {
-        formData.append(e.name, e.value);
-      }
-    }
+      },
 
-    const pairs = formElement.querySelectorAll(".new-member-pair");
-    const personalInfo = {};
+      async newMember(e) {
+        const formElement = e.target;
+        const formData = new FormData();
 
-    pairs.forEach(pair => {
-      const key = pair.querySelector("input#json-key").value;
-      const value = pair.querySelector("input#json-value").value;
-
-      if (key) {
-        personalInfo[key] = value;
-      }
-    });
-
-    formData.append("info", JSON.stringify(personalInfo));
-
-    console.log(formData);
-
-    try {
-      const response = await fetch("/api/members", {
-        method: "POST",
-        body: formData
-      });
-
-      if (response.status === 200) {
-        location.reload();
-      } else {
-        const body = await response.json();
-        // TODO: show error more nicely;
-        // in an HTML element or something
-        alert(body.error);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  function confirm_delete(id) {
-    if (confirm("هل أنت متأكد أنك تريد حذف هذا العضو؟")) {
-      delete_member(id);
-    }
-  }
-
-  async function delete_member(id) {
-    const response = await fetch(`/api/members/${id}`, {
-      method: "DELETE",
-    });
-
-    if (response.status === 200) {
-      location.reload();
-    }
-  }
-
-  function confirm_disapprove(id) {
-    if (confirm("هل أنت متأكد أنك تريد رفض هذا العضو؟")) {
-      disapprove_request(id);
-    }
-  }
-
-  async function disapprove_request(id) {
-    const response = await fetch(`/api/members/disapprove/${id}`, {
-      method: "PUT",
-    });
-
-    if (response.status === 200) {
-      location.reload();
-    }
-  }
-
-  function confirm_approve(id) {
-    if (confirm("هل أنت متأكد أنك تريد قبول هذا العضو؟")) {
-      approve_request(id);
-    }
-  }
-
-  async function approve_request(id) {
-    const response = await fetch(`/api/members/approve/${id}`, {
-      method: "PUT",
-    });
-
-    if (response.status === 200) {
-      location.reload();
-    }
-  }
-
-  async function toggle_edit_member_form(e, id) {
-    const editToggle = document.getElementById("edit-toggle");
-    const formElement = document.getElementById(`edit-member-form-${id}`);
-    formElement.classList.toggle("hidden");
-    if (formElement.classList.contains("hidden")) {
-      // TODO: reset fields to original values
-      editToggle.innerHTML = "تعديل";
-    } else {
-      editToggle.innerHTML = "إغلاق التعديل";
-    }
-  }
-
-  document.querySelectorAll(".edit-member-form input, .edit-member-form select, .edit-member-form textarea").forEach((element) => {
-    element.addEventListener("change", (e) => {
-      e.currentTarget.classList.add("changed");
-    });
-  });
-
-  async function edit_member(e, id) {
-    e.preventDefault();
-    const formElement = e.currentTarget;
-
-    let formData = new FormData();
-
-    for (e of formElement.querySelectorAll("input[name].changed, select[name].changed")) {
-      if (e.name === "image") {
-        if (e.files[0]) {
-          const buf = await e.files[0].arrayBuffer();
-          formData.append(e.name, new Blob([buf], {type: e.files[0].type}));
+        for (const el of formElement.querySelectorAll("input[name], select[name]")) {
+          if (el.name === "image" && el.files[0]) {
+            const buf = await el.files[0].arrayBuffer();
+            formData.append(el.name, new Blob([buf], {type: el.files[0].type}));
+          } else {
+            formData.append(el.name, el.value);
+          }
         }
-      } else {
-        formData.append(e.name, e.value);
+
+        let personalInfo = {};
+        this.newMemberPairs.forEach(pair => {
+          if (pair.key) {
+            personalInfo[pair.key] = pair.value;
+          }
+        });
+        formData.append("info", JSON.stringify(personalInfo));
+
+        try {
+          const response = await fetch("/api/members", {
+            method: "POST",
+            body: formData
+          });
+
+          if (response.status === 200) {
+            location.reload();
+          } else {
+            const body = await response.json();
+            alert(body.error);
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      },
+
+      confirmDelete(id) {
+        if (confirm("هل أنت متأكد أنك تريد حذف هذا العضو؟")) {
+          this.deleteMember(id);
+        }
+      },
+
+      async deleteMember(id) {
+        const response = await fetch(`/api/members/${id}`, {
+          method: "DELETE",
+        });
+        if (response.status === 200) {
+          location.reload();
+        }
+      },
+
+      confirmDisapprove(id) {
+        if (confirm("هل أنت متأكد أنك تريد رفض هذا العضو؟")) {
+          this.disapproveRequest(id);
+        }
+      },
+
+      async disapproveRequest(id) {
+        const response = await fetch(`/api/members/disapprove/${id}`, {
+          method: "PUT",
+        });
+        if (response.status === 200) {
+          location.reload();
+        }
+      },
+
+      confirmApprove(id) {
+        if (confirm("هل أنت متأكد أنك تريد قبول هذا العضو؟")) {
+          this.approveRequest(id);
+        }
+      },
+
+      async approveRequest(id) {
+        const response = await fetch(`/api/members/approve/${id}`, {
+          method: "PUT",
+        });
+        if (response.status === 200) {
+          location.reload();
+        }
+      },
+
+      async editMember(e, id) {
+        const formElement = e.target;
+        const formData = new FormData();
+
+        for (const el of formElement.querySelectorAll("input[name].changed, select[name].changed")) {
+          if (el.name === "image" && el.files[0]) {
+            const buf = await el.files[0].arrayBuffer();
+            formData.append(el.name, new Blob([buf], {type: el.files[0].type}));
+          } else {
+            formData.append(el.name, el.value);
+          }
+        }
+
+        const row = formElement.closest('tr');
+        const editPairs = row._x_dataStack[0].editPairs;
+        const personalInfo = {};
+
+        editPairs.forEach(pair => {
+          if (pair.key) {
+            personalInfo[pair.key] = pair.value;
+          }
+        });
+        formData.append("info", JSON.stringify(personalInfo));
+
+        const res = await fetch(`/api/members/${id}`, {
+          method: "PUT",
+          body: formData,
+        });
+
+        if (res.status === 200) {
+          location.reload();
+        }
+      },
+
+      async uploadMembers(event) {
+        const formElement = event.target;
+        const formData = new FormData(formElement);
+
+        const res = await fetch("/api/members/import", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (res.status === 200) {
+          location.reload();
+        }
       }
     }
-
-    const pairs = formElement.querySelectorAll("#edit-member-pair-fields");
-    const personalInfo = {};
-
-    pairs.forEach(pair => {
-      const key = pair.querySelector("input#json-key").value;
-      const value = pair.querySelector("input#json-value").value;
-
-      if (key) {
-        personalInfo[key] = value;
-      }
-    });
-
-    formData.append("info", JSON.stringify(personalInfo));
-
-    console.log(formData);
-
-    const res = await fetch(`/api/members/${id}`, {
-      method: "PUT",
-      body: formData,
-    });
-
-    if (res.status === 200) {
-      location.reload();
-    }
-  }
-
-  async function upload_members(event) {
-    event.preventDefault();
-    const formElement = event.currentTarget;
-    const formData = new FormData(formElement);
-
-    const res = await fetch("/api/members/import", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (res.status === 200) {
-      location.reload();
-    }
-  }
-
-  const addMemberKeyValuePairsDiv = document.getElementById("new-member-key-value-pairs");
-
-  document.getElementById("new-member-add-pair-btn").addEventListener("click", () => {
-    const pairDiv = document.createElement("div");
-    pairDiv.id = "new-member-pair";
-    pairDiv.className = "flex";
-    const pairFields = document.createElement("div");
-    pairFields.className = "flex";
-    pairFields.id = "edit-member-pair-fields";
-
-    const keyInput = document.createElement("input");
-    keyInput.type = "text";
-    keyInput.id = "json-key";
-    keyInput.className = "border rounded px-3 py-2";
-    keyInput.placeholder = "مثال: المهنة";
-
-    const valueInput = document.createElement("input");
-    valueInput.type = "text";
-    valueInput.id = "json-value";
-    valueInput.className = "border rounded px-3 py-2";
-    valueInput.placeholder = "مثال: محامي";
-
-    const removeBtn = document.createElement("button");
-    removeBtn.textContent = "x";
-    removeBtn.className = "bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded";
-    removeBtn.onclick = () => pairDiv.remove();
-
-    pairDiv.appendChild(pairFields);
-    pairFields.appendChild(keyInput);
-    pairFields.appendChild(valueInput);
-    pairDiv.appendChild(removeBtn);
-
-    addMemberKeyValuePairsDiv.appendChild(pairDiv);
-  });
-
-  document.querySelectorAll("#edit-member-add-pair-btn").forEach((element) => {
-    element.addEventListener("click", (e) => {
-      const button = e.currentTarget;
-      const parentDiv = button.parentElement;
-      const editMemberKeyValuePairsDiv = parentDiv.querySelector("#edit-member-key-value-pairs");
-
-      const pairDiv = document.createElement("div");
-      pairDiv.id = "edit-member-pair";
-      pairDiv.className = "flex";
-      const pairFields = document.createElement("div");
-      pairFields.className = "flex";
-      pairFields.id = "edit-member-pair-fields";
-
-      const keyInput = document.createElement("input");
-      keyInput.type = "text";
-      keyInput.id = "json-key";
-      keyInput.className = "border rounded px-3 py-2";
-      keyInput.placeholder = "مثال: المهنة";
-
-      const valueInput = document.createElement("input");
-      valueInput.type = "text";
-      valueInput.id = "json-value";
-      valueInput.className = "border rounded px-3 py-2";
-      valueInput.placeholder = "مثال: محامي";
-
-      const removeBtn = document.createElement("button");
-      removeBtn.textContent = "x";
-      removeBtn.className = "bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded";
-      removeBtn.onclick = () => pairDiv.remove();
-
-      pairDiv.appendChild(pairFields);
-      pairFields.appendChild(keyInput);
-      pairFields.appendChild(valueInput);
-      pairDiv.appendChild(removeBtn);
-
-      editMemberKeyValuePairsDiv.appendChild(pairDiv);
-    })
-  });
-
-  function removePair(button) {
-    button.parentElement.remove();
   }
 </script>
 {% endblock %}

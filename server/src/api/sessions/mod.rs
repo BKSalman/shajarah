@@ -36,7 +36,7 @@ pub enum SessionError {
 
 impl IntoResponse for SessionError {
     fn into_response(self) -> axum::response::Response {
-        log::error!("{:#?}", self);
+        log::error!("{self:#?}");
 
         match self {
             SessionError::SomethingWentWrong => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
