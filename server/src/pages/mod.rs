@@ -1,7 +1,7 @@
 use crate::api::{
     members::{
-        models::{MemberInviteResponse, RequestStatus},
-        routes::{get_member_invites, InvitesParams},
+        models::MemberInviteResponse,
+        routes::{get_member_invites, members_count, InvitesParams},
     },
     users::models::UserResponseBrief,
 };
@@ -35,6 +35,21 @@ mod filters {
     pub fn bytes_to_base64(bytes: &[u8]) -> ::askama::Result<String> {
         Ok(base64::prelude::BASE64_STANDARD.encode(bytes))
     }
+
+    pub fn get_initials(name: &str, last_name: &str) -> ::askama::Result<String> {
+        let first_char = name.chars().next().unwrap_or('؟');
+        let last_char = if last_name != name && !last_name.is_empty() {
+            last_name.chars().next().unwrap_or(' ')
+        } else {
+            ' '
+        };
+
+        if last_char != ' ' {
+            Ok(format!("{}{}", first_char, last_char))
+        } else {
+            Ok(first_char.to_string())
+        }
+    }
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -67,21 +82,56 @@ impl IntoResponse for PagesError {
 
 #[derive(Template)]
 #[template(path = "404.html")]
+struct NotFoundTemplateInner;
+
 pub struct NotFoundTemplate;
+
+impl axum::response::IntoResponse for NotFoundTemplate {
+    fn into_response(self) -> axum::response::Response {
+        (axum::http::StatusCode::NOT_FOUND, NotFoundTemplateInner).into_response()
+    }
+}
 
 #[derive(Template)]
 #[template(path = "500.html")]
+struct SomethingWentWrongTemplateInner;
+
 pub struct SomethingWentWrongTemplate;
+
+impl axum::response::IntoResponse for SomethingWentWrongTemplate {
+    fn into_response(self) -> axum::response::Response {
+        (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            SomethingWentWrongTemplateInner,
+        )
+            .into_response()
+    }
+}
 
 #[derive(Template)]
 #[template(path = "admin.html")]
 pub struct AdminTemplate {
     name: String,
     members: Vec<MemberResponseBrief>,
+    members_count: usize,
     add_requests: Vec<RequestedMemberResponseBrief>,
     member_invites: Vec<MemberInviteResponse>,
     members_query: Option<String>,
     requests_query: Option<String>,
+    members_page: usize,
+    members_per_page: usize,
+    requests_page: usize,
+    requests_per_page: usize,
+}
+
+impl AdminTemplate {
+    pub fn members_json(&self) -> String {
+        serde_json::to_string(&self.members).unwrap_or_else(|_| "[]".to_string())
+    }
+
+    pub fn add_requests_json(&self) -> String {
+        serde_json::to_string(&self.add_requests).unwrap_or_else(|_| "[]".to_string())
+    }
 }
 
 serde_with::with_prefix!(prefix_members "members_");
@@ -102,10 +152,12 @@ pub async fn admin_page(
     auth: Result<AuthExtractor<{ UserRole::Admin as u8 }>, AuthError>,
     state: State<Arc<InnerAppState>>,
     Query(params): Query<AdminParams>,
-) -> Result<impl IntoResponse, PagesError> {
+) -> Result<AdminTemplate, PagesError> {
     match auth {
         Ok(auth) => {
             let members_query = params.members_params.query.clone();
+            let members_page = params.members_params.page.unwrap_or(0);
+            let members_per_page = params.members_params.per_page.unwrap_or(12);
             let Json(members) =
                 match get_members_flat(state.clone(), Query(params.members_params)).await {
                     Ok(members) => members,
@@ -113,28 +165,34 @@ pub async fn admin_page(
                     Err(e) => return Err(e.into()),
                 };
             let requests_query = params.requests_params.query.clone();
+            let requests_page = params.requests_params.page.unwrap_or(0);
+            let requests_per_page = params.requests_params.per_page.unwrap_or(12);
             let Json(add_requests) =
                 get_requested_members_flat(state.clone(), Query(params.requests_params)).await?;
 
             let name = auth.current_user.first_name.clone();
 
             let Json(member_invites) =
-                get_member_invites(auth, state, Query(params.invite_params)).await?;
+                get_member_invites(auth, state.clone(), Query(params.invite_params)).await?;
+
+            let members_count = members_count(state).await? as usize;
 
             Ok(AdminTemplate {
                 name,
                 members,
                 add_requests,
+                member_invites,
                 members_query,
                 requests_query,
-                member_invites,
-            }
-            .into_response())
+                members_page,
+                members_per_page,
+                requests_page,
+                requests_per_page,
+                members_count,
+            })
         }
         Err(e) => match e {
-            AuthError::InvalidSession | AuthError::SessionError(_) => {
-                Ok(Redirect::to("/admin/login").into_response())
-            }
+            AuthError::InvalidSession | AuthError::SessionError(_) => Err(PagesError::Auth(e)),
             e => Err(e.into()),
         },
     }

@@ -13,19 +13,16 @@ use serde_with::{serde_as, DisplayFromStr};
 use uuid::Uuid;
 
 use crate::{
-    api::{
-        members::models::{InviteStatus, MemberInviteResponse},
-        users::models::UserRole,
-    },
+    api::{members::models::MemberInviteResponse, users::models::UserRole},
     auth::AuthExtractor,
     Gender, InnerAppState,
 };
 
 use super::{
     models::{
-        CreateMemberBuilder, CreateMemberInvite, MemberResponse, MemberResponseBrief, MemberRow,
-        MemberRowWithParents, RequestStatus, RequestedMemberResponseBrief, RequestedMemberRow,
-        RequestedMemberRowWithParents, UpdateMemberBuilder,
+        CreateMemberBuilder, CreateMemberInvite, InviteStatus, MemberResponse, MemberResponseBrief,
+        MemberRow, MemberRowWithParents, RequestStatus, RequestedMemberResponseBrief,
+        RequestedMemberRow, RequestedMemberRowWithParents, UpdateMemberBuilder,
     },
     MembersError,
 };
@@ -124,7 +121,7 @@ pub async fn get_members_flat(
     State(state): State<Arc<InnerAppState>>,
     Query(params): Query<FlatMembersParams>,
 ) -> anyhow::Result<Json<Vec<MemberResponseBrief>>, MembersError> {
-    let per_page = params.per_page.unwrap_or(10);
+    let per_page = params.per_page.unwrap_or(12);
 
     let recs: Vec<MemberRowWithParents> = if let Some(search_term) = params.query {
         sqlx::query_as(
@@ -202,7 +199,7 @@ pub async fn get_members_flat(
             "#,
         )
         .bind(search_term)
-        .bind((params.page.unwrap_or(0) * per_page).saturating_sub(1) as i32)
+        .bind((params.page.unwrap_or(0) * per_page) as i32)
         .bind(per_page as i32)
         .fetch_all(&state.db_pool)
         .await?
@@ -241,7 +238,7 @@ pub async fn get_members_flat(
         LIMIT $2;
             "#,
         )
-        .bind((params.page.unwrap_or(0) * per_page).saturating_sub(1) as i32)
+        .bind((params.page.unwrap_or(0) * per_page) as i32)
         .bind(per_page as i32)
         .fetch_all(&state.db_pool)
         .await?
@@ -271,6 +268,19 @@ pub async fn get_members_flat(
         .collect();
 
     Ok(Json(members))
+}
+
+pub async fn members_count(State(state): State<Arc<InnerAppState>>) -> Result<i64, MembersError> {
+    struct Count {
+        count: Option<i64>,
+    }
+
+    // PERF: this is fast enough for 99% of family trees sizes
+    let count = sqlx::query_as!(Count, r#"SELECT COUNT(*) as count FROM members;"#)
+        .fetch_one(&state.db_pool)
+        .await?;
+
+    Ok(count.count.unwrap_or(0))
 }
 
 /// Add a family member
@@ -1079,7 +1089,7 @@ pub async fn get_requested_members_flat(
     State(state): State<Arc<InnerAppState>>,
     Query(params): Query<FlatMembersParams>,
 ) -> anyhow::Result<Json<Vec<RequestedMemberResponseBrief>>, MembersError> {
-    let per_page = params.per_page.unwrap_or(10);
+    let per_page = params.per_page.unwrap_or(12);
 
     let recs: Vec<RequestedMemberRowWithParents> = if let Some(search_term) = params.query {
         sqlx::query_as(

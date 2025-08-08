@@ -78,8 +78,8 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
         struct AuthRow {
             user_id: Uuid,
             session_id: Uuid,
-            first_name: String,
-            email: String,
+            first_name: Option<String>,
+            email: Option<String>,
             role: UserRole,
         }
 
@@ -107,8 +107,8 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
                 Ok(AuthExtractor {
                     current_user: UserResponseBrief {
                         id: rec.user_id,
-                        first_name: rec.first_name,
-                        email: rec.email,
+                        first_name: rec.first_name.unwrap_or_default(),
+                        email: rec.email.unwrap_or_default(),
                         role: rec.role,
                     },
                     session_id: rec.session_id,
@@ -137,8 +137,8 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
                 Ok(AuthExtractor {
                     current_user: UserResponseBrief {
                         id: rec.user_id,
-                        first_name: rec.first_name,
-                        email: rec.email,
+                        first_name: rec.first_name.unwrap_or_default(),
+                        email: rec.email.unwrap_or_default(),
                         role: rec.role,
                     },
                     session_id: rec.session_id,

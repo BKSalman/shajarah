@@ -1,86 +1,209 @@
 {% extends "base.html" %}
 
+{% block title %}تسجيل حساب جديد{% endblock %}
+
 {% block content %}
-<div dir="rtl" class="min-h-screen flex items-center justify-center bg-gray-100 p-8">
+<div class="min-h-screen flex items-center justify-center bg-tree-texture p-6" x-data="registerPage()">
+  <div class="card card-forest w-full max-w-md fade-in hover:shadow-forest">
+    <div class="card-body">
+      <div class="text-center mb-6">
+        <h1 class="text-3xl font-bold text-forest-dark mb-2">شجرة</h1>
+        <h2 class="text-xl font-semibold text-forest-primary">تسجيل حساب جديد</h2>
+        <p class="text-sm text-gray-500 mt-2">أنشئ حساباً جديداً للانضمام إلى شجرة العائلة</p>
+      </div>
 
-  <form id="register-form" onsubmit="register(event)" class="bg-white p-8 rounded shadow-md w-full max-w-md space-y-4">
-    <h2 class="text-2xl font-bold text-center">تسجيل حساب جديد</h2>
-    <div>
-      <label for="first_name" class="block mb-1">الاسم الأول:</label>
-      <input dir="auto" name="first_name" id="first_name" type="text" class="w-full border rounded px-3 py-2"
-        required />
+      <form @submit.prevent="register" class="space-y-4">
+        <div class="form-group">
+          <label for="username" class="form-label">
+            <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+            اسم المستخدم
+          </label>
+          <input x-model="form.username" id="username" type="text" required :disabled="loading"
+            class="form-input" placeholder="اختر اسم مستخدم مميز" dir="auto" />
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-group">
+            <label for="first_name" class="form-label">الاسم الأول</label>
+            <input x-model="form.first_name" id="first_name" type="text" required :disabled="loading"
+              class="form-input" placeholder="ادخل اسمك الأول" dir="auto" />
+          </div>
+
+          <div class="form-group">
+            <label for="last_name" class="form-label">الاسم الأخير</label>
+            <input x-model="form.last_name" id="last_name" type="text" required :disabled="loading"
+              class="form-input" placeholder="ادخل اسمك الأخير" dir="auto" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email" class="form-label">
+            <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
+            </svg>
+            البريد الإلكتروني
+          </label>
+          <input x-model="form.email" id="email" type="email" required :disabled="loading"
+            class="form-input" placeholder="ادخل بريدك الإلكتروني" 
+            autocomplete="email" dir="auto" />
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">
+            <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            كلمة المرور
+          </label>
+          <input x-model="form.password" id="password" type="password" required :disabled="loading"
+            class="form-input" placeholder="اختر كلمة مرور قوية" 
+            autocomplete="new-password" dir="auto" />
+        </div>
+
+        <div class="form-group">
+          <label for="confirm_password" class="form-label">تأكيد كلمة المرور</label>
+          <input x-model="form.confirm_password" id="confirm_password" type="password" required :disabled="loading"
+            class="form-input" placeholder="أعد إدخال كلمة المرور" 
+            autocomplete="new-password" dir="auto" />
+        </div>
+
+        <button type="submit" :disabled="loading || !isFormValid" 
+          class="btn btn-success w-full btn-lg"
+          :class="{ 'opacity-50 cursor-not-allowed': loading || !isFormValid }">
+          <svg x-show="loading" class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span x-text="loading ? 'جاري إنشاء الحساب...' : 'إنشاء الحساب'"></span>
+        </button>
+      </form>
+
+      <!-- Error Alert -->
+      <div x-show="generalError" x-transition class="alert alert-error mt-4">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <p x-text="generalError"></p>
+        </div>
+      </div>
+
+      <!-- Login Link -->
+      <div class="text-center mt-6 pt-6 border-t border-gray-200">
+        <p class="text-sm text-gray-600">
+          هل لديك حساب بالفعل؟ 
+          <a href="/login" class="text-primary-600 hover:text-primary-500 font-medium">تسجيل الدخول</a>
+        </p>
+      </div>
     </div>
-
-    <div>
-      <label for="last_name" class="block mb-1">الاسم الأخير:</label>
-      <input dir="auto" name="last_name" id="last_name" type="text" class="w-full border rounded px-3 py-2" required />
-    </div>
-
-    <div>
-      <label for="email" class="block mb-1">البريد الإلكتروني:</label>
-      <input dir="auto" name="email" id="email" type="email" class="w-full border rounded px-3 py-2" required />
-    </div>
-
-    <div>
-      <label for="password" class="block mb-1">كلمة المرور:</label>
-      <input dir="auto" name="password" id="password" type="password" class="w-full border rounded px-3 py-2"
-        required />
-    </div>
-
-    <div>
-      <label for="confirm_password" class="block mb-1">تأكيد كلمة المرور:</label>
-      <input dir="auto" name="confirm_password" id="confirm_password" type="password"
-        class="w-full border rounded px-3 py-2" required />
-    </div>
-
-    <button type="submit" class="w-full bg-green-600 hover:bg-blue-700 text-white py-2 rounded">تسجيل</button>
-
-    <p class="text-sm text-center mt-2">هل لديك حساب؟ <a href="/admin/login" class="text-blue-600 hover:underline">تسجيل
-        الدخول</a></p>
-  </form>
-
+  </div>
 </div>
 
 <script>
-  function register(event) {
-    event.preventDefault();
-    const formData = new FormData(document.getElementById('register-form'));
-
-    const data = {
-      first_name: formData.get('first_name'),
-      last_name: formData.get('last_name'),
-      email: formData.get('email'),
-      password: formData.get('password'),
-    };
-
-    if (data.password !== formData.get('confirm_password')) {
-      alert("كلمات المرور غير متطابقة!");
-      return;
-    }
-
-    fetch('/api/users', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+  function registerPage() {
+    return {
+      form: {
+        username: '',
+        first_name: '',
+        last_name: '',
+        email: '',
+        password: '',
+        confirm_password: ''
       },
-      body: JSON.stringify(data),
-    })
-      .then(response => {
-        if (response.status === 200) {
-          alert('تم إنشاء الحساب بنجاح');
-          window.location.href = '/admin/login';
-        } else if (response.status === 400) {
-          alert("التسجيل غير مسموح");
-        } else {
-          response.json().then(response => {
-            alert(response.message || "حدث خطأ أثناء التسجيل.");
-          });
+      generalError: '',
+      loading: false,
+      
+      get isFormValid() {
+        return this.form.username && 
+               this.form.first_name && 
+               this.form.last_name && 
+               this.form.email && 
+               this.form.email.includes('@') &&
+               this.form.password && 
+               this.form.password.length >= 6 &&
+               this.form.confirm_password &&
+               this.form.password === this.form.confirm_password;
+      },
+      
+      async register() {
+        if (this.loading) return;
+        
+        // Clear previous errors
+        this.generalError = '';
+        
+        // Validate passwords match
+        if (this.form.password !== this.form.confirm_password) {
+          this.generalError = 'كلمات المرور غير متطابقة';
+          showError('خطأ في كلمة المرور', 'يرجى التأكد من تطابق كلمتي المرور');
+          return;
         }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('حدث خطأ يرجى المحاولة في وقت لاحق.');
-      });
+        
+        // Validate password strength
+        if (this.form.password.length < 6) {
+          this.generalError = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+          showError('كلمة مرور ضعيفة', 'يجب أن تكون كلمة المرور 6 أحرف على الأقل');
+          return;
+        }
+        
+        this.loading = true;
+        
+        const data = {
+          username: this.form.username.trim(),
+          first_name: this.form.first_name.trim(),
+          last_name: this.form.last_name.trim(),
+          email: this.form.email.trim().toLowerCase(),
+          password: this.form.password,
+        };
+        
+        try {
+          const response = await fetch('/api/users', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+          
+          if (response.status === 200) {
+            showSuccess('تم إنشاء الحساب', `مرحباً بك ${data.first_name}! تم إنشاء حسابك بنجاح`);
+            
+            // Clear form
+            this.form = {
+              username: '',
+              first_name: '',
+              last_name: '',
+              email: '',
+              password: '',
+              confirm_password: ''
+            };
+            
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 2000);
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            
+            if (response.status === 400) {
+              this.generalError = 'التسجيل غير مسموح أو البيانات غير صحيحة';
+            } else if (response.status === 409) {
+              this.generalError = 'اسم المستخدم أو البريد الإلكتروني موجود مسبقاً';
+            } else {
+              this.generalError = errorData.message || 'حدث خطأ أثناء التسجيل';
+            }
+            
+            showError('فشل في إنشاء الحساب', this.generalError);
+          }
+        } catch (error) {
+          console.error('Registration error:', error);
+          this.generalError = 'حدث خطأ في الاتصال. يرجى المحاولة لاحقاً';
+          showError('خطأ في الاتصال', this.generalError);
+        } finally {
+          this.loading = false;
+        }
+      }
+    }
   }
 </script>
 {% endblock %}

@@ -1,10 +1,83 @@
 {% extends "base.html" %}
 
+{% block title %}الصفحة غير موجودة{% endblock %}
+
 {% block content %}
-<div class="min-h-screen flex flex-col items-center justify-center bg-gray-100 font-sans text-center p-6">
-  <h1 class="text-6xl font-bold text-red-600 mb-4">404</h1>
-  <h2 class="text-2xl font-semibold text-gray-800 mb-2">الصفحة غير موجودة</h2>
-  <p class="text-gray-600 mb-6">عذرًا، الصفحة التي تبحث عنها غير موجودة.</p>
-  <a href="/" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded">العودة إلى الصفحة الرئيسية</a>
+<div class="min-h-screen flex items-center justify-center p-4">
+  <div class="card card-forest max-w-2xl w-full fade-in">
+    <div class="card-body text-center py-12">
+      <!-- Tree-inspired 404 illustration -->
+      <div class="mb-8">
+        <svg class="w-48 h-48 mx-auto text-forest-primary opacity-80" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Tree trunk -->
+          <rect x="85" y="120" width="30" height="60" fill="currentColor" opacity="0.8"/>
+          <!-- Tree crown with 404 -->
+          <circle cx="100" cy="80" r="50" fill="var(--color-forest-light)" />
+          <circle cx="100" cy="80" r="45" fill="var(--color-forest-medium)" opacity="0.6"/>
+          <!-- 404 text inside tree -->
+          <text x="100" y="90" text-anchor="middle" class="text-4xl font-bold fill-white">404</text>
+          <!-- Falling leaves animation -->
+          <g class="animate-pulse">
+            <ellipse cx="70" cy="120" rx="8" ry="4" fill="var(--color-forest-medium)" opacity="0.5" transform="rotate(-20 70 120)"/>
+            <ellipse cx="130" cy="130" rx="8" ry="4" fill="var(--color-forest-medium)" opacity="0.5" transform="rotate(30 130 130)"/>
+            <ellipse cx="85" cy="140" rx="8" ry="4" fill="var(--color-forest-medium)" opacity="0.5" transform="rotate(-45 85 140)"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Error message -->
+      <h1 class="text-4xl font-bold text-forest-dark mb-4 spacing-arabic">يبدو أنك ضللت الطريق!</h1>
+      <h2 class="text-xl text-forest-primary mb-3">الصفحة التي تبحث عنها غير موجودة</h2>
+      <p class="text-gray-600 mb-8 max-w-md mx-auto">
+        ربما تم نقل هذه الصفحة أو حذفها، أو قد يكون هناك خطأ في الرابط. دعنا نساعدك في العودة إلى المسار الصحيح.
+      </p>
+
+      <!-- Action buttons -->
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="/" class="btn btn-primary btn-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a2 2 0 002 2h10a2 2 0 002-2V10M9 21h6"></path>
+          </svg>
+          العودة إلى الصفحة الرئيسية
+        </a>
+        <button onclick="history.back()" class="btn btn-outline btn-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          العودة للصفحة السابقة
+        </button>
+      </div>
+
+      <!-- Helpful links section -->
+      <div class="mt-12 pt-8 border-t border-forest-light">
+        <p class="text-sm text-gray-600 mb-4">أو يمكنك تجربة هذه الروابط المفيدة:</p>
+        <div class="flex flex-wrap gap-2 justify-center">
+          <a href="/login" class="text-forest-primary hover:text-forest-dark underline text-sm">تسجيل الدخول</a>
+          <span class="text-gray-400">•</span>
+          <a href="/register" class="text-forest-primary hover:text-forest-dark underline text-sm">إنشاء حساب</a>
+          <span class="text-gray-400">•</span>
+          <a href="/admin" class="text-forest-primary hover:text-forest-dark underline text-sm">لوحة الإدارة</a>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<style>
+  /* Custom animations for 404 page */
+  @keyframes leafFall {
+    0% {
+      transform: translateY(0) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(30px) rotate(45deg);
+      opacity: 0;
+    }
+  }
+  
+  .animate-leaf-fall {
+    animation: leafFall 3s ease-in-out infinite;
+  }
+</style>
 {% endblock %}

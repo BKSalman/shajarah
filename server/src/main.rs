@@ -3,6 +3,7 @@ use std::sync::Arc;
 use aes_gcm::KeyInit;
 use axum::{
     extract::DefaultBodyLimit,
+    handler::HandlerWithoutStateExt,
     http::{HeaderValue, Method},
     routing::{get, post, put},
     Router,
@@ -27,7 +28,7 @@ use server::{
     },
     pages::{
         add_request_page, admin_login_page, admin_page, admin_register_page, invite_reply_page,
-        members_login_page, user_page,
+        members_login_page, user_page, NotFoundTemplate,
     },
     AppState, Config, ConfigError, EmailMessage, InnerAppState,
 };
@@ -46,6 +47,10 @@ struct Cli {
     /// Address to start server on
     #[arg(short, long)]
     address: Option<SocketAddrV4>,
+}
+
+async fn not_found_handler() -> impl axum::response::IntoResponse {
+    NotFoundTemplate
 }
 
 #[tokio::main]
@@ -192,9 +197,15 @@ async fn main() {
         .route("/api/users", post(create_user));
 
     if let Ok(dist) = std::env::var("SHAJARAH_DIST") {
-        app = app.nest_service("/", ServeDir::new(dist));
+        app = app.nest_service(
+            "/",
+            ServeDir::new(dist).not_found_service(not_found_handler.into_service()),
+        );
     } else if let Some(dist) = option_env!("SHAJARAH_DIST") {
-        app = app.nest_service("/", ServeDir::new(dist));
+        app = app.nest_service(
+            "/",
+            ServeDir::new(dist).not_found_service(not_found_handler.into_service()),
+        );
     }
 
     let app = app
@@ -213,6 +224,7 @@ async fn main() {
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(25 * 1024 * 1024 /* 25mb */))
         .with_state(app_state);
+
     let address = cli
         .address
         .unwrap_or(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 3030));

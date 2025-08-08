@@ -1,5 +1,3 @@
-use crate::api::members::models::MemberRow;
-use crate::Gender;
 use aes_gcm::aead::Aead;
 use aes_gcm::AeadCore;
 use aes_gcm::KeyInit;
@@ -19,7 +17,8 @@ use argon2::Argon2;
 use axum::{extract::State, Json};
 use tower_cookies::Cookies;
 
-use crate::api::members::models::{InviteStatus, MemberInvite};
+use crate::api::members::models::{InviteStatus, MemberInvite, MemberRow};
+use crate::Gender;
 use crate::{
     api::sessions::{models::CreateSession, SESSION_COOKIE_NAME},
     api::users::{
@@ -87,7 +86,7 @@ WHERE users.email = $1
         return Err(UsersError::UserNotFound);
     };
 
-    let Some(user_password) = user.password else {
+    let Some(ref user_password) = user.password else {
         return Err(UsersError::InvalidCredentials);
     };
 
