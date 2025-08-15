@@ -4,9 +4,18 @@ use axum::extract::FromRef;
 use dioxus::prelude::*;
 use sqlx::PgPool;
 
+#[derive(Debug)]
+pub struct EmailMessage {
+    pub to: String,
+    pub content: String,
+}
+
 pub struct InnerAppState {
     pub db_pool: PgPool,
     pub cookies_secret: tower_cookies::Key,
+    pub totp_encryption_key: aes_gcm::Key<aes_gcm::Aes256Gcm>,
+    pub base_url: url::Url,
+    pub email_sender: tokio::sync::mpsc::Sender<EmailMessage>,
 }
 
 #[derive(Clone, FromRef)]

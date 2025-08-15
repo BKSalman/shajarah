@@ -5,6 +5,8 @@ use crate::modules::admin::pages::{Admin, login::AdminLogin, register::AdminRegi
 use crate::pages::Home;
 
 #[cfg(feature = "server")]
+pub mod config;
+#[cfg(feature = "server")]
 pub mod middleware;
 pub mod modules;
 pub mod pages;

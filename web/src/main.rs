@@ -19,7 +19,6 @@ async fn launch_server(component: fn() -> Element) {
 
     use axum::extract::DefaultBodyLimit;
     use dioxus::server::ServeConfigBuilder;
-    use rand::Rng as _;
     use sqlx::PgPool;
     use tower_cookies::CookieManagerLayer;
     use tower_http::limit::RequestBodyLimitLayer;
@@ -36,13 +35,20 @@ async fn launch_server(component: fn() -> Element) {
             .await
             .expect("Failed to connect to DB");
 
-    let mut secret = [0u8; 64];
-    rand::rng().fill(&mut secret);
+    let config = web::config::Config::load_config().unwrap();
+
+    let (email_sender, email_receiver) = tokio::sync::mpsc::channel(10);
 
     let app_state = AppState {
         inner: Arc::new(InnerAppState {
             db_pool: pool,
-            cookies_secret: tower_cookies::Key::from(&secret),
+            cookies_secret: tower_cookies::Key::from(&config.cookie_secret),
+            totp_encryption_key: aes_gcm::Key::<aes_gcm::Aes256Gcm>::from_exact_iter(
+                config.totp_encryption_key,
+            )
+            .unwrap(),
+            base_url: config.base_url,
+            email_sender,
         }),
     };
 

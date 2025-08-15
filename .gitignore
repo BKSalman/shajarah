@@ -15,4 +15,7 @@ target_wasm
 server/config.toml
 server/assets/shajarah.js
 server/assets/shajarah_bg.wasm
+web/config.toml
+web/assets/shajarah.js
+web/assets/shajarah_bg.wasm
 result
