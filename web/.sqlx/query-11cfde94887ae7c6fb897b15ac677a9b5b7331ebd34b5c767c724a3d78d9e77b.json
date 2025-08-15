@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE member_invites\nSET status = $1\nWHERE id = $2;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "invite_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "accepted",
+                "declined"
+              ]
+            }
+          }
+        },
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "11cfde94887ae7c6fb897b15ac677a9b5b7331ebd34b5c767c724a3d78d9e77b"
+}

@@ -1,0 +1,3 @@
+[env]
+SHAJARAH_DIST = "../gui/dist"
+RUST_LOG = "debug"

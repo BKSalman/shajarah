@@ -1,0 +1,42 @@
+[package]
+name = "web"
+version = "0.1.0"
+authors = ["Salman Abuhaimed <salman.f.abuhaimed@gmail.com>"]
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dioxus = { version = "0.7.0-alpha.3", features = ["router", "fullstack"] }
+axum = { version = "0.8", features = ["macros", "multipart"], optional = true }
+tokio = { version = "1.0", features = ["full"], optional = true }
+tower-http = { version = "0.6.6", features = ["cors", "limit", "fs"], optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+chrono = { version = "0.4.41", features = ["serde"] }
+indexmap = { version = "2.10.0", features = ["serde"] }
+sqlx = { version = "0.8.6", features = [ "runtime-tokio", "tls-rustls", "postgres", "chrono", "uuid" ], optional = true }
+dioxus-primitives = { git = "https://github.com/DioxusLabs/components", version = "0.0.1" }
+garde = { version = "0.22.0", features = ["derive", "email"] }
+strum = { version = "0.27.2", features = ["derive"] }
+uuid = { version = "1.18.0", features = ["serde", "v4"] }
+thiserror = "2.0.14"
+tower-cookies = { version = "0.11.0", optional = true, features = ["private"] }
+tracing = "0.1.41"
+rand = { version = "0.9.2", optional = true }
+argon2 = { version = "0.5.3", optional = true }
+async-trait = { version = "0.1.88", optional = true }
+
+[target.wasm32-unknown-unknown.dependencies]
+uuid = { version = "1.18.0", features = ["serde", "v4", "js"] }
+
+
+[features]
+default = ["web"]
+# The feature that are only required for the web = ["dioxus/web"] build target should be optional and only enabled in the web = ["dioxus/web"] feature
+web = ["dioxus/web"]
+# The feature that are only required for the desktop = ["dioxus/desktop"] build target should be optional and only enabled in the desktop = ["dioxus/desktop"] feature
+desktop = ["dioxus/desktop"]
+# The feature that are only required for the mobile = ["dioxus/mobile"] build target should be optional and only enabled in the mobile = ["dioxus/mobile"] feature
+mobile = ["dioxus/mobile"]
+server = ["dioxus/server", "dep:axum", "dep:tokio", "dep:tower-http", "dep:sqlx", "dep:tower-cookies", "dep:rand", "dep:argon2", "dep:async-trait"]

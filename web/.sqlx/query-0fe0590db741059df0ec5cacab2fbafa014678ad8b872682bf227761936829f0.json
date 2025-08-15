@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    UPDATE members\n    SET mother_id = NULL\n    WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0fe0590db741059df0ec5cacab2fbafa014678ad8b872682bf227761936829f0"
+}

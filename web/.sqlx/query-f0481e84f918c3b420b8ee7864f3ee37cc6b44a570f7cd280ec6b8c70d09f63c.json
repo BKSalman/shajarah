@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    UPDATE members\n    SET name = $2\n    WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f0481e84f918c3b420b8ee7864f3ee37cc6b44a570f7cd280ec6b8c70d09f63c"
+}

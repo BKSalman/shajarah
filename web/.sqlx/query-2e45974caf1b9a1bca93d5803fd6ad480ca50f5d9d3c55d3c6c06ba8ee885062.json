@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    SELECT id, member_id, created_at, expires_at, email, status as \"status: InviteStatus\" FROM member_invites\n    LIMIT 10;\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "member_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "status: InviteStatus",
+        "type_info": {
+          "Custom": {
+            "name": "invite_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "accepted",
+                "declined"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2e45974caf1b9a1bca93d5803fd6ad480ca50f5d9d3c55d3c6c06ba8ee885062"
+}

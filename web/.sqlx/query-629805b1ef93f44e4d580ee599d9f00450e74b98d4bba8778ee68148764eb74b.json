@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nINSERT INTO sessions (id, user_id, created_at, expires_at)\nVALUES ($1, $2, $3, $4)\nRETURNING sessions.id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "629805b1ef93f44e4d580ee599d9f00450e74b98d4bba8778ee68148764eb74b"
+}

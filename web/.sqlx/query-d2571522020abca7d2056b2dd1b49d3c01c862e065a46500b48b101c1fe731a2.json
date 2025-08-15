@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE member_add_requests\nSET status = $1\nWHERE id = $2 AND status = $3;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "request_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "approved",
+                "disapproved"
+              ]
+            }
+          }
+        },
+        "Uuid",
+        {
+          "Custom": {
+            "name": "request_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "approved",
+                "disapproved"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d2571522020abca7d2056b2dd1b49d3c01c862e065a46500b48b101c1fe731a2"
+}

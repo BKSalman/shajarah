@@ -1,0 +1,84 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT\nm.id,\nm.name,\nm.gender as \"gender: Gender\",\nm.birthday,\nm.last_name,\nm.image,\nm.image_type,\nm.personal_info,\nm.father_id,\nm.mother_id\nFROM members m\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "gender: Gender",
+        "type_info": {
+          "Custom": {
+            "name": "gender",
+            "kind": {
+              "Enum": [
+                "male",
+                "female"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "birthday",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "image",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 6,
+        "name": "image_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "personal_info",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "father_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "mother_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "d000c3c367a8e789d3a64982d2df80719bf45290ce71f0d4d99e0211576a99f1"
+}

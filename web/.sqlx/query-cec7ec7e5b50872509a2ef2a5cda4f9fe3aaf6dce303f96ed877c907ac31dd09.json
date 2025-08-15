@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    UPDATE members\n    SET personal_info = $2\n    WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cec7ec7e5b50872509a2ef2a5cda4f9fe3aaf6dce303f96ed877c907ac31dd09"
+}

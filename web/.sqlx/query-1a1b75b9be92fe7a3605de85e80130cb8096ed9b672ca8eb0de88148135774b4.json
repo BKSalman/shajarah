@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO members (name, gender, birthday, last_name, father_id, mother_id, image, image_type, personal_info)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        {
+          "Custom": {
+            "name": "gender",
+            "kind": {
+              "Enum": [
+                "male",
+                "female"
+              ]
+            }
+          }
+        },
+        "Timestamptz",
+        "Text",
+        "Int8",
+        "Int8",
+        "Bytea",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1a1b75b9be92fe7a3605de85e80130cb8096ed9b672ca8eb0de88148135774b4"
+}

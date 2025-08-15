@@ -22,7 +22,7 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "الشجرة",
         native_options,
-        Box::new(|cc| Ok(Box::new(shajarah::App::new(cc)))),
+        Box::new(|cc| Ok(Box::new(gui::App::new(cc)))),
     )
 }
 
@@ -49,7 +49,7 @@ fn main() {
             .start(
                 eframe::web_sys::HtmlCanvasElement::from(canvas),
                 web_options,
-                Box::new(|cc| Ok(Box::new(shajarah::App::new(cc)))),
+                Box::new(|cc| Ok(Box::new(gui::App::new(cc)))),
             )
             .await;
 
