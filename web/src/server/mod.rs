@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
 use axum::extract::FromRef;
-use dioxus::prelude::*;
+use dioxus::{prelude::*, server::server_context};
 use sqlx::PgPool;
+
+use crate::modules::member::types::{Gender, MemberRow};
 
 #[derive(Debug)]
 pub struct EmailMessage {

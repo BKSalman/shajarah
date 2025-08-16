@@ -40,8 +40,18 @@ pub struct MemberResponse {
     pub image_type: Option<String>,
 }
 
+#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+pub struct ChildMember {
+    pub id: i64,
+    pub father_id: Option<i64>,
+    pub mother_id: Option<i64>,
+    pub name: String,
+    pub last_name: String,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub struct MemberResponseBrief {
+pub struct MemberResponseFlat {
     pub id: i64,
     pub name: String,
     pub gender: Gender,
@@ -49,9 +59,12 @@ pub struct MemberResponseBrief {
     pub last_name: String,
     pub father_id: Option<i64>,
     pub mother_id: Option<i64>,
+    pub father_name: Option<String>,
+    pub mother_name: Option<String>,
     pub personal_info: Option<IndexMap<String, String>>,
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
+    pub children: Vec<ChildMember>,
 }
 
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
@@ -76,4 +89,22 @@ pub struct MemberRowWithParents {
     pub father_gender: Option<Gender>,
     pub father_birthday: Option<chrono::DateTime<chrono::Utc>>,
     pub father_last_name: Option<String>,
+}
+
+#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MemberRow {
+    pub id: i64,
+    pub name: String,
+    pub last_name: String,
+    pub gender: Gender,
+    pub birthday: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip)]
+    pub image: Option<Vec<u8>>,
+    #[serde(skip)]
+    pub image_type: Option<String>,
+    #[serde(skip)]
+    pub personal_info: Option<serde_json::Value>,
+    pub mother_id: Option<i64>,
+    pub father_id: Option<i64>,
 }

@@ -17,13 +17,14 @@ async fn launch_server(component: fn() -> Element) {
         sync::Arc,
     };
 
-    use axum::extract::DefaultBodyLimit;
+    use axum::{extract::DefaultBodyLimit, routing::get};
     use dioxus::server::ServeConfigBuilder;
     use sqlx::PgPool;
     use tower_cookies::CookieManagerLayer;
     use tower_http::limit::RequestBodyLimitLayer;
     use web::{
         middleware::sessions::refresh_session,
+        modules::member::routes::export_members,
         server::{AppState, InnerAppState},
     };
 
@@ -57,7 +58,8 @@ async fn launch_server(component: fn() -> Element) {
     let port = dioxus::cli_config::server_port().unwrap_or(8080);
     let address = SocketAddr::new(ip, port);
     let listener = tokio::net::TcpListener::bind(address).await.unwrap();
-    let router = axum::Router::new()
+    let router = axum::Router::<AppState>::new()
+        .route("/api/members/export", get(export_members))
         .serve_dioxus_application(
             ServeConfigBuilder::new()
                 .context(app_state.clone())
@@ -66,14 +68,17 @@ async fn launch_server(component: fn() -> Element) {
             component,
         )
         .layer(axum::middleware::from_fn_with_state(
-            app_state,
+            app_state.clone(),
             refresh_session,
         ))
         .layer(CookieManagerLayer::new())
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(25 * 1024 * 1024 /* 25mb */))
-        .into_make_service();
-    axum::serve(listener, router).await.unwrap();
+        .with_state(app_state);
+
+    axum::serve(listener, router.into_make_service())
+        .await
+        .unwrap();
 }
 
 fn main() {

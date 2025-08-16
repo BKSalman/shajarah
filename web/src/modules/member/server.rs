@@ -11,10 +11,10 @@ mod server_imports {
 #[cfg(feature = "server")]
 use server_imports::*;
 
-use super::types::{Gender, MemberResponse, MemberResponseBrief};
+use super::types::{ChildMember, Gender, MemberResponse, MemberResponseFlat};
 
 #[server]
-pub async fn members_flat() -> ServerFnResult<Vec<MemberResponseBrief>> {
+pub async fn members_flat() -> ServerFnResult<Vec<MemberResponseFlat>> {
     let state = get_state().await?;
 
     let recs: Vec<MemberRowWithParents> = sqlx::query_as(
@@ -52,26 +52,56 @@ pub async fn members_flat() -> ServerFnResult<Vec<MemberResponseBrief>> {
     .fetch_all(&state.db_pool)
     .await?;
 
+    let all_children: Vec<ChildMember> = sqlx::query_as(
+        r#"
+        SELECT 
+            id,
+            name,
+            gender,
+            birthday,
+            last_name,
+            email,
+            mother_id,
+            father_id
+        FROM members 
+        WHERE mother_id IS NOT NULL OR father_id IS NOT NULL
+        ORDER BY name ASC
+        "#,
+    )
+    .fetch_all(&state.db_pool)
+    .await?;
+
     // Convert to response format
-    let members: Vec<MemberResponseBrief> = recs
+    let members: Vec<MemberResponseFlat> = recs
         .into_iter()
-        .map(|m| MemberResponseBrief {
-            id: m.id,
-            name: m.name,
-            gender: m.gender,
-            birthday: m.birthday,
-            last_name: m.last_name,
-            father_id: m.father_id,
-            mother_id: m.mother_id,
-            personal_info: m.personal_info.as_ref().and_then(|p| {
-                p.as_object().map(|o| {
-                    o.into_iter()
-                        .map(|(k, v)| (k.to_string(), v.as_str().unwrap_or("").to_string()))
-                        .collect::<IndexMap<String, String>>()
-                })
-            }),
-            image: m.image,
-            image_type: m.image_type,
+        .map(|m| {
+            let children: Vec<ChildMember> = all_children
+                .iter()
+                .filter(|child| child.mother_id == Some(m.id) || child.father_id == Some(m.id))
+                .cloned()
+                .collect();
+
+            MemberResponseFlat {
+                id: m.id,
+                name: m.name,
+                gender: m.gender,
+                birthday: m.birthday,
+                last_name: m.last_name,
+                father_id: m.father_id,
+                mother_id: m.mother_id,
+                father_name: m.father_name,
+                mother_name: m.mother_name,
+                personal_info: m.personal_info.as_ref().and_then(|p| {
+                    p.as_object().map(|o| {
+                        o.into_iter()
+                            .map(|(k, v)| (k.to_string(), v.as_str().unwrap_or("").to_string()))
+                            .collect::<IndexMap<String, String>>()
+                    })
+                }),
+                image: m.image,
+                image_type: m.image_type,
+                children,
+            }
         })
         .collect();
 
