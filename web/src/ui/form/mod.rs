@@ -1,6 +1,4 @@
 use dioxus::prelude::*;
-
-// Form Section Component for better organization
 #[derive(Props, Clone, PartialEq)]
 pub struct FormSectionProps {
     pub title: String,
@@ -9,7 +7,6 @@ pub struct FormSectionProps {
     pub children: Element,
     pub border_bottom: Option<bool>,
 }
-
 #[component]
 pub fn FormSection(props: FormSectionProps) -> Element {
     let icon_color = props
@@ -20,7 +17,6 @@ pub fn FormSection(props: FormSectionProps) -> Element {
     } else {
         ""
     };
-
     rsx! {
         div { class: "{border_class}",
             h4 { class: "text-lg font-semibold text-gray-900 mb-4 flex items-center",
@@ -33,7 +29,7 @@ pub fn FormSection(props: FormSectionProps) -> Element {
                         stroke_linecap: "round",
                         stroke_linejoin: "round",
                         stroke_width: "2",
-                        d: "{props.icon_path}"
+                        d: "{props.icon_path}",
                     }
                 }
                 "{props.title}"

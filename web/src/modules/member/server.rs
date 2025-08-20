@@ -1,22 +1,20 @@
 use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
-
 #[cfg(feature = "server")]
 mod server_imports {
     pub use crate::modules::member::types::MemberRowWithParents;
     pub use crate::server::get_state;
     pub use indexmap::IndexMap;
 }
-
-#[cfg(feature = "server")]
-use server_imports::*;
+use crate::modules::member::types::MemberRow;
 
 use super::types::{ChildMember, Gender, MemberResponse, MemberResponseFlat};
+#[cfg(feature = "server")]
+use server_imports::*;
 
 #[server]
 pub async fn members_flat() -> ServerFnResult<Vec<MemberResponseFlat>> {
     let state = get_state().await?;
-
     let recs: Vec<MemberRowWithParents> = sqlx::query_as(
         r#"
         SELECT
@@ -51,7 +49,6 @@ pub async fn members_flat() -> ServerFnResult<Vec<MemberResponseFlat>> {
     )
     .fetch_all(&state.db_pool)
     .await?;
-
     let all_children: Vec<ChildMember> = sqlx::query_as(
         r#"
         SELECT 
@@ -70,8 +67,6 @@ pub async fn members_flat() -> ServerFnResult<Vec<MemberResponseFlat>> {
     )
     .fetch_all(&state.db_pool)
     .await?;
-
-    // Convert to response format
     let members: Vec<MemberResponseFlat> = recs
         .into_iter()
         .map(|m| {
@@ -80,7 +75,6 @@ pub async fn members_flat() -> ServerFnResult<Vec<MemberResponseFlat>> {
                 .filter(|child| child.mother_id == Some(m.id) || child.father_id == Some(m.id))
                 .cloned()
                 .collect();
-
             MemberResponseFlat {
                 id: m.id,
                 name: m.name,
@@ -104,7 +98,6 @@ pub async fn members_flat() -> ServerFnResult<Vec<MemberResponseFlat>> {
             }
         })
         .collect();
-
     Ok(members)
 }
 
@@ -113,12 +106,11 @@ pub async fn add_member(
     first_name: String,
     last_name: String,
     gender: Gender,
-    birthday: DateTime<Utc>,
+    birthday: Option<DateTime<Utc>>,
 ) -> ServerFnResult<()> {
     if first_name.is_empty() || last_name.is_empty() {
         return Err(ServerFnError::new(""));
     }
-
     let state = get_state().await?;
     sqlx::query!(
         r#"
@@ -132,7 +124,6 @@ pub async fn add_member(
     )
     .execute(&state.db_pool)
     .await?;
-
     Ok(())
 }
 
@@ -148,7 +139,6 @@ pub async fn delete_member(id: i64) -> ServerFnResult<()> {
     )
     .execute(&state.db_pool)
     .await?;
-
     Ok(())
 }
 
@@ -167,4 +157,57 @@ async fn members() -> ServerFnResult<Option<MemberResponse>> {
         image: None,
         image_type: None,
     }))
+}
+
+#[server]
+pub async fn upload_members_csv(csv_str: String) -> ServerFnResult<()> {
+    let _ = crate::modules::admin::server::get_admin().await?;
+    let state = crate::server::get_state().await?;
+
+    let mut csv_reader = csv::ReaderBuilder::new()
+        .delimiter(b',')
+        .from_reader(csv_str.as_bytes());
+    let members: Vec<MemberRow> = csv_reader
+        .deserialize::<MemberRow>()
+        .map(|r| {
+            r.map_err(|e| {
+                tracing::error!("{e}");
+                ServerFnError::new("Something went wrong")
+            })
+        })
+        .collect::<ServerFnResult<Vec<MemberRow>>>()?;
+
+    let mut tx = state.db_pool.begin().await?;
+
+    let mut query = sqlx::QueryBuilder::new(
+        "INSERT INTO members (id, name, last_name, gender, birthday, mother_id, father_id)",
+    );
+
+    query.push_values(members, |mut b, members| {
+        b.push_bind(members.id)
+            .push_bind(members.name)
+            .push_bind(members.last_name)
+            .push_bind(members.gender)
+            .push_bind(members.birthday)
+            .push_bind(members.mother_id)
+            .push_bind(members.father_id);
+    });
+
+    query
+    .push(r#"
+            ON CONFLICT(id)
+            DO UPDATE SET
+            name = EXCLUDED.name, last_name = EXCLUDED.last_name, gender = EXCLUDED.gender,
+            birthday = EXCLUDED.birthday, mother_id = EXCLUDED.mother_id, father_id = EXCLUDED.father_id
+        "#);
+
+    query.build().execute(&mut *tx).await?;
+
+    sqlx::query!(r#"SELECT setval('members_id_seq', (SELECT MAX(id) FROM members));"#)
+        .fetch_optional(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+
+    Ok(())
 }

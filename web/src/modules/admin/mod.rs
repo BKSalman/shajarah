@@ -1,4 +1,4 @@
 mod components;
 pub mod pages;
-mod server;
+pub mod server;
 mod types;

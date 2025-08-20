@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use chrono::{DateTime, Utc};
 use dioxus::{
     core::{AttributeValue, IntoAttributeValue},
@@ -25,6 +27,18 @@ impl IntoAttributeValue for Gender {
     }
 }
 
+impl FromStr for Gender {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "male" => Ok(Gender::Male),
+            "female" => Ok(Gender::Female),
+            _ => Err(String::from("Invalid gender")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MemberResponse {
     pub id: i64,
@@ -39,7 +53,6 @@ pub struct MemberResponse {
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
 }
-
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct ChildMember {
@@ -49,7 +62,6 @@ pub struct ChildMember {
     pub name: String,
     pub last_name: String,
 }
-
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct MemberResponseFlat {
     pub id: i64,
@@ -66,7 +78,6 @@ pub struct MemberResponseFlat {
     pub image_type: Option<String>,
     pub children: Vec<ChildMember>,
 }
-
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 #[derive(Debug)]
 pub struct MemberRowWithParents {

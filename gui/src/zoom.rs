@@ -1,44 +1,37 @@
 //! shamelessly stolen from https://github.com/zakarumych/egui-snarl/blob/main/src/ui/zoom.rs
 use eframe::egui;
-
 use egui::{
     CornerRadius, FontId, Frame, Margin, Stroke, Style, Vec2, Visuals,
     epaint::{PathStroke, Shadow},
     style::{Interaction, ScrollStyle, Spacing, TextCursorStyle, WidgetVisuals, Widgets},
 };
-
 pub trait Zoom {
     fn zoom(&mut self, zoom: f32);
 }
-
 impl Zoom for f32 {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
         *self *= zoom;
     }
 }
-
 impl Zoom for u8 {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
         *self = (*self as f32 * zoom) as u8;
     }
 }
-
 impl Zoom for i8 {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
         *self = (*self as f32 * zoom) as i8;
     }
 }
-
 impl Zoom for Vec2 {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
         *self *= zoom;
     }
 }
-
 impl Zoom for CornerRadius {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
@@ -48,7 +41,6 @@ impl Zoom for CornerRadius {
         self.sw.zoom(zoom);
     }
 }
-
 impl Zoom for Margin {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
@@ -58,7 +50,6 @@ impl Zoom for Margin {
         self.bottom.zoom(zoom);
     }
 }
-
 impl Zoom for Shadow {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
@@ -68,7 +59,6 @@ impl Zoom for Shadow {
         self.spread.zoom(zoom);
     }
 }
-
 impl Zoom for Stroke {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
@@ -79,7 +69,6 @@ impl Zoom for Stroke {
         }
     }
 }
-
 impl Zoom for PathStroke {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
@@ -97,7 +86,6 @@ impl Zoom for PathStroke {
         }
     }
 }
-
 impl Zoom for WidgetVisuals {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
@@ -107,7 +95,6 @@ impl Zoom for WidgetVisuals {
         self.expansion.zoom(zoom);
     }
 }
-
 impl Zoom for Interaction {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
@@ -115,7 +102,6 @@ impl Zoom for Interaction {
         self.resize_grab_radius_side.zoom(zoom);
     }
 }
-
 impl Zoom for Widgets {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
@@ -126,14 +112,12 @@ impl Zoom for Widgets {
         self.open.zoom(zoom);
     }
 }
-
 impl Zoom for TextCursorStyle {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
         self.stroke.zoom(zoom);
     }
 }
-
 impl Zoom for Visuals {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
@@ -149,7 +133,6 @@ impl Zoom for Visuals {
         self.window_stroke.zoom(zoom);
     }
 }
-
 impl Zoom for ScrollStyle {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
@@ -161,7 +144,6 @@ impl Zoom for ScrollStyle {
         self.handle_min_length.zoom(zoom);
     }
 }
-
 impl Zoom for Spacing {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
@@ -182,13 +164,11 @@ impl Zoom for Spacing {
         self.window_margin.zoom(zoom);
     }
 }
-
 impl Zoom for FontId {
     fn zoom(&mut self, zoom: f32) {
         self.size.zoom(zoom);
     }
 }
-
 impl Zoom for Style {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
@@ -203,7 +183,6 @@ impl Zoom for Style {
         self.visuals.zoom(zoom);
     }
 }
-
 impl<T> Zoom for Option<T>
 where
     T: Zoom,
@@ -215,7 +194,6 @@ where
         }
     }
 }
-
 impl Zoom for Frame {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {

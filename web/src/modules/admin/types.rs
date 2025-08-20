@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-
 #[derive(Debug, garde::Validate, Serialize, Deserialize, Clone)]
 pub struct RegisterInput {
     #[garde(skip)]
@@ -11,7 +10,6 @@ pub struct RegisterInput {
     #[garde(skip)]
     pub password: String,
 }
-
 #[derive(Debug, garde::Validate, Serialize, Deserialize, Clone)]
 pub struct LoginInput {
     #[garde(email)]

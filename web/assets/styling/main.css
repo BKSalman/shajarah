@@ -1,42 +1,199 @@
-/* body { */
-/* background-color: #0f1116; */
-/* color: #ffffff; */
-/* font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; */
-/* margin: 20px; */
+body {
+  padding: 0;
+  margin: 0;
+  background-color: var(--primary-color);
+  color: var(--secondary-color-4);
+  font-family: var(--font-family-arabic);
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-weight: 400;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] .ltr {
+  direction: ltr;
+  text-align: left;
+}
+
+
+/* Animation Utilities */
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+[dir="rtl"] .slide-in {
+  animation: slideInRTL 0.3s ease;
+}
+
+@keyframes slideInRTL {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* @media (prefers-color-scheme: dark) { */
+/* :root { */
+/* --dark: initial; */
+/* --light: ; */
+/* } */
 /* } */
 
-/* #hero { */
-/* margin: 0; */
-/* display: flex; */
-/* flex-direction: column; */
-/* justify-content: center; */
-/* align-items: center; */
+/* @media (prefers-color-scheme: light) { */
+/* :root { */
+/* --dark: ; */
+/* --light: initial; */
+/* } */
 /* } */
 
-/* #links { */
-/* width: 400px; */
-/* text-align: left; */
-/* font-size: x-large; */
-/* color: white; */
-/* display: flex; */
-/* flex-direction: column; */
-/* } */
+:root {
+  /* Shajarah Design System - Forest Heritage Palette */
+  /* Primary Tree-Inspired Green Colors */
+  --color-forest-background: #F4F7F4;
+  /* Very light sage - like morning mist in a forest */
+  --color-forest-light: #D0E1D0;
+  /* Light sage - like new spring leaves */
+  --color-forest-medium: #7A9A7A;
+  /* Muted sage - like mature foliage */
+  --color-forest-primary: #4A6741;
+  /* Deep olive green - like tree bark */
+  --color-forest-dark: #2C4A2C;
+  /* Forest dark - like deep woods shadow */
 
-/* #links a { */
-/* color: white; */
-/* text-decoration: none; */
-/* margin-top: 20px; */
-/* margin: 10px 0px; */
-/* border: white 1px solid; */
-/* border-radius: 5px; */
-/* padding: 10px; */
-/* } */
+  /* Mapped to semantic color system */
+  --color-primary: var(--color-forest-primary);
+  --color-primary-dark: var(--color-forest-dark);
+  --color-primary-light: var(--color-forest-medium);
+  --color-primary-lighter: var(--color-forest-light);
+  --color-primary-lightest: var(--color-forest-background);
 
-/* #links a:hover { */
-/* background-color: #1f1f1f; */
-/* cursor: pointer; */
-/* } */
+  /* Secondary colors (keeping blue for contrast) */
+  --color-secondary: #3b82f6;
+  --color-secondary-dark: #2563eb;
+  --color-secondary-light: #60a5fa;
 
-/* #header { */
-/* max-width: 1200px; */
-/* } */
+  /* Status colors with forest-inspired tweaks */
+  --color-success: var(--color-forest-medium);
+  --color-warning: #d97706;
+  /* Warmer orange for autumn feel */
+  --color-error: #dc2626;
+  /* Keeping red for safety */
+  --color-info: #0284c7;
+  /* Slightly deeper blue like forest streams */
+
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  /* Typography */
+  --font-family-arabic: 'Noto Sans Arabic', 'Cairo', 'Tajawal', system-ui, sans-serif;
+  --font-family-system: system-ui, -apple-system, sans-serif;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Spacing */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Border radius */
+  --radius-sm: 0.25rem;
+  --radius: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* Transitions */
+  --transition-base: 150ms ease;
+  --transition-colors: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+/* Modern browsers with `scrollbar-*` support */
+@supports (scrollbar-width: auto) {
+  :not(:hover) {
+    scrollbar-color: rgb(0 0 0 / 0%) rgb(0 0 0 / 0%);
+  }
+
+  :hover {
+    scrollbar-color: var(--secondary-color-2) rgba(0, 0, 0, 0);
+  }
+}
+
+/* Legacy browsers with `::-webkit-scrollbar-*` support */
+@supports selector(::-webkit-scrollbar) {
+  :root::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}

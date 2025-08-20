@@ -1,10 +1,9 @@
-use dioxus::prelude::*;
-use garde::Validate as _;
-
 use crate::{
     Route,
     modules::admin::{server::register_admin, types::RegisterInput},
 };
+use dioxus::prelude::*;
+use garde::Validate as _;
 
 #[component]
 pub fn AdminRegister() -> Element {
@@ -13,25 +12,10 @@ pub fn AdminRegister() -> Element {
     let mut last_name = use_signal(|| String::new());
     let mut email = use_signal(|| String::new());
     let mut password = use_signal(|| String::new());
-
     rsx! {
         if let Some(error) = error() {
-            div {
-                class: "text-red-500",
-
-                "{error}"
-            }
+            div { class: "text-red-500", "{error}" }
         }
-
-        a {
-            href: "https://example.com",
-            onclick: |evt| {
-                evt.prevent_default();
-                tracing::info!("link clicked");
-            },
-            "example.com"
-        }
-
         form {
             autocomplete: "off",
             onsubmit: move |e| {
@@ -43,24 +27,21 @@ pub fn AdminRegister() -> Element {
                         email: email(),
                         password: password(),
                     };
-
                     if let Err(e) = register_input.validate() {
                         error.set(Some(e.to_string()));
                         return;
                     }
-
                     match register_admin(register_input).await {
                         Ok(_) => {
                             tracing::info!("redirecting");
                             navigator().replace(Route::AdminLogin);
-                        },
+                        }
                         Err(e) => {
                             tracing::error!("{e}");
                         }
                     }
                 }
             },
-
             div {
                 input {
                     class: "input",
@@ -80,7 +61,7 @@ pub fn AdminRegister() -> Element {
                 }
                 input {
                     class: "input",
-                    type: "email",
+                    r#type: "email",
                     placeholder: "البريد",
                     oninput: move |e| {
                         error.set(None);
@@ -89,7 +70,7 @@ pub fn AdminRegister() -> Element {
                 }
                 input {
                     class: "input",
-                    type: "password",
+                    r#type: "password",
                     placeholder: "كلمة المرور",
                     oninput: move |e| {
                         error.set(None);
@@ -97,12 +78,7 @@ pub fn AdminRegister() -> Element {
                     },
                 }
             }
-
-            button {
-                class: "button",
-                "data-style": "primary",
-                "تسجيل الدخول"
-            }
+            button { class: "btn btn-primary", "التسجيل" }
         }
     }
 }

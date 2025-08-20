@@ -1,18 +1,14 @@
-use dioxus::prelude::*;
-use garde::Validate;
-
 use crate::{
     Route,
     modules::admin::{server::login_admin, types::LoginInput},
 };
-
+use dioxus::prelude::*;
+use garde::Validate;
 #[component]
 pub fn AdminLogin() -> Element {
     let mut error = use_signal(|| None::<String>);
-
     let mut email = use_signal(|| String::new());
     let mut password = use_signal(|| String::new());
-
     rsx! {
         form {
             autocomplete: "off",
@@ -23,28 +19,25 @@ pub fn AdminLogin() -> Element {
                         email: email(),
                         password: password(),
                     };
-
                     if let Err(e) = login_input.validate() {
                         error.set(Some(e.to_string()));
                         return;
                     }
-
                     match login_admin(login_input).await {
                         Ok(_) => {
                             tracing::info!("redirecting");
                             navigator().replace(Route::Admin);
-                        },
+                        }
                         Err(e) => {
                             tracing::error!("{e}");
                         }
                     }
                 }
             },
-
             div {
                 input {
                     class: "input",
-                    type: "email",
+                    r#type: "email",
                     placeholder: "البريد",
                     oninput: move |e| {
                         error.set(None);
@@ -53,7 +46,7 @@ pub fn AdminLogin() -> Element {
                 }
                 input {
                     class: "input",
-                    type: "password",
+                    r#type: "password",
                     placeholder: "كلمة المرور",
                     oninput: move |e| {
                         error.set(None);
@@ -61,12 +54,7 @@ pub fn AdminLogin() -> Element {
                     },
                 }
             }
-
-            button {
-                class: "button",
-                "data-style": "primary",
-                "تسجيل الدخول"
-            }
+            button { class: "btn btn-primary", "تسجيل الدخول" }
         }
     }
 }

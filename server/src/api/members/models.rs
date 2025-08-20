@@ -1,12 +1,10 @@
+use crate::Gender;
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use garde::Validate;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-use crate::Gender;
-
 #[derive(Deserialize, Serialize)]
 pub struct CreateMember {
     pub name: String,
@@ -21,7 +19,6 @@ pub struct CreateMember {
     /// a map is used to make it dynamic and hold any kind of personal information
     pub info: Option<IndexMap<String, serde_json::Value>>,
 }
-
 #[derive(Default)]
 pub struct CreateMemberBuilder {
     name: Option<String>,
@@ -34,59 +31,48 @@ pub struct CreateMemberBuilder {
     image_type: Option<String>,
     info: Option<IndexMap<String, serde_json::Value>>,
 }
-
 impl CreateMemberBuilder {
     pub fn new() -> Self {
         Self {
             ..Default::default()
         }
     }
-
     pub fn name(&mut self, name: String) -> &mut Self {
         self.name = Some(name);
         self
     }
-
     pub fn last_name(&mut self, last_name: String) -> &mut Self {
         self.last_name = Some(last_name);
         self
     }
-
     pub fn gender(&mut self, gender: Gender) -> &mut Self {
         self.gender = Some(gender);
         self
     }
-
     pub fn birthday(&mut self, birthday: chrono::DateTime<chrono::Utc>) -> &mut Self {
         self.birthday = Some(birthday);
         self
     }
-
     pub fn mother_id(&mut self, mother_id: i64) -> &mut Self {
         self.mother_id = Some(mother_id);
         self
     }
-
     pub fn father_id(&mut self, father_id: i64) -> &mut Self {
         self.father_id = Some(father_id);
         self
     }
-
     pub fn image(&mut self, image: Vec<u8>) -> &mut Self {
         self.image = Some(image);
         self
     }
-
     pub fn image_type(&mut self, image_type: String) -> &mut Self {
         self.image_type = Some(image_type);
         self
     }
-
     pub fn info(&mut self, info: IndexMap<String, serde_json::Value>) -> &mut Self {
         self.info = Some(info);
         self
     }
-
     pub fn build(self) -> anyhow::Result<CreateMember> {
         let name = self.name.ok_or(anyhow!("name field was not provided"))?;
         let last_name = self
@@ -98,11 +84,9 @@ impl CreateMemberBuilder {
         let birthday = self
             .birthday
             .ok_or(anyhow!("birthday field was not provided"))?;
-
         if self.image.is_some() != self.image_type.is_some() {
             return Err(anyhow!("image or image_type was not added"));
         }
-
         Ok(CreateMember {
             name,
             last_name,
@@ -116,7 +100,6 @@ impl CreateMemberBuilder {
         })
     }
 }
-
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UpdateMember {
     pub id: i64,
@@ -130,7 +113,6 @@ pub struct UpdateMember {
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
 }
-
 #[derive(Default)]
 pub struct UpdateMemberBuilder {
     name: Option<String>,
@@ -146,79 +128,64 @@ pub struct UpdateMemberBuilder {
     image: Option<Vec<u8>>,
     image_type: Option<String>,
 }
-
 impl UpdateMemberBuilder {
     pub fn new() -> Self {
         Self {
             ..Default::default()
         }
     }
-
     pub fn name(&mut self, name: String) -> &mut Self {
         self.name = Some(name);
         self
     }
-
     pub fn last_name(&mut self, last_name: String) -> &mut Self {
         self.last_name = Some(last_name);
         self
     }
-
     pub fn gender(&mut self, gender: Gender) -> &mut Self {
         self.gender = Some(gender);
         self
     }
-
     pub fn birthday(&mut self, birthday: chrono::DateTime<chrono::Utc>) -> &mut Self {
         self.birthday = Some(birthday);
         self
     }
-
     pub fn mother_id(&mut self, mother_id: i64) -> &mut Self {
         self.mother_id = Some(mother_id);
         self
     }
-
     pub fn remove_mother_id(&mut self, remove: bool) -> &mut Self {
         self.remove_mother_id = remove;
         self
     }
-
     pub fn father_id(&mut self, father_id: i64) -> &mut Self {
         self.father_id = Some(father_id);
         self
     }
-
     pub fn remove_father_id(&mut self, remove: bool) -> &mut Self {
         self.remove_father_id = remove;
         self
     }
-
     pub fn remove_info(&mut self, remove: bool) -> &mut Self {
         self.remove_info = remove;
         self
     }
-
     pub fn info(&mut self, info: IndexMap<String, serde_json::Value>) -> &mut Self {
         self.info = Some(info);
         self
     }
-
     pub fn image(&mut self, image: Vec<u8>) -> &mut Self {
         self.image = Some(image);
         self
     }
-
     pub fn image_type(&mut self, image_type: String) -> &mut Self {
         self.image_type = Some(image_type);
         self
     }
-
     pub fn build(self, id: i64) -> anyhow::Result<UpdateMember> {
         if self.image.is_some() != self.image_type.is_some() {
             return Err(anyhow!("image or image_type was not added"));
         }
-
         Ok(UpdateMember {
             id,
             name: self.name,
@@ -233,7 +200,6 @@ impl UpdateMemberBuilder {
         })
     }
 }
-
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct MemberRow {
     pub id: i64,
@@ -250,7 +216,6 @@ pub struct MemberRow {
     pub mother_id: Option<i64>,
     pub father_id: Option<i64>,
 }
-
 #[derive(Debug, sqlx::FromRow)]
 pub struct MemberRowWithParents {
     pub id: i64,
@@ -273,7 +238,6 @@ pub struct MemberRowWithParents {
     pub father_birthday: Option<chrono::DateTime<chrono::Utc>>,
     pub father_last_name: Option<String>,
 }
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MemberResponse {
     pub id: i64,
@@ -288,7 +252,6 @@ pub struct MemberResponse {
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
 }
-
 impl MemberResponse {
     pub fn add_all_children(&mut self, all_members: &[MemberRowWithParents]) {
         self.children = all_members
@@ -323,7 +286,6 @@ impl MemberResponse {
         }
     }
 }
-
 /// non-recursive MemberResponse
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MemberResponseBrief {
@@ -338,7 +300,6 @@ pub struct MemberResponseBrief {
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
 }
-
 #[derive(Debug, sqlx::FromRow)]
 pub struct RequestedMemberRow {
     pub id: Uuid,
@@ -353,7 +314,6 @@ pub struct RequestedMemberRow {
     pub personal_info: Option<serde_json::Value>,
     pub status: RequestStatus,
 }
-
 #[derive(Debug, sqlx::FromRow)]
 pub struct RequestedMemberRowWithParents {
     pub id: Uuid,
@@ -401,7 +361,6 @@ pub enum RequestStatus {
     Approved,
     Disapproved,
 }
-
 #[derive(Default, Debug, Clone, Copy, sqlx::Type, Serialize, Deserialize, PartialEq)]
 #[sqlx(type_name = "invite_status", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -411,7 +370,6 @@ pub enum InviteStatus {
     Accepted,
     Declined,
 }
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MemberInvite {
     pub id: Uuid,
@@ -422,7 +380,6 @@ pub struct MemberInvite {
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub totp_secret: Option<Vec<u8>>,
 }
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MemberInviteResponse {
     pub id: Uuid,
@@ -432,7 +389,6 @@ pub struct MemberInviteResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub expires_at: chrono::DateTime<chrono::Utc>,
 }
-
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 pub struct CreateMemberInvite {
     #[garde(email)]

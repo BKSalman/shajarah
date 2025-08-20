@@ -1,11 +1,9 @@
 use dioxus::prelude::*;
-
 #[derive(Clone, PartialEq)]
 pub struct KeyValuePair {
     pub key: String,
     pub value: String,
 }
-
 #[derive(Props, Clone, PartialEq)]
 pub struct KeyValueInputProps {
     pub pairs: Vec<KeyValuePair>,
@@ -13,7 +11,6 @@ pub struct KeyValueInputProps {
     pub key_placeholder: Option<String>,
     pub value_placeholder: Option<String>,
 }
-
 #[component]
 pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
     let key_placeholder = props
@@ -22,20 +19,18 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
     let value_placeholder = props
         .value_placeholder
         .unwrap_or_else(|| "القيمة".to_string());
-
     let pairs = props.pairs.clone();
     let on_pairs_change = props.on_pairs_change;
-
     rsx! {
         div { class: "space-y-3",
-            for (index, pair) in pairs.iter().enumerate() {
+            for (index , pair) in pairs.iter().enumerate() {
                 div { class: "flex gap-3 items-center",
                     div { class: "flex-1",
                         input {
                             r#type: "text",
                             value: "{pair.key}",
                             placeholder: "{key_placeholder}",
-                            class: "form-input w-full",
+                            class: "input w-full",
                             oninput: {
                                 let pairs = pairs.clone();
                                 let on_pairs_change = on_pairs_change;
@@ -44,7 +39,7 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                                     new_pairs[index].key = evt.value();
                                     on_pairs_change.call(new_pairs);
                                 }
-                            }
+                            },
                         }
                     }
                     div { class: "flex-1",
@@ -52,7 +47,7 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                             r#type: "text",
                             value: "{pair.value}",
                             placeholder: "{value_placeholder}",
-                            class: "form-input w-full",
+                            class: "input w-full",
                             oninput: {
                                 let pairs = pairs.clone();
                                 let on_pairs_change = on_pairs_change;
@@ -61,7 +56,7 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                                     new_pairs[index].value = evt.value();
                                     on_pairs_change.call(new_pairs);
                                 }
-                            }
+                            },
                         }
                     }
                     button {
@@ -88,10 +83,11 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                     let on_pairs_change = on_pairs_change;
                     move |_| {
                         let mut new_pairs = pairs.clone();
-                        new_pairs.push(KeyValuePair {
-                            key: String::new(),
-                            value: String::new(),
-                        });
+                        new_pairs
+                            .push(KeyValuePair {
+                                key: String::new(),
+                                value: String::new(),
+                            });
                         on_pairs_change.call(new_pairs);
                     }
                 },
@@ -104,7 +100,7 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                         stroke_linecap: "round",
                         stroke_linejoin: "round",
                         stroke_width: "2",
-                        d: "M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        d: "M12 6v6m0 0v6m0-6h6m-6 0H6",
                     }
                 }
                 "إضافة معلومة"

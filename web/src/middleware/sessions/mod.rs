@@ -1,7 +1,8 @@
 pub mod types;
-
-use std::sync::Arc;
-
+use crate::{
+    ErrorResponse,
+    server::{AppState, InnerAppState},
+};
 use axum::{
     RequestPartsExt,
     extract::{FromRequestParts, Request, State},
@@ -10,36 +11,25 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{Duration, Utc};
+use std::sync::Arc;
 use tower_cookies::Cookies;
 use uuid::Uuid;
-
-use crate::{
-    ErrorResponse,
-    server::{AppState, InnerAppState},
-};
-
 pub const SESSION_COOKIE_NAME: &str = "session_id";
-
 pub struct UserSession {
     pub session_id: Option<Uuid>,
 }
-
 #[derive(thiserror::Error, Debug)]
 pub enum SessionError {
     #[error("something went wrong")]
     SomethingWentWrong,
-
     #[error("something went wrong")]
     Sqlx(#[from] sqlx::Error),
-
     #[error("invalid session")]
     InvalidSession,
 }
-
 impl IntoResponse for SessionError {
     fn into_response(self) -> axum::response::Response {
         tracing::error!("{self:#?}");
-
         match self {
             SessionError::SomethingWentWrong => (StatusCode::INTERNAL_SERVER_ERROR).into_response(),
             SessionError::InvalidSession => (
@@ -54,10 +44,8 @@ impl IntoResponse for SessionError {
         }
     }
 }
-
 impl FromRequestParts<AppState> for UserSession {
     type Rejection = SessionError;
-
     async fn from_request_parts(
         parts: &mut axum::http::request::Parts,
         state: &AppState,
@@ -72,7 +60,6 @@ impl FromRequestParts<AppState> for UserSession {
                     );
                     SessionError::InvalidSession
                 })?;
-
         if let Some(session_id) = cookies
             .private(&state.inner.cookies_secret)
             .get(SESSION_COOKIE_NAME)
@@ -88,7 +75,6 @@ impl FromRequestParts<AppState> for UserSession {
         }
     }
 }
-
 pub async fn refresh_session(
     session: UserSession,
     State(state): State<Arc<InnerAppState>>,
@@ -96,7 +82,6 @@ pub async fn refresh_session(
     next: Next,
 ) -> Result<Response, SessionError> {
     tracing::info!("running refresh_session middleware");
-
     if let Some(session_id) = session.session_id {
         sqlx::query!(
             r#"
@@ -111,6 +96,5 @@ pub async fn refresh_session(
         .execute(&state.db_pool)
         .await?;
     }
-
     Ok(next.run(request).await)
 }
