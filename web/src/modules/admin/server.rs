@@ -21,12 +21,14 @@ pub async fn register_admin(register_input: RegisterInput) -> ServerFnResult<()>
     };
     use chrono::Utc;
     use uuid::Uuid;
+
     let state = crate::server::get_state().await?;
+
     if sqlx::query!(
         r#"
-    SELECT id, role as "role: UserRole" FROM users
-    WHERE role = $1
-            "#,
+        SELECT id, role as "role: UserRole" FROM users
+        WHERE role = $1
+                "#,
         UserRole::Admin as _,
     )
     .fetch_optional(&state.db_pool)
@@ -36,11 +38,14 @@ pub async fn register_admin(register_input: RegisterInput) -> ServerFnResult<()>
         tracing::error!("Admin already registered");
         return Err(ServerFnError::new("Bad Request"));
     }
+
     register_input.validate()?;
+
     if register_input.password.is_empty() || register_input.email.is_empty() {
         tracing::error!("password or email is empty");
         return Err(ServerFnError::new("Bad Request"));
     }
+
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     let hashed_password = argon2
@@ -50,12 +55,13 @@ pub async fn register_admin(register_input: RegisterInput) -> ServerFnResult<()>
             ServerFnError::new("Something went wrong")
         })?
         .to_string();
+
     sqlx::query_as!(
         UserResponse,
         r#"
-                INSERT INTO users (id, first_name, last_name, email, password, role, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7);
-            "#,
+                    INSERT INTO users (id, first_name, last_name, email, password, role, created_at)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7);
+                "#,
         Uuid::new_v4(),
         register_input.first_name,
         register_input.last_name,
@@ -66,6 +72,7 @@ pub async fn register_admin(register_input: RegisterInput) -> ServerFnResult<()>
     )
     .execute(&state.db_pool)
     .await?;
+
     Ok(())
 }
 

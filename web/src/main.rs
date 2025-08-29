@@ -114,7 +114,7 @@ async fn launch_server() {
         .layer(CookieManagerLayer::new())
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(25 * 1024 * 1024 /* 25mb */))
-        .with_state(app_state);
+        .with_state(app_state.clone());
 
     let task_pool = LocalPoolHandle::new(
         std::thread::available_parallelism()
@@ -158,9 +158,21 @@ async fn launch_server() {
 
                             unsafe { dioxus_devtools::subsecond::apply_patch(table).unwrap() };
 
-                            let new_router = axum::Router::new().serve_static_assets();
+                            let new_router = axum::Router::new()
+                                .serve_static_assets()
+                                .layer(axum::middleware::from_fn_with_state(
+                                    app_state.clone(),
+                                    refresh_session,
+                                ))
+                                .layer(CookieManagerLayer::new())
+                                .layer(DefaultBodyLimit::disable())
+                                .layer(RequestBodyLimitLayer::new(25 * 1024 * 1024 /* 25mb */))
+                                .with_state(app_state.clone());
 
-                            let new_cfg = ServeConfig::new().unwrap();
+                            let new_cfg = ServeConfigBuilder::new()
+                                .context(app_state.clone())
+                                .build()
+                                .unwrap();
 
                             let hot_root = subsecond::HotFn::current(App);
                             let new_root_addr = hot_root.ptr_address().0 as usize as *const ();

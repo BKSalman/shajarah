@@ -33,7 +33,6 @@ toml = { version = "0.9.5", optional = true }
 url = { version = "2.5.4", optional = true, features = ["serde"] }
 aes-gcm = { version = "0.10.3", optional = true }
 csv = { version = "1.3.1", optional = true }
-anyhow = "1.0.86"
 subsecond = { git = "https://github.com/dioxuslabs/dioxus", branch = "main" }
 tokio-util = "0.7.16"
 hyper = { version = "1.7.0", features = ["server"] }
