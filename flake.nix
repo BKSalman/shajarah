@@ -131,11 +131,8 @@
               docker start shajarah-dev-db &> /dev/null || \
                 docker run --rm \
                 --name shajarah-dev-db \
-              docker start shajarah-dev-db &> /dev/null || \
-                docker run \
-                --name shajarah-dev-db \
                 -p 5445:5432 \
-                -e POSTGRES_PASSWORD=shajarah-dev \
+                -e POSTGRES_PASSWORD=shajarah-dev-db \
                 -d postgres  &> /dev/null || true
 
                docker start shajarah-dev-pgweb &> /dev/null || \
@@ -149,6 +146,9 @@
                  --name shajarah-dev-mailhog \
                  -p 1025:1025 -p 8025:8025 \
                  -d mailhog/mailhog:v1.0.1  &> /dev/null || true
+
+
+                 ${sqlx-cli}/bin/sqlx migrate run
             }
 
              export DATABASE_URL=postgres://postgres:shajarah-dev-db@localhost:5445/postgres

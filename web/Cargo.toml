@@ -6,6 +6,8 @@ edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+
 [dependencies]
 dioxus = { version = "0.7.0-rc.0", features = ["router", "fullstack"] }
 axum = { version = "0.8", features = ["macros", "multipart"], optional = true }
@@ -31,7 +33,12 @@ toml = { version = "0.9.5", optional = true }
 url = { version = "2.5.4", optional = true, features = ["serde"] }
 aes-gcm = { version = "0.10.3", optional = true }
 csv = { version = "1.3.1", optional = true }
-anyhow.workspace = true
+anyhow = "1.0.86"
+subsecond = { git = "https://github.com/dioxuslabs/dioxus", branch = "main" }
+tokio-util = "0.7.16"
+hyper = { version = "1.7.0", features = ["server"] }
+hyper-util = { version = "0.1.16", features = ["server", "server-auto"] }
+tower = "0.5.2"
 
 [target.wasm32-unknown-unknown.dependencies]
 uuid = { version = "1.18.0", features = ["serde", "v4", "js"] }
@@ -45,4 +52,18 @@ web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
 # The feature that are only required for the mobile = ["dioxus/mobile"] build target should be optional and only enabled in the mobile = ["dioxus/mobile"] feature
 mobile = ["dioxus/mobile"]
-server = ["dioxus/server", "dep:axum", "dep:tokio", "dep:tower-http", "dep:sqlx", "dep:tower-cookies", "dep:rand", "dep:argon2", "dep:async-trait", "dep:toml", "dep:url", "dep:aes-gcm", "dep:csv"]
+server = [
+  "dioxus/server",
+  "dep:axum",
+  "dep:tokio",
+  "dep:tower-http",
+  "dep:sqlx",
+  "dep:tower-cookies",
+  "dep:rand",
+  "dep:argon2",
+  "dep:async-trait",
+  "dep:toml",
+  "dep:url",
+  "dep:aes-gcm",
+  "dep:csv"
+]

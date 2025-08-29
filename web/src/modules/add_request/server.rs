@@ -9,7 +9,6 @@ use crate::{
         add_request::types::{RequestedMemberResponse, RequestedMemberRowWithParents},
         member::types::Gender,
     },
-    server::get_state,
 };
 
 #[server]
@@ -48,6 +47,8 @@ pub async fn add_request(
 
 #[server]
 pub async fn requested_members() -> ServerFnResult<Vec<RequestedMemberResponse>> {
+    use crate::server::get_state;
+
     let state = get_state().await?;
 
     let recs: Vec<RequestedMemberRowWithParents> = sqlx::query_as(
