@@ -14,19 +14,23 @@ use chrono::{Duration, Utc};
 use std::sync::Arc;
 use tower_cookies::Cookies;
 use uuid::Uuid;
+
 pub const SESSION_COOKIE_NAME: &str = "session_id";
+
 pub struct UserSession {
     pub session_id: Option<Uuid>,
 }
+
 #[derive(thiserror::Error, Debug)]
 pub enum SessionError {
-    #[error("something went wrong")]
+    #[error("Something went wrong")]
     SomethingWentWrong,
-    #[error("something went wrong")]
+    #[error("Something went wrong")]
     Sqlx(#[from] sqlx::Error),
-    #[error("invalid session")]
+    #[error("Invalid session")]
     InvalidSession,
 }
+
 impl IntoResponse for SessionError {
     fn into_response(self) -> axum::response::Response {
         tracing::error!("{self:#?}");
@@ -44,6 +48,7 @@ impl IntoResponse for SessionError {
         }
     }
 }
+
 impl FromRequestParts<AppState> for UserSession {
     type Rejection = SessionError;
     async fn from_request_parts(
@@ -58,7 +63,7 @@ impl FromRequestParts<AppState> for UserSession {
                     tracing::error!(
                         "session-extractor: failed to get private cookie jar: {error_message}"
                     );
-                    SessionError::InvalidSession
+                    SessionError::SomethingWentWrong
                 })?;
         if let Some(session_id) = cookies
             .private(&state.inner.cookies_secret)
@@ -75,6 +80,7 @@ impl FromRequestParts<AppState> for UserSession {
         }
     }
 }
+
 pub async fn refresh_session(
     session: UserSession,
     State(state): State<Arc<InnerAppState>>,
@@ -96,5 +102,6 @@ pub async fn refresh_session(
         .execute(&state.db_pool)
         .await?;
     }
+
     Ok(next.run(request).await)
 }

@@ -1,9 +1,11 @@
 use dioxus::prelude::*;
+
 #[derive(Clone, PartialEq)]
 pub struct KeyValuePair {
     pub key: String,
     pub value: String,
 }
+
 #[derive(Props, Clone, PartialEq)]
 pub struct KeyValueInputProps {
     pub pairs: Vec<KeyValuePair>,
@@ -11,6 +13,7 @@ pub struct KeyValueInputProps {
     pub key_placeholder: Option<String>,
     pub value_placeholder: Option<String>,
 }
+
 #[component]
 pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
     let key_placeholder = props
@@ -19,8 +22,11 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
     let value_placeholder = props
         .value_placeholder
         .unwrap_or_else(|| "القيمة".to_string());
+
     let pairs = props.pairs.clone();
+
     let on_pairs_change = props.on_pairs_change;
+
     rsx! {
         div { class: "space-y-3",
             for (index , pair) in pairs.iter().enumerate() {
@@ -54,6 +60,7 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                                 move |evt| {
                                     let mut new_pairs = pairs.clone();
                                     new_pairs[index].value = evt.value();
+
                                     on_pairs_change.call(new_pairs);
                                 }
                             },
@@ -68,6 +75,7 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                             move |_| {
                                 let mut new_pairs = pairs.clone();
                                 new_pairs.remove(index);
+
                                 on_pairs_change.call(new_pairs);
                             }
                         },
@@ -88,6 +96,7 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                                 key: String::new(),
                                 value: String::new(),
                             });
+
                         on_pairs_change.call(new_pairs);
                     }
                 },

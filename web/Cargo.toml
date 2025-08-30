@@ -66,3 +66,6 @@ server = [
   "dep:aes-gcm",
   "dep:csv"
 ]
+
+[patch.crates-io]
+garde = { git = "https://github.com/jprochazk/garde", branch = "i18n" }

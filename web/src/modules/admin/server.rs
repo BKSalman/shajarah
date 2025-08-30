@@ -1,4 +1,4 @@
-use super::types::RegisterInput;
+use super::types::RegisterData;
 use crate::modules::{
     admin::types::LoginData,
     user::types::{UserResponseBrief, UserRole},
@@ -14,7 +14,7 @@ pub async fn get_admin() -> ServerFnResult<UserResponseBrief> {
 }
 
 #[server]
-pub async fn register_admin(register_input: RegisterInput) -> ServerFnResult<()> {
+pub async fn register_admin(register_data: RegisterData) -> ServerFnResult<()> {
     use argon2::{
         Argon2,
         password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
@@ -35,25 +35,28 @@ pub async fn register_admin(register_input: RegisterInput) -> ServerFnResult<()>
     .await?
     .is_some()
     {
-        tracing::error!("Admin already registered");
         return Err(ServerFnError::new("Bad Request"));
     }
 
-    register_input.validate()?;
+    register_data.validate()?;
 
-    if register_input.password.is_empty() || register_input.email.is_empty() {
-        tracing::error!("password or email is empty");
-        return Err(ServerFnError::new("Bad Request"));
-    }
+    let RegisterData {
+        first_name: Some(first_name),
+        last_name: Some(last_name),
+        email: Some(email),
+        password: Some(password),
+        confirm_password: _,
+    } = register_data
+    else {
+        // this shouldn't run since we validate that all fields have values
+        return Err(ServerFnError::new("Something went wrong"));
+    };
 
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     let hashed_password = argon2
-        .hash_password(register_input.password.as_bytes(), &salt)
-        .map_err(|e| {
-            tracing::error!("{e}");
-            ServerFnError::new("Something went wrong")
-        })?
+        .hash_password(password.as_bytes(), &salt)
+        .map_err(|e| ServerFnError::new("Something went wrong"))?
         .to_string();
 
     sqlx::query_as!(
@@ -63,9 +66,9 @@ pub async fn register_admin(register_input: RegisterInput) -> ServerFnResult<()>
                     VALUES ($1, $2, $3, $4, $5, $6, $7);
                 "#,
         Uuid::new_v4(),
-        register_input.first_name,
-        register_input.last_name,
-        register_input.email,
+        first_name,
+        last_name,
+        email,
         hashed_password,
         UserRole::Admin as _,
         Utc::now(),
@@ -77,13 +80,21 @@ pub async fn register_admin(register_input: RegisterInput) -> ServerFnResult<()>
 }
 
 #[server]
-pub async fn login_admin(login_input: LoginData) -> ServerFnResult<()> {
+pub async fn login_admin(login_data: LoginData) -> ServerFnResult<()> {
     use crate::middleware::sessions::{SESSION_COOKIE_NAME, types::CreateSession};
     use argon2::{Argon2, PasswordVerifier, password_hash::PasswordHash};
     use chrono::Utc;
     use uuid::Uuid;
 
-    login_input.validate()?;
+    login_data.validate()?;
+
+    let LoginData {
+        email: Some(email),
+        password: Some(password),
+    } = login_data
+    else {
+        return Err(ServerFnError::new("Something went wrong"));
+    };
 
     let state = crate::server::get_state().await?;
     let cookies = crate::server::get_cookies().await?;
@@ -94,20 +105,18 @@ pub async fn login_admin(login_input: LoginData) -> ServerFnResult<()> {
         .private(&state.cookies_secret)
         .get(SESSION_COOKIE_NAME)
     {
-        if let Some(session) = sqlx::query!(
+        if sqlx::query!(
             r#"
                 SELECT id from sessions
                 WHERE sessions.id = $1
             "#,
-            Uuid::parse_str(session_id.value()).map_err(|e| {
-                tracing::error!("{e}");
-                ServerFnError::new("Bad Request")
-            })?
+            Uuid::parse_str(session_id.value())
+                .map_err(|e| { ServerFnError::new("Bad Request") })?
         )
         .fetch_optional(&mut *tx)
         .await?
+        .is_some()
         {
-            tracing::error!("user already logged in with session: {session:?}");
             return Err(ServerFnError::new("Bad Request"));
         }
     }
@@ -126,7 +135,7 @@ pub async fn login_admin(login_input: LoginData) -> ServerFnResult<()> {
             SELECT users.id, users.password FROM users
             WHERE users.email = $1
         "#,
-        login_input.email
+        email
     )
     .fetch_optional(&mut *tx)
     .await?
@@ -138,13 +147,11 @@ pub async fn login_admin(login_input: LoginData) -> ServerFnResult<()> {
         return Err(ServerFnError::new("Invalid credentials"));
     };
 
-    let parsed_password = PasswordHash::new(&user_password).map_err(|e| {
-        tracing::error!("{e}");
-        ServerFnError::new("Something went wrong")
-    })?;
+    let parsed_password = PasswordHash::new(&user_password)
+        .map_err(|e| ServerFnError::new("Something went wrong"))?;
 
     if argon2
-        .verify_password(login_input.password.as_bytes(), &parsed_password)
+        .verify_password(password.as_bytes(), &parsed_password)
         .is_err()
     {
         return Err(ServerFnError::new("Inavlid credentials"));
@@ -216,10 +223,8 @@ pub async fn logout_admin() -> ServerFnResult<()> {
                 DELETE from sessions
                 WHERE sessions.id = $1
             "#,
-            Uuid::parse_str(session_id.value()).map_err(|e| {
-                tracing::error!("{e}");
-                ServerFnError::new("Bad Request")
-            })?
+            Uuid::parse_str(session_id.value())
+                .map_err(|e| { ServerFnError::new("Bad Request") })?
         )
         .execute(&mut *tx)
         .await?;

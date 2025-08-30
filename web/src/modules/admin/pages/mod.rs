@@ -166,9 +166,15 @@ pub fn Admin() -> Element {
                             for request in requests {
                                 RequestCard {
                                     request: request.clone(),
-                                    on_approve: move |_| {},
-                                    on_reject: move |_| {},
-                                    on_view: move |_| {},
+                                    on_approve: move |_| {
+                                        tracing::info!("on_approve");
+                                    },
+                                    on_reject: move |_| {
+                                        tracing::info!("on_reject");
+                                    },
+                                    on_view: move |_| {
+                                        tracing::info!("on_view");
+                                    },
                                 }
                             }
                         }

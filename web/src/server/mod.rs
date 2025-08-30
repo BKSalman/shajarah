@@ -27,8 +27,7 @@ pub async fn get_state() -> ServerFnResult<Arc<InnerAppState>> {
 }
 
 pub async fn get_cookies() -> ServerFnResult<tower_cookies::Cookies> {
-    Ok(extract::<tower_cookies::Cookies, _>().await.map_err(|e| {
-        tracing::error!("{e:?}");
-        ServerFnError::new("Bad Request")
-    })?)
+    Ok(extract::<tower_cookies::Cookies, _>()
+        .await
+        .map_err(|_e| ServerFnError::new("Bad Request"))?)
 }

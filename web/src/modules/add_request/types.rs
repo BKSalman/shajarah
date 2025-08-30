@@ -1,9 +1,32 @@
 use chrono::{DateTime, Utc};
+use dioxus::prelude::*;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::modules::member::types::Gender;
+
+#[derive(Debug, Clone, Store, garde::Validate, Serialize, Deserialize)]
+pub struct RequestData {
+    #[garde(required, length(min = 1))]
+    pub name: Option<String>,
+    #[garde(required, length(min = 1))]
+    pub last_name: Option<String>,
+    #[garde(required)]
+    pub gender: Option<Gender>,
+    #[garde(skip)]
+    pub birthday: Option<DateTime<Utc>>,
+    #[garde(required)]
+    pub father_id: Option<i64>,
+    #[garde(skip)]
+    pub mother_id: Option<i64>,
+    #[garde(skip)]
+    pub info: IndexMap<String, String>,
+    #[garde(skip)]
+    pub image: Option<Vec<u8>>,
+    #[garde(skip)]
+    pub image_type: Option<String>,
+}
 
 #[cfg_attr(feature = "server", derive(sqlx::Type))]
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]

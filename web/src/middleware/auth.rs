@@ -9,11 +9,13 @@ use chrono::Utc;
 use dioxus::server::{FromContext, FromServerContext};
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
+
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
 pub struct AuthExtractor<const USER_ROLE: u8> {
     pub current_user: UserResponseBrief,
     pub session_id: Uuid,
 }
+
 #[derive(thiserror::Error, Debug)]
 pub enum AuthError {
     #[error("something went wrong")]
@@ -22,9 +24,12 @@ pub enum AuthError {
     Sqlx(#[from] sqlx::Error),
     #[error("invalid session")]
     InvalidSession,
+    #[error("Invalid credentials")]
+    InvalidCredentials,
     #[error("invalid session")]
     SessionError(#[from] SessionError),
 }
+
 impl IntoResponse for AuthError {
     fn into_response(self) -> axum::response::Response {
         tracing::error!("{self:#?}");
@@ -39,10 +44,19 @@ impl IntoResponse for AuthError {
                 },
             )
                 .into_response(),
+            AuthError::InvalidCredentials => (
+                StatusCode::UNAUTHORIZED,
+                ErrorResponse {
+                    error: self.to_string(),
+                    ..Default::default()
+                },
+            )
+                .into_response(),
             AuthError::SessionError(e) => e.into_response(),
         }
     }
 }
+
 impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE> {
     type Rejection = AuthError;
     async fn from_request_parts(
@@ -57,7 +71,9 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
                 tracing::error!("auth-extractor: missing session_id");
                 AuthError::InvalidSession
             })?;
+
         let role: UserRole = unsafe { std::mem::transmute(USER_ROLE) };
+
         #[derive(FromRow)]
         struct AuthRow {
             user_id: Uuid,
@@ -66,6 +82,7 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
             email: Option<String>,
             role: UserRole,
         }
+
         match role {
             UserRole::Admin => {
                 let Some(rec) = sqlx::query_as!(
@@ -84,8 +101,9 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
                         .execute(&state.inner.db_pool)
                         .await
                         .ok();
-                    return Err(AuthError::InvalidSession);
+                    return Err(AuthError::InvalidCredentials);
                 };
+
                 Ok(AuthExtractor {
                     current_user: UserResponseBrief {
                         id: rec.user_id,
@@ -113,8 +131,9 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
                         .execute(&state.inner.db_pool)
                         .await
                         .ok();
-                    return Err(AuthError::InvalidSession);
+                    return Err(AuthError::InvalidCredentials);
                 };
+
                 Ok(AuthExtractor {
                     current_user: UserResponseBrief {
                         id: rec.user_id,
@@ -128,6 +147,7 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
         }
     }
 }
+
 #[async_trait::async_trait]
 impl<const USER_ROLE: u8> FromServerContext<AppState> for AuthExtractor<USER_ROLE> {
     type Rejection = <AuthExtractor<USER_ROLE> as FromRequestParts<AppState>>::Rejection;

@@ -1,21 +1,24 @@
+use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, garde::Validate, Serialize, Deserialize, Clone)]
-pub struct RegisterInput {
-    #[garde(skip)]
-    pub first_name: String,
-    #[garde(skip)]
-    pub last_name: String,
-    #[garde(email)]
-    pub email: String,
-    #[garde(skip)]
-    pub password: String,
+#[derive(Debug, Store, garde::Validate, Serialize, Deserialize, Clone)]
+pub struct RegisterData {
+    #[garde(required, length(min = 1))]
+    pub first_name: Option<String>,
+    #[garde(required, length(min = 1))]
+    pub last_name: Option<String>,
+    #[garde(required, email)]
+    pub email: Option<String>,
+    #[garde(required, length(min = 8))]
+    pub password: Option<String>,
+    #[garde(required, length(min = 8), matches(password))]
+    pub confirm_password: Option<String>,
 }
 
-#[derive(Debug, garde::Validate, Serialize, Deserialize, Clone)]
+#[derive(Debug, Store, garde::Validate, Serialize, Deserialize, Clone)]
 pub struct LoginData {
-    #[garde(email)]
-    pub email: String,
-    #[garde(length(min = 1))]
-    pub password: String,
+    #[garde(required, email)]
+    pub email: Option<String>,
+    #[garde(required, length(min = 8))]
+    pub password: Option<String>,
 }

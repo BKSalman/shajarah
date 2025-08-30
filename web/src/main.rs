@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "server")]
 pub mod config;
+pub mod i18n;
 #[cfg(feature = "server")]
 pub mod middleware;
 pub mod modules;
@@ -158,16 +159,7 @@ async fn launch_server() {
 
                             unsafe { dioxus_devtools::subsecond::apply_patch(table).unwrap() };
 
-                            let new_router = axum::Router::new()
-                                .serve_static_assets()
-                                .layer(axum::middleware::from_fn_with_state(
-                                    app_state.clone(),
-                                    refresh_session,
-                                ))
-                                .layer(CookieManagerLayer::new())
-                                .layer(DefaultBodyLimit::disable())
-                                .layer(RequestBodyLimitLayer::new(25 * 1024 * 1024 /* 25mb */))
-                                .with_state(app_state.clone());
+                            let new_router = axum::Router::new().serve_static_assets();
 
                             let new_cfg = ServeConfigBuilder::new()
                                 .context(app_state.clone())
@@ -186,8 +178,17 @@ async fn launch_server() {
                             let fallback_handler =
                                 axum::routing::get(render_handler).with_state(state);
 
-                            make_service =
-                                new_router.fallback(fallback_handler).into_make_service();
+                            make_service = new_router
+                                .fallback(fallback_handler)
+                                .layer(axum::middleware::from_fn_with_state(
+                                    app_state.clone(),
+                                    refresh_session,
+                                ))
+                                .layer(CookieManagerLayer::new())
+                                .layer(DefaultBodyLimit::disable())
+                                .layer(RequestBodyLimitLayer::new(25 * 1024 * 1024 /* 25mb */))
+                                .with_state(app_state.clone())
+                                .into_make_service();
 
                             shutdown_tx.send_modify(|i| {
                                 *i += 1;

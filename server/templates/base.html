@@ -1,17 +1,806 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>شجرة | {% block title %}{% endblock %}</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  
+  <style>
+    :root {
+      /* Shajarah Design System - Forest Heritage Palette */
+      /* Primary Tree-Inspired Green Colors */
+      --color-forest-background: #F4F7F4;     /* Very light sage - like morning mist in a forest */
+      --color-forest-light: #D0E1D0;          /* Light sage - like new spring leaves */
+      --color-forest-medium: #7A9A7A;         /* Muted sage - like mature foliage */
+      --color-forest-primary: #4A6741;        /* Deep olive green - like tree bark */
+      --color-forest-dark: #2C4A2C;           /* Forest dark - like deep woods shadow */
+      
+      /* Mapped to semantic color system */
+      --color-primary: var(--color-forest-primary);
+      --color-primary-dark: var(--color-forest-dark);
+      --color-primary-light: var(--color-forest-medium);
+      --color-primary-lighter: var(--color-forest-light);
+      --color-primary-lightest: var(--color-forest-background);
+      
+      /* Secondary colors (keeping blue for contrast) */
+      --color-secondary: #3b82f6;
+      --color-secondary-dark: #2563eb;
+      --color-secondary-light: #60a5fa;
+      
+      /* Status colors with forest-inspired tweaks */
+      --color-success: var(--color-forest-medium);
+      --color-warning: #d97706;               /* Warmer orange for autumn feel */
+      --color-error: #dc2626;                 /* Keeping red for safety */
+      --color-info: #0284c7;                  /* Slightly deeper blue like forest streams */
+      
+      --color-gray-50: #f9fafb;
+      --color-gray-100: #f3f4f6;
+      --color-gray-200: #e5e7eb;
+      --color-gray-300: #d1d5db;
+      --color-gray-400: #9ca3af;
+      --color-gray-500: #6b7280;
+      --color-gray-600: #4b5563;
+      --color-gray-700: #374151;
+      --color-gray-800: #1f2937;
+      --color-gray-900: #111827;
+      
+      /* Typography */
+      --font-family-arabic: 'Noto Sans Arabic', 'Cairo', 'Tajawal', system-ui, sans-serif;
+      --font-family-system: system-ui, -apple-system, sans-serif;
+      
+      --font-size-xs: 0.75rem;
+      --font-size-sm: 0.875rem;
+      --font-size-base: 1rem;
+      --font-size-lg: 1.125rem;
+      --font-size-xl: 1.25rem;
+      --font-size-2xl: 1.5rem;
+      --font-size-3xl: 1.875rem;
+      --font-size-4xl: 2.25rem;
+      
+      --font-weight-normal: 400;
+      --font-weight-medium: 500;
+      --font-weight-semibold: 600;
+      --font-weight-bold: 700;
+      
+      /* Spacing */
+      --spacing-1: 0.25rem;
+      --spacing-2: 0.5rem;
+      --spacing-3: 0.75rem;
+      --spacing-4: 1rem;
+      --spacing-5: 1.25rem;
+      --spacing-6: 1.5rem;
+      --spacing-8: 2rem;
+      --spacing-10: 2.5rem;
+      --spacing-12: 3rem;
+      --spacing-16: 4rem;
+      
+      /* Shadows */
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      
+      /* Border radius */
+      --radius-sm: 0.25rem;
+      --radius: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --radius-xl: 1rem;
+      
+      /* Transitions */
+      --transition-base: 150ms ease;
+      --transition-colors: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+    }
+    
+    /* Base styles */
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: var(--font-family-arabic);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    
+    /* RTL Support */
+    [dir="rtl"] {
+      text-align: right;
+    }
+    
+    [dir="rtl"] .ltr {
+      direction: ltr;
+      text-align: left;
+    }
+    
+    /* Design System Utility Classes */
+    
+    /* Button Components */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-2) var(--spacing-4);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      border-radius: var(--radius);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: var(--transition-colors);
+      text-decoration: none;
+      gap: var(--spacing-2);
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-primary {
+      background-color: var(--color-primary);
+      color: white;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--color-primary-dark);
+    }
+    
+    .btn-secondary {
+      background-color: var(--color-secondary);
+      color: white;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background-color: var(--color-secondary-dark);
+    }
+    
+    .btn-success {
+      background-color: var(--color-success);
+      color: white;
+    }
+    
+    .btn-success:hover:not(:disabled) {
+      background-color: var(--color-primary-dark);
+    }
+    
+    .btn-danger {
+      background-color: var(--color-error);
+      color: white;
+    }
+    
+    .btn-danger:hover:not(:disabled) {
+      background-color: #dc2626;
+    }
+    
+    .btn-outline {
+      background-color: transparent;
+      border-color: var(--color-gray-300);
+      color: var(--color-gray-700);
+    }
+    
+    .btn-outline:hover:not(:disabled) {
+      background-color: var(--color-gray-50);
+    }
+    
+    .btn-sm {
+      padding: var(--spacing-1) var(--spacing-3);
+      font-size: var(--font-size-xs);
+    }
+    
+    .btn-lg {
+      padding: var(--spacing-3) var(--spacing-6);
+      font-size: var(--font-size-base);
+    }
+    
+    /* Form Components */
+    .form-group {
+      margin-bottom: var(--spacing-4);
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: var(--spacing-1);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-gray-700);
+    }
+    
+    .form-input {
+      display: block;
+      width: 100%;
+      padding: var(--spacing-2) var(--spacing-3);
+      font-size: var(--font-size-sm);
+      border: 1px solid var(--color-gray-300);
+      border-radius: var(--radius);
+      background-color: white;
+      transition: var(--transition-colors);
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
+    }
+    
+    .form-input:invalid {
+      border-color: var(--color-error);
+    }
+    
+    .form-select {
+      display: block;
+      width: 100%;
+      padding: var(--spacing-2) var(--spacing-3);
+      font-size: var(--font-size-sm);
+      border: 1px solid var(--color-gray-300);
+      border-radius: var(--radius);
+      background-color: white;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+      background-position: left var(--spacing-2) center;
+      background-repeat: no-repeat;
+      background-size: 1.5em 1.5em;
+      padding-left: var(--spacing-8);
+    }
+    
+    [dir="rtl"] .form-select {
+      background-position: right var(--spacing-2) center;
+      padding-left: var(--spacing-3);
+      padding-right: var(--spacing-8);
+    }
+    
+    /* Card Components with forest enhancement */
+    .card {
+      background-color: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--color-forest-light);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .card:hover {
+      border-color: var(--color-forest-medium);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .card-header {
+      padding: var(--spacing-6);
+      border-bottom: 1px solid var(--color-forest-light);
+    }
+    
+    .card-body {
+      padding: var(--spacing-6);
+    }
+    
+    .card-footer {
+      padding: var(--spacing-6);
+      border-top: 1px solid var(--color-forest-light);
+      background-color: var(--color-forest-background);
+      border-bottom-left-radius: var(--radius-lg);
+      border-bottom-right-radius: var(--radius-lg);
+    }
+    
+    /* Table Components */
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      border-spacing: 0;
+    }
+    
+    .table th,
+    .table td {
+      padding: var(--spacing-3);
+      text-align: right;
+      border-bottom: 1px solid var(--color-forest-light);
+    }
+    
+    .table th {
+      background-color: var(--color-forest-background);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-forest-dark);
+      font-size: var(--font-size-sm);
+    }
+    
+    .table-striped tbody tr:nth-child(even) {
+      background-color: var(--color-forest-background);
+    }
+    
+    /* Alert Components */
+    .alert {
+      padding: var(--spacing-4);
+      border-radius: var(--radius);
+      margin-bottom: var(--spacing-4);
+      border: 1px solid;
+    }
+    
+    .alert-success {
+      background-color: var(--color-forest-background);
+      border-color: var(--color-forest-light);
+      color: var(--color-forest-dark);
+    }
+    
+    .alert-error {
+      background-color: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+    
+    .alert-warning {
+      background-color: #fffbeb;
+      border-color: #fed7aa;
+      color: #92400e;
+    }
+    
+    .alert-info {
+      background-color: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1e40af;
+    }
+    
+    /* Toast/Notification System */
+    .toast-container {
+      position: fixed;
+      top: var(--spacing-4);
+      right: var(--spacing-4);
+      z-index: 9999;
+      max-width: 400px;
+      pointer-events: none;
+    }
+    
+    [dir="rtl"] .toast-container {
+      right: auto;
+      left: var(--spacing-4);
+    }
+    
+    .toast {
+      background-color: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: var(--spacing-4);
+      margin-bottom: var(--spacing-2);
+      border-left: 4px solid;
+      pointer-events: auto;
+      transform: translateX(100%);
+      transition: transform 300ms ease, opacity 300ms ease;
+    }
+    
+    [dir="rtl"] .toast {
+      border-left: none;
+      border-right: 4px solid;
+      transform: translateX(-100%);
+    }
+    
+    .toast.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    
+    .toast-success {
+      border-color: var(--color-success);
+    }
+    
+    .toast-error {
+      border-color: var(--color-error);
+    }
+    
+    .toast-warning {
+      border-color: var(--color-warning);
+    }
+    
+    .toast-info {
+      border-color: var(--color-info);
+    }
+    
+    /* Loading States */
+    .loading {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .loading::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+      animation: loading 1.5s infinite;
+    }
+    
+    @keyframes loading {
+      0% {
+        left: -100%;
+      }
+      100% {
+        left: 100%;
+      }
+    }
+    
+    /* Responsive Utilities */
+    @media (max-width: 640px) {
+      .mobile-hidden {
+        display: none !important;
+      }
+      
+      .mobile-full {
+        width: 100% !important;
+      }
+      
+      .mobile-text-sm {
+        font-size: var(--font-size-sm) !important;
+      }
+      
+      .mobile-p-2 {
+        padding: var(--spacing-2) !important;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .tablet-hidden {
+        display: none !important;
+      }
+      
+      .tablet-full {
+        width: 100% !important;
+      }
+    }
+    
+    /* Animation Utilities */
+    .fade-in {
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .slide-in {
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(-20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    [dir="rtl"] .slide-in {
+      animation: slideInRTL 0.3s ease;
+    }
+    
+    @keyframes slideInRTL {
+      from {
+        transform: translateX(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    /* Additional Modal and Grid Styles */
+    [x-cloak] {
+      display: none !important;
+    }
+    
+    /* Modal backdrop */
+    .modal-backdrop {
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
+    
+    /* Primary color utilities for the new design */
+    /* Forest-inspired color utilities */
+    .bg-forest-background {
+      background-color: var(--color-forest-background);
+    }
+    
+    .bg-forest-light {
+      background-color: var(--color-forest-light);
+    }
+    
+    .bg-forest-medium {
+      background-color: var(--color-forest-medium);
+    }
+    
+    .bg-primary-100 {
+      background-color: var(--color-primary-lightest);
+    }
+    
+    .bg-primary-400 {
+      background-color: var(--color-primary-light);
+    }
+    
+    .bg-primary-500 {
+      background-color: var(--color-primary);
+    }
+    
+    .bg-primary-600 {
+      background-color: var(--color-primary-dark);
+    }
+    
+    .text-primary-600 {
+      color: var(--color-primary-dark);
+    }
+    
+    .text-primary-500 {
+      color: var(--color-primary);
+    }
+    
+    .ring-2 {
+      box-shadow: 0 0 0 2px var(--color-primary);
+    }
+    
+    .ring-primary-500 {
+      box-shadow: 0 0 0 2px var(--color-primary);
+    }
+    
+    .border-primary-300 {
+      border-color: var(--color-forest-light);
+    }
+    
+    .focus\:ring-primary-500:focus {
+      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.25);
+    }
+    
+    /* Forest-inspired text color utilities */
+    .text-forest-dark {
+      color: var(--color-forest-dark);
+    }
+    
+    .text-forest-primary {
+      color: var(--color-forest-primary);
+    }
+    
+    .text-forest-medium {
+      color: var(--color-forest-medium);
+    }
+    
+    /* Color utilities for consistency */
+    .text-primary-600 {
+      color: var(--color-primary-dark);
+    }
+    
+    .text-primary-500 {
+      color: var(--color-primary);
+    }
+    
+    .border-primary-500 {
+      border-color: var(--color-primary);
+    }
+    
+    .border-forest-light {
+      border-color: var(--color-forest-light);
+    }
+    
+    .border-forest-medium {
+      border-color: var(--color-forest-medium);
+    }
+    
+    /* Card hover effects */
+    .card-hover {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    /* Grid responsive adjustments */
+    .grid-responsive {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+    
+    @media (max-width: 640px) {
+      .grid-responsive {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* Improved truncation */
+    .truncate-2-lines {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    /* Better spacing for Arabic text */
+    .spacing-arabic {
+      letter-spacing: 0.02em;
+    }
+    
+    /* Enhanced focus states with tree-inspired design */
+    .focus-visible\:ring-2:focus-visible {
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+      box-shadow: 0 0 0 3px var(--color-primary);
+    }
+    
+    /* Tree-inspired background textures */
+    .bg-tree-texture {
+      background-color: var(--color-forest-background);
+      background-image: 
+        radial-gradient(circle at 1px 1px, var(--color-forest-light) 1px, transparent 0);
+      background-size: 20px 20px;
+      background-position: 0 0, 10px 10px;
+    }
+    
+    /* Subtle leaf-like borders for cards */
+    .card-forest {
+      border: 2px solid var(--color-forest-light);
+      background: linear-gradient(145deg, var(--color-forest-background), #ffffff);
+      position: relative;
+    }
+    
+    .card-forest::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      right: -1px;
+      bottom: -1px;
+      background: linear-gradient(45deg, var(--color-forest-light), var(--color-forest-medium));
+      border-radius: inherit;
+      z-index: -1;
+      opacity: 0.1;
+    }
+    
+    /* Enhanced tree-themed hover states */
+    .hover\:bg-forest-light:hover {
+      background-color: var(--color-forest-light);
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      transform: translateY(-1px);
+    }
+    
+    .hover\:shadow-forest:hover {
+      box-shadow: var(--shadow-lg);
+    }
+    
+    /* Loading spinner */
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    /* Improved checkbox styling */
+    input[type="checkbox"] {
+      accent-color: var(--color-primary);
+    }
+    
+    /* Better table responsiveness */
+    @media (max-width: 1024px) {
+      .table-responsive {
+        font-size: var(--font-size-sm);
+      }
+      
+      .table-responsive th,
+      .table-responsive td {
+        padding: var(--spacing-2);
+      }
+    }
+  </style>
 </head>
 
-<body class="bg-gray-50 text-gray-900 min-h-screen">
+<body class="text-gray-900 min-h-screen bg-tree-texture" x-data="{ notifications: [] }">
+  <!-- Toast/Notification Container -->
+  <div class="toast-container">
+    <template x-for="notification in notifications" :key="notification.id">
+      <div class="toast" 
+           :class="'toast-' + notification.type" 
+           x-show="notification.show" 
+           x-transition:enter="transition ease-out duration-300"
+           x-transition:enter-start="transform translate-x-full opacity-0"
+           x-transition:enter-end="transform translate-x-0 opacity-100"
+           x-transition:leave="transition ease-in duration-200"
+           x-transition:leave-start="transform translate-x-0 opacity-100"
+           x-transition:leave-end="transform translate-x-full opacity-0">
+        <div class="flex items-start">
+          <div class="flex-1">
+            <p class="font-medium" x-text="notification.title"></p>
+            <p class="text-sm text-gray-600 mt-1" x-show="notification.message" x-text="notification.message"></p>
+          </div>
+          <button class="text-gray-400 hover:text-gray-600 mr-2" @click="removeNotification(notification.id)">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </template>
+  </div>
+  
   <main class="mx-auto px-4">
     {% block content %}{% endblock %}
   </main>
+  <!-- Global Notification System -->
+  <script>
+    // Global notification system
+    window.showNotification = function(title, message = '', type = 'info', duration = 5000) {
+      const notification = {
+        id: Date.now() + Math.random(),
+        title: title,
+        message: message,
+        type: type,
+        show: true
+      };
+      
+      // Add to Alpine.js notifications array
+      if (window.Alpine && window.Alpine.store) {
+        window.Alpine.store('notifications', [...(window.Alpine.store('notifications') || []), notification]);
+      } else {
+        // Fallback for pages without Alpine store
+        document.dispatchEvent(new CustomEvent('add-notification', { detail: notification }));
+      }
+      
+      // Auto remove after duration
+      if (duration > 0) {
+        setTimeout(() => {
+          window.removeNotification(notification.id);
+        }, duration);
+      }
+      
+      return notification.id;
+    };
+    
+    window.removeNotification = function(id) {
+      if (window.Alpine && window.Alpine.store) {
+        const notifications = window.Alpine.store('notifications') || [];
+        window.Alpine.store('notifications', notifications.filter(n => n.id !== id));
+      } else {
+        document.dispatchEvent(new CustomEvent('remove-notification', { detail: { id } }));
+      }
+    };
+    
+    // Listen for notification events on pages without Alpine store
+    document.addEventListener('add-notification', function(e) {
+      const bodyEl = document.querySelector('[x-data]');
+      if (bodyEl && bodyEl._x_dataStack && bodyEl._x_dataStack[0]) {
+        bodyEl._x_dataStack[0].notifications.push(e.detail);
+      }
+    });
+    
+    document.addEventListener('remove-notification', function(e) {
+      const bodyEl = document.querySelector('[x-data]');
+      if (bodyEl && bodyEl._x_dataStack && bodyEl._x_dataStack[0]) {
+        bodyEl._x_dataStack[0].notifications = bodyEl._x_dataStack[0].notifications.filter(n => n.id !== e.detail.id);
+      }
+    });
+    
+    // Helper functions for common notifications
+    window.showSuccess = (title, message = '') => showNotification(title, message, 'success');
+    window.showError = (title, message = '') => showNotification(title, message, 'error');
+    window.showWarning = (title, message = '') => showNotification(title, message, 'warning');
+    window.showInfo = (title, message = '') => showNotification(title, message, 'info');
+  </script>
   <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </body>
 

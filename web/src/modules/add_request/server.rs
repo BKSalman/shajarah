@@ -1,29 +1,32 @@
-use std::collections::HashMap;
-
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use dioxus::prelude::*;
+use garde::Validate;
 use indexmap::IndexMap;
 
-use crate::{
-    modules::{
-        add_request::types::{RequestedMemberResponse, RequestedMemberRowWithParents},
-        member::types::Gender,
-    },
+use crate::modules::add_request::types::{
+    RequestData, RequestedMemberResponse, RequestedMemberRowWithParents,
 };
 
 #[server]
-pub async fn add_request(
-    name: String,
-    last_name: String,
-    gender: Gender,
-    birthday: Option<DateTime<Utc>>,
-    father_id: Option<i64>,
-    mother_id: Option<i64>,
-    info: HashMap<String, String>,
-    image: Option<Vec<u8>>,
-    image_type: Option<String>,
-) -> ServerFnResult<()> {
+pub async fn add_request(request_data: RequestData) -> ServerFnResult<()> {
     use crate::server::get_state;
+
+    request_data.validate()?;
+
+    let RequestData {
+        name: Some(name),
+        last_name: Some(last_name),
+        gender: Some(gender),
+        birthday,
+        father_id,
+        mother_id,
+        info,
+        image,
+        image_type,
+    } = request_data
+    else {
+        return Err(ServerFnError::new("Something went wrong"));
+    };
 
     let state = get_state().await?;
 

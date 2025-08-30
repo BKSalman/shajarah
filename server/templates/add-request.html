@@ -1,122 +1,423 @@
 {% extends "base.html" %}
 
+{% block title %}تقديم معلومات فرد العائلة{% endblock %}
+
 {% block content %}
-<div dir="rtl" class="min-h-screen flex items-center justify-center bg-gray-100 p-8">
-  <form id="submit-info-form" onsubmit="submitInfo(event)"
-    class="bg-white p-8 rounded shadow-md w-full max-w-xl space-y-4" enctype="multipart/form-data">
-    <h2 class="text-2xl font-bold text-center">تقديم معلومات فرد العائلة</h2>
+<div class="min-h-screen flex items-center justify-center bg-tree-texture p-6" x-data="addRequestPage()">
+  <div class="card card-forest w-full max-w-2xl fade-in hover:shadow-forest">
+    <div class="card-body">
+      <!-- Header -->
+      <div class="text-center mb-6">
+        <h1 class="text-3xl font-bold text-forest-dark mb-2">شجرة</h1>
+        <h2 class="text-xl font-semibold text-forest-primary">تقديم معلومات فرد العائلة</h2>
+        <p class="text-sm text-gray-500 mt-2">قم بإدخال بيانات الفرد ليتم مراجعتها وإضافتها للشجرة</p>
+      </div>
 
-    <div>
-      <label class="block mb-1">الاسم:</label>
-      <input name="name" type="text" class="w-full border rounded px-3 py-2" required />
+      <form @submit.prevent="submitForm" class="space-y-6">
+        <!-- Name Field -->
+        <div class="form-group">
+          <label for="name" class="form-label">
+            <svg class="w-4 h-4 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+            الاسم الأول
+          </label>
+          <input 
+            id="name"
+            x-model="form.name" 
+            type="text" 
+            required 
+            :disabled="loading"
+            class="form-input" 
+            :class="{
+              'border-red-300 focus:border-red-500': errors.name,
+              'loading': loading
+            }"
+            placeholder="أدخل الاسم الأول"
+            @blur="validateField('name')" />
+          <p x-show="errors.name" x-text="errors.name" class="text-sm text-red-600 mt-1"></p>
+        </div>
+
+        <!-- Last Name Field -->
+        <div class="form-group">
+          <label for="last_name" class="form-label">
+            <svg class="w-4 h-4 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            اسم العائلة
+          </label>
+          <input 
+            id="last_name"
+            x-model="form.last_name" 
+            type="text" 
+            required 
+            :disabled="loading"
+            class="form-input" 
+            :class="{
+              'border-red-300 focus:border-red-500': errors.last_name,
+              'loading': loading
+            }"
+            placeholder="أدخل اسم العائلة"
+            @blur="validateField('last_name')" />
+          <p x-show="errors.last_name" x-text="errors.last_name" class="text-sm text-red-600 mt-1"></p>
+        </div>
+
+        <!-- Gender Field -->
+        <div class="form-group">
+          <label for="gender" class="form-label">
+            <svg class="w-4 h-4 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+            </svg>
+            الجنس
+          </label>
+          <select 
+            id="gender"
+            x-model="form.gender" 
+            required 
+            :disabled="loading"
+            class="form-select" 
+            :class="{
+              'border-red-300 focus:border-red-500': errors.gender,
+              'loading': loading
+            }"
+            @change="validateField('gender')">
+            <option value="">-- اختر الجنس --</option>
+            <option value="male">ذكر</option>
+            <option value="female">أنثى</option>
+          </select>
+          <p x-show="errors.gender" x-text="errors.gender" class="text-sm text-red-600 mt-1"></p>
+        </div>
+
+        <!-- Birthday Field -->
+        <div class="form-group">
+          <label for="birthday" class="form-label">
+            <svg class="w-4 h-4 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            تاريخ الولادة
+          </label>
+          <input 
+            id="birthday"
+            x-model="form.birthday" 
+            type="date" 
+            required 
+            :disabled="loading"
+            class="form-input" 
+            :class="{
+              'border-red-300 focus:border-red-500': errors.birthday,
+              'loading': loading
+            }"
+            @blur="validateField('birthday')" />
+          <p x-show="errors.birthday" x-text="errors.birthday" class="text-sm text-red-600 mt-1"></p>
+        </div>
+
+        <!-- Father ID Field -->
+        <div class="form-group">
+          <label for="father_id" class="form-label">
+            <svg class="w-4 h-4 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+            معرف الأب
+          </label>
+          <input 
+            id="father_id"
+            x-model="form.father_id" 
+            type="text" 
+            list="father_ids"
+            required 
+            :disabled="loading"
+            class="form-input" 
+            :class="{
+              'border-red-300 focus:border-red-500': errors.father_id,
+              'loading': loading
+            }"
+            placeholder="اختر أو أدخل معرف الأب"
+            @blur="validateField('father_id')" />
+          <datalist id="father_ids">
+            {% for member in members %}
+            {% if member.gender == "male" %}
+            <option value="{{member.id}}">{{ member.id }} - {{ member.name }} {{ member.last_name }}</option>
+            {% endif %}
+            {% endfor %}
+          </datalist>
+          <p x-show="errors.father_id" x-text="errors.father_id" class="text-sm text-red-600 mt-1"></p>
+        </div>
+
+        <!-- Extra Information Section -->
+        <div class="form-group">
+          <label class="form-label">
+            <svg class="w-4 h-4 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            معلومات إضافية
+          </label>
+          <div id="extra-info-pairs" class="space-y-3">
+            <template x-for="(pair, index) in extraInfo" :key="index">
+              <div class="flex gap-2 items-center">
+                <input 
+                  x-model="pair.key" 
+                  type="text" 
+                  placeholder="مثال: المهنة" 
+                  class="form-input flex-1"
+                  :disabled="loading" />
+                <input 
+                  x-model="pair.value" 
+                  type="text" 
+                  placeholder="مثال: محامي" 
+                  class="form-input flex-1"
+                  :disabled="loading" />
+                <button 
+                  type="button" 
+                  @click="removeExtraInfo(index)" 
+                  :disabled="loading"
+                  class="btn btn-sm text-red-600 hover:text-red-700 hover:bg-red-50 p-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                </button>
+              </div>
+            </template>
+          </div>
+          <button 
+            type="button" 
+            @click="addExtraInfo()" 
+            :disabled="loading"
+            class="btn btn-outline btn-sm mt-2">
+            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            إضافة حقل جديد
+          </button>
+        </div>
+
+        <!-- Image Upload Field -->
+        <div class="form-group">
+          <label for="image" class="form-label">
+            <svg class="w-4 h-4 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            صورة شخصية (اختياري)
+          </label>
+          <input 
+            id="image"
+            x-model="form.image" 
+            type="file" 
+            accept="image/*" 
+            :disabled="loading"
+            class="form-input" 
+            :class="{
+              'border-red-300 focus:border-red-500': errors.image,
+              'loading': loading
+            }"
+            @change="validateField('image')" />
+          <p class="text-xs text-gray-500 mt-1">أحجام الصور المقبولة: JPG, PNG, GIF - الحد الأقصى: 25MB</p>
+          <p x-show="errors.image" x-text="errors.image" class="text-sm text-red-600 mt-1"></p>
+        </div>
+
+        <!-- Submit Button -->
+        <button 
+          type="submit" 
+          :disabled="loading || !isFormValid" 
+          class="btn btn-primary w-full btn-lg"
+          :class="{
+            'opacity-50 cursor-not-allowed': loading || !isFormValid,
+            'loading': loading
+          }">
+          <svg x-show="loading" class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span x-text="loading ? 'جاري الإرسال...' : 'إرسال للمراجعة'"></span>
+        </button>
+
+        <!-- General Error Alert -->
+        <div x-show="generalError" x-transition class="alert alert-error">
+          <div class="flex items-center">
+            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p x-text="generalError"></p>
+          </div>
+        </div>
+      </form>
     </div>
-
-    <div>
-      <label class="block mb-1">الاسم الاخير:</label>
-      <input name="last_name" type="text" class="w-full border rounded px-3 py-2" required />
-    </div>
-
-    <div>
-      <label class="block mb-1">الجنس:</label>
-      <select name="gender" class="w-full border rounded px-3 py-2" required>
-        <option selected value>-- اختر الجنس --</option>
-        <option value="male">ذكر</option>
-        <option value="female">انثى</option>
-      </select>
-    </div>
-
-    <div>
-      <label class="block mb-1">تاريخ الولادة:</label>
-      <input name="birthday" type="date" class="w-full border rounded px-3 py-2" required />
-    </div>
-
-    <div>
-      <label class="block mb-1">معرف الأب:</label>
-      <input name="father_id" id="new-father_id" type="text" list="new-father_ids"
-        class="w-full border rounded px-3 py-2" required />
-      <datalist id="new-father_ids">
-        {% for member in members %}
-        {% if member.gender == "male" %}
-        <option value="{{member.id}}">{{ member.id }} {{ member.name }}</option>
-        {% endif %}
-        {% endfor %}
-      </datalist>
-    </div>
-
-    <div>
-      <label class="block mb-1">معلومات إضافية:</label>
-      <div id="extra-info-pairs" class="space-y-2"></div>
-      <button type="button" onclick="addExtraInfoPair()" class="text-blue-600 hover:underline">+ إضافة حقل</button>
-    </div>
-
-    <div>
-      <label class="block mb-1">صورة (اختياري):</label>
-      <input name="image" type="file" accept="image/*" class="w-full" />
-    </div>
-
-    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded w-full">إرسال
-      للمراجعة</button>
-
-    <div id="submit-message" class="text-center text-green-600 font-semibold hidden">
-      تم إرسال المعلومات بنجاح! شكراً لمساهمتك.
-    </div>
-  </form>
+  </div>
 </div>
 
 <script>
-  function addExtraInfoPair() {
-    const container = document.getElementById('extra-info-pairs');
-    const div = document.createElement('div');
-    div.className = "flex gap-2";
-    div.innerHTML = `
-      <input type="text" placeholder="مثال: المهنة" class="border rounded px-3 py-1 key" />
-      <input type="text" placeholder="مثال: محامي" class="border rounded px-3 py-1 value" />
-      <button type="button" onclick="this.parentElement.remove()" class="text-red-600 hover:underline">✕</button>
-    `;
-    container.appendChild(div);
-  }
+  function addRequestPage() {
+    return {
+      form: {
+        name: '',
+        last_name: '',
+        gender: '',
+        birthday: '',
+        father_id: '',
+        image: null
+      },
+      extraInfo: [
+        { key: '', value: '' }
+      ],
+      errors: {},
+      generalError: '',
+      loading: false,
 
-  function collectExtraInfoAsJson() {
-    const pairs = document.querySelectorAll('#extra-info-pairs > div');
-    const result = {};
-    pairs.forEach(pair => {
-      const key = pair.querySelector('.key').value.trim();
-      const value = pair.querySelector('.value').value.trim();
-      if (key) result[key] = value;
-    });
-    return JSON.stringify(result);
-  }
+      get isFormValid() {
+        return this.form.name && 
+               this.form.last_name && 
+               this.form.gender && 
+               this.form.birthday && 
+               this.form.father_id &&
+               !Object.values(this.errors).some(error => error);
+      },
 
-  function submitInfo(event) {
-    event.preventDefault();
-    const form = document.getElementById('submit-info-form');
-    const formData = new FormData(form);
-    const image = formData.get("image");
-
-    if (image.size === 0 || image.name === "" || image.type === "application/octet-stream") {
-      formData.delete("image");
-    }
-
-    const extraInfoJson = collectExtraInfoAsJson();
-    formData.append('info', extraInfoJson);
-
-    fetch('/api/members/add-request', {
-      method: 'POST',
-      body: formData
-    })
-      .then(response => {
-        if (response.ok) {
-          form.reset();
-          document.getElementById('extra-info-pairs').innerHTML = '';
-          document.getElementById('submit-message').classList.remove('hidden');
-        } else {
-          alert("حدث خطأ أثناء الإرسال.");
+      validateField(field) {
+        this.errors[field] = '';
+        
+        switch(field) {
+          case 'name':
+            if (!this.form.name.trim()) {
+              this.errors.name = 'الاسم الأول مطلوب';
+            } else if (this.form.name.trim().length < 2) {
+              this.errors.name = 'الاسم يجب أن يكون حرفين على الأقل';
+            }
+            break;
+          case 'last_name':
+            if (!this.form.last_name.trim()) {
+              this.errors.last_name = 'اسم العائلة مطلوب';
+            } else if (this.form.last_name.trim().length < 2) {
+              this.errors.last_name = 'اسم العائلة يجب أن يكون حرفين على الأقل';
+            }
+            break;
+          case 'gender':
+            if (!this.form.gender) {
+              this.errors.gender = 'يرجى اختيار الجنس';
+            }
+            break;
+          case 'birthday':
+            if (!this.form.birthday) {
+              this.errors.birthday = 'تاريخ الولادة مطلوب';
+            } else {
+              const birthDate = new Date(this.form.birthday);
+              const today = new Date();
+              if (birthDate > today) {
+                this.errors.birthday = 'تاريخ الولادة لا يمكن أن يكون في المستقبل';
+              }
+            }
+            break;
+          case 'father_id':
+            if (!this.form.father_id.trim()) {
+              this.errors.father_id = 'معرف الأب مطلوب';
+            }
+            break;
+          case 'image':
+            const imageInput = document.getElementById('image');
+            if (imageInput.files && imageInput.files[0]) {
+              const file = imageInput.files[0];
+              const maxSize = 25 * 1024 * 1024; // 25MB
+              const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+              
+              if (file.size > maxSize) {
+                this.errors.image = 'حجم الصورة يجب أن يكون أقل من 25MB';
+              } else if (!allowedTypes.includes(file.type)) {
+                this.errors.image = 'نوع الصورة غير مدعوم. يرجى استخدام JPG أو PNG أو GIF';
+              }
+            }
+            break;
         }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('حدث خطأ يرجى المحاولة لاحقاً.');
-      });
+      },
+
+      addExtraInfo() {
+        this.extraInfo.push({ key: '', value: '' });
+      },
+
+      removeExtraInfo(index) {
+        if (this.extraInfo.length > 1) {
+          this.extraInfo.splice(index, 1);
+        }
+      },
+
+      collectExtraInfoAsJson() {
+        const result = {};
+        this.extraInfo.forEach(pair => {
+          if (pair.key.trim() && pair.value.trim()) {
+            result[pair.key.trim()] = pair.value.trim();
+          }
+        });
+        return JSON.stringify(result);
+      },
+
+      async submitForm() {
+        // Clear previous errors
+        this.errors = {};
+        this.generalError = '';
+        
+        // Validate all fields
+        ['name', 'last_name', 'gender', 'birthday', 'father_id', 'image'].forEach(field => {
+          this.validateField(field);
+        });
+        
+        if (Object.values(this.errors).some(error => error)) {
+          showError('خطأ في البيانات', 'يرجى تصحيح الأخطاء المشار إليها');
+          return;
+        }
+
+        this.loading = true;
+
+        try {
+          const formData = new FormData();
+          formData.append('name', this.form.name);
+          formData.append('last_name', this.form.last_name);
+          formData.append('gender', this.form.gender);
+          formData.append('birthday', this.form.birthday);
+          formData.append('father_id', this.form.father_id);
+          
+          // Add extra info as JSON
+          const extraInfoJson = this.collectExtraInfoAsJson();
+          if (extraInfoJson !== '{}') {
+            formData.append('info', extraInfoJson);
+          }
+
+          // Add image if present
+          const imageInput = document.getElementById('image');
+          if (imageInput.files && imageInput.files[0]) {
+            formData.append('image', imageInput.files[0]);
+          }
+
+          const response = await fetch('/api/members/add-request', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (response.ok) {
+            // Reset form
+            this.form = {
+              name: '',
+              last_name: '',
+              gender: '',
+              birthday: '',
+              father_id: '',
+              image: null
+            };
+            this.extraInfo = [{ key: '', value: '' }];
+            document.getElementById('image').value = '';
+            
+            // Show success notification
+            showSuccess('تم الإرسال بنجاح!', 'تم إرسال معلومات العضو للمراجعة. شكراً لمساهمتك!');
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            this.generalError = errorData.message || 'حدث خطأ أثناء إرسال البيانات';
+            showError('فشل في الإرسال', this.generalError);
+          }
+        } catch (error) {
+          console.error('Submit error:', error);
+          this.generalError = 'حدث خطأ في الاتصال. يرجى المحاولة لاحقاً';
+          showError('خطأ في الاتصال', this.generalError);
+        } finally {
+          this.loading = false;
+        }
+      }
+    }
   }
 </script>
 {% endblock %}

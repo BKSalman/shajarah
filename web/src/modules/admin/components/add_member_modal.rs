@@ -8,6 +8,7 @@ use crate::{
 };
 use chrono::{DateTime, NaiveDateTime, Utc};
 use dioxus::prelude::*;
+use indexmap::IndexMap;
 
 #[derive(Props, Clone, PartialEq)]
 pub struct AddMemberModalProps {
@@ -16,7 +17,7 @@ pub struct AddMemberModalProps {
     pub on_submit: EventHandler<MemberFormData>,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Store, PartialEq)]
 pub struct MemberFormData {
     pub name: String,
     pub last_name: String,
@@ -24,21 +25,21 @@ pub struct MemberFormData {
     pub birthday: Option<DateTime<Utc>>,
     pub mother_id: Option<u32>,
     pub father_id: Option<u32>,
-    pub personal_info: Vec<KeyValuePair>,
+    pub personal_info: IndexMap<String, String>,
 }
 
 #[component]
 pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
-    let mut personal_info_pairs = use_signal(|| Vec::<KeyValuePair>::new());
-    let mut form_data = use_signal(|| MemberFormData {
+    let mut form_data = use_store(|| MemberFormData {
         name: String::new(),
         last_name: String::new(),
         gender: None,
         birthday: None,
         mother_id: None,
         father_id: None,
-        personal_info: Vec::new(),
+        personal_info: IndexMap::new(),
     });
+
     rsx! {
         Modal {
             show: props.show,
@@ -48,11 +49,10 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
             form {
                 id: "add-member-form",
                 class: "space-y-6",
+                autocomplete: "off",
                 onsubmit: move |evt| {
                     evt.prevent_default();
-                    let mut data = form_data();
-                    data.personal_info = personal_info_pairs();
-                    props.on_submit.call(data);
+                    props.on_submit.call(form_data());
                 },
                 FormSection {
                     title: "المعلومات الأساسية".to_string(),
@@ -196,10 +196,24 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                         .to_string(),
                     icon_color: Some("blue-600".to_string()),
                     KeyValueInput {
-                        pairs: personal_info_pairs(),
+                        pairs: form_data
+                            .personal_info()
+                            .read()
+                            .iter()
+                            .map(|(key, value)| KeyValuePair {
+                                key: key.clone(),
+                                value: value.clone(),
+                            })
+                            .collect(),
                         key_placeholder: Some("المفتاح (مثل: المهنة)".to_string()),
                         value_placeholder: Some("القيمة (مثل: مهندس)".to_string()),
-                        on_pairs_change: move |pairs| personal_info_pairs.set(pairs),
+                        on_pairs_change: move |new_pairs: Vec<KeyValuePair>| {
+                            let new_pairs = new_pairs
+                                .iter()
+                                .map(|pair| (pair.key.clone(), pair.value.clone()))
+                                .collect();
+                            form_data.personal_info().set(new_pairs)
+                        },
                     }
                 }
                 FormSection {
