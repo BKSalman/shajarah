@@ -13,9 +13,9 @@ pub struct RegisterInput {
 }
 
 #[derive(Debug, garde::Validate, Serialize, Deserialize, Clone)]
-pub struct LoginInput {
+pub struct LoginData {
     #[garde(email)]
     pub email: String,
-    #[garde(skip)]
+    #[garde(length(min = 1))]
     pub password: String,
 }

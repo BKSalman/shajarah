@@ -1,44 +1,224 @@
 {% extends "base.html" %}
 
+{% block title %}تسجيل الدخول{% endblock %}
+
 {% block content %}
-<div dir="rtl" class="min-h-screen flex items-center justify-center bg-gray-100 p-6">
-  <form onsubmit="submitLogin(event)" class="bg-white p-8 rounded shadow-md w-full max-w-md space-y-4">
-    <h2 class="text-2xl font-bold text-center">تسجيل الدخول</h2>
+<div class="min-h-screen flex items-center justify-center bg-tree-texture p-6" x-data="loginPage()">
+  <div class="card card-forest w-full max-w-md fade-in hover:shadow-forest">
+    <div class="card-body">
+      <div class="text-center mb-6">
+        <h1 class="text-3xl font-bold text-forest-dark mb-2">شجرة</h1>
+        <h2 class="text-xl font-semibold text-forest-primary">تسجيل الدخول</h2>
+        <p class="text-sm text-gray-500 mt-2">ادخل بياناتك للوصول إلى حسابك</p>
+      </div>
 
-    <div>
-      <label class="block mb-1">البريد الإلكتروني:</label>
-      <input dir="auto" name="email" type="email" required class="w-full border rounded px-3 py-2" />
+      <form @submit.prevent="submitLogin" class="space-y-4">
+        <!-- Email Field -->
+        <div class="form-group">
+          <label for="email" class="form-label">
+            <svg class="w-4 h-4 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
+            </svg>
+            البريد الإلكتروني
+          </label>
+          <input 
+            id="email"
+            x-model="form.email" 
+            type="email" 
+            required 
+            :disabled="loading"
+            class="form-input" 
+            :class="{
+              'border-red-300 focus:border-red-500 focus:shadow-red': errors.email,
+              'loading': loading
+            }"
+            placeholder="ادخل بريدك الإلكتروني"
+            autocomplete="email"
+            dir="auto" />
+          <p x-show="errors.email" x-text="errors.email" class="text-sm text-red-600 mt-1"></p>
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-group">
+          <label for="password" class="form-label">
+            <svg class="w-4 h-4 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            كلمة المرور
+          </label>
+          <div class="relative">
+            <input 
+              id="password"
+              x-model="form.password" 
+              :type="showPassword ? 'text' : 'password'" 
+              required 
+              :disabled="loading"
+              class="form-input pr-10" 
+              :class="{
+                'border-red-300 focus:border-red-500': errors.password,
+                'loading': loading
+              }"
+              placeholder="ادخل كلمة المرور"
+              autocomplete="current-password"
+              dir="auto" />
+            <button 
+              type="button" 
+              @click="showPassword = !showPassword" 
+              class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              tabindex="-1">
+              <svg x-show="!showPassword" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+              </svg>
+              <svg x-show="showPassword" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+              </svg>
+            </button>
+          </div>
+          <p x-show="errors.password" x-text="errors.password" class="text-sm text-red-600 mt-1"></p>
+        </div>
+
+        <!-- Remember Me Checkbox -->
+        <div class="flex items-center justify-between">
+          <label class="flex items-center">
+            <input x-model="form.remember" type="checkbox" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+            <span class="mr-2 text-sm text-gray-600">تذكرني</span>
+          </label>
+          <a href="#" class="text-sm text-primary-600 hover:text-primary-500">نسيت كلمة المرور؟</a>
+        </div>
+
+        <!-- Submit Button -->
+        <button 
+          type="submit" 
+          :disabled="loading || !isFormValid" 
+          class="btn btn-primary w-full btn-lg"
+          :class="{
+            'opacity-50 cursor-not-allowed': loading || !isFormValid,
+            'loading': loading
+          }">
+          <svg x-show="loading" class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span x-text="loading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'"></span>
+        </button>
+      </form>
+
+      <!-- Error Alert -->
+      <div x-show="generalError" x-transition class="alert alert-error mt-4">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <p x-text="generalError"></p>
+        </div>
+      </div>
+
+      <!-- Register Link -->
+      <div class="text-center mt-6 pt-6 border-t border-forest-light">
+        <p class="text-sm text-gray-600">
+          لا تملك حساباً؟ 
+          <a href="/register" class="text-primary-600 hover:text-primary-500 font-medium">أنشئ حساب جديد</a>
+        </p>
+      </div>
     </div>
-
-    <div>
-      <label class="block mb-1">كلمة المرور:</label>
-      <input dir="auto" name="password" type="password" required class="w-full border rounded px-3 py-2" />
-    </div>
-
-    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">تسجيل الدخول</button>
-
-    <p class="text-sm text-center mt-2">
-      لا تملك حساباً؟ <a href="/admin/register" class="text-blue-600 hover:underline">أنشئ حساب</a>
-    </p>
-  </form>
+  </div>
 </div>
 
 <script>
-  async function submitLogin(event) {
-    event.preventDefault();
-    const form = event.target;
-    const data = Object.fromEntries(new FormData(form).entries());
+  function loginPage() {
+    return {
+      form: {
+        email: '',
+        password: '',
+        remember: false
+      },
+      errors: {},
+      generalError: '',
+      loading: false,
+      showPassword: false,
 
-    const response = await fetch("/api/users/admin/login", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(data)
-    });
+      get isFormValid() {
+        return this.form.email && this.form.password && this.form.email.includes('@');
+      },
 
-    if (response.ok) {
-      window.location.href = "/admin";
-    } else {
-      alert("فشل تسجيل الدخول");
+      validateField(field) {
+        this.errors[field] = '';
+        
+        switch(field) {
+          case 'email':
+            if (!this.form.email) {
+              this.errors.email = 'البريد الإلكتروني مطلوب';
+            } else if (!this.form.email.includes('@')) {
+              this.errors.email = 'بريد إلكتروني غير صحيح';
+            }
+            break;
+          case 'password':
+            if (!this.form.password) {
+              this.errors.password = 'كلمة المرور مطلوبة';
+            } else if (this.form.password.length < 6) {
+              this.errors.password = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+            }
+            break;
+        }
+      },
+
+      async submitLogin() {
+        // Clear previous errors
+        this.errors = {};
+        this.generalError = '';
+        
+        // Validate form
+        this.validateField('email');
+        this.validateField('password');
+        
+        if (Object.values(this.errors).some(error => error)) {
+          return;
+        }
+
+        this.loading = true;
+
+        try {
+          const response = await fetch('/api/users/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email: this.form.email,
+              password: this.form.password
+            })
+          });
+
+          if (response.ok) {
+            // Show success notification
+            showSuccess('تم تسجيل الدخول بنجاح', 'مرحباً بك!');
+            
+            // Small delay to show the notification
+            setTimeout(() => {
+              window.location.href = '/admin';
+            }, 1000);
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            
+            if (response.status === 401) {
+              this.generalError = 'بيانات تسجيل الدخول غير صحيحة';
+            } else if (response.status === 429) {
+              this.generalError = 'تم تجاوز عدد محاولات تسجيل الدخول المسموحة. يرجى المحاولة لاحقاً';
+            } else {
+              this.generalError = errorData.message || 'حدث خطأ أثناء تسجيل الدخول';
+            }
+            
+            showError('فشل تسجيل الدخول', this.generalError);
+          }
+        } catch (error) {
+          console.error('Login error:', error);
+          this.generalError = 'حدث خطأ في الاتصال. يرجى المحاولة لاحقاً';
+          showError('خطأ في الاتصال', this.generalError);
+        } finally {
+          this.loading = false;
+        }
+      }
     }
   }
 </script>
