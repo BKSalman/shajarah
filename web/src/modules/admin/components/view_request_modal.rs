@@ -1,26 +1,26 @@
 use crate::{
     modules::{
-        admin::components::ImageState,
-        member::types::{Gender, MemberResponseFlat},
+        add_request::types::RequestedMember, admin::components::ImageState, member::types::Gender,
     },
     ui::modal::Modal,
 };
 use base64::prelude::*;
 use dioxus::prelude::*;
+use uuid::Uuid;
 
 #[derive(Props, Clone, PartialEq)]
-pub struct ViewMemberModalProps {
+pub struct ViewRequestModalProps {
     pub show: bool,
-    pub member: MemberResponseFlat,
+    pub request: RequestedMember,
     pub on_close: EventHandler<()>,
-    pub on_edit: EventHandler<i64>,
+    pub on_edit: EventHandler<Uuid>,
 }
 
 #[component]
-pub fn ViewMemberModal(props: ViewMemberModalProps) -> Element {
+pub fn ViewRequestModal(props: ViewRequestModalProps) -> Element {
     let mut image_state = use_signal(|| ImageState::Loading);
     use_effect({
-        let member = props.member.clone();
+        let member = props.request.clone();
         move || {
             if member.image.is_some() {
                 image_state.set(ImageState::Loading);
@@ -35,27 +35,28 @@ pub fn ViewMemberModal(props: ViewMemberModalProps) -> Element {
     rsx! {
         Modal {
             show: props.show,
-            title: "تفاصيل العضو".to_string(),
+            title: "تفاصيل الطلب".to_string(),
             max_width: Some("2xl".to_string()),
             on_close: move |_| props.on_close.call(()),
             div { class: "space-y-6",
-                MemberHeader {
-                    member: props.member.clone(),
+                dir: "rtl",
+                RequestHeader {
+                    request: props.request.clone(),
                     image_state: image_state(),
                     on_image_load: move |_| image_state.set(ImageState::UserImage),
                     on_image_error: move |_| image_state.set(ImageState::GeneratedAvatar),
                 }
                 div { class: "grid grid-cols-1 md:grid-cols-2 gap-6",
-                    BasicInformationSection { member: props.member.clone() }
-                    FamilyRelationshipsSection { member: props.member.clone() }
+                    BasicInformationSection { request: props.request.clone() }
+                    FamilyRelationshipsSection { request: props.request.clone() }
                 }
-                if let Some(personal_info) = &props.member.personal_info {
+                if let Some(personal_info) = &props.request.personal_info {
                     if !personal_info.is_empty() {
                         PersonalInformationSection { personal_info: personal_info.clone() }
                     }
                 }
                 QuickActionsSection {
-                    member_id: props.member.id,
+                    request_id: props.request.id,
                     on_edit: props.on_edit,
                     on_close: props.on_close,
                 }
@@ -65,15 +66,15 @@ pub fn ViewMemberModal(props: ViewMemberModalProps) -> Element {
 }
 
 #[derive(Props, Clone, PartialEq)]
-struct MemberHeaderProps {
-    member: MemberResponseFlat,
+struct RequestHeaderProps {
+    request: RequestedMember,
     image_state: ImageState,
     on_image_load: EventHandler<()>,
     on_image_error: EventHandler<()>,
 }
 
 #[component]
-fn MemberHeader(props: MemberHeaderProps) -> Element {
+fn RequestHeader(props: RequestHeaderProps) -> Element {
     rsx! {
         div { class: "text-center mb-6",
             div { class: "w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden relative",
@@ -84,12 +85,12 @@ fn MemberHeader(props: MemberHeaderProps) -> Element {
                         }
                     },
                     ImageState::UserImage => {
-                        if let Some(image_url) = &props.member.image {
+                        if let Some(image_url) = &props.request.image {
                             rsx! {
                                 img {
                                     src: "{BASE64_STANDARD.encode(image_url)}",
                                     class: "w-full h-full object-cover transition-opacity duration-200",
-                                    alt: "صورة {props.member.name} {props.member.last_name}",
+                                    alt: "صورة {props.request.name} {props.request.last_name}",
                                     onload: move |_| props.on_image_load.call(()),
                                     onerror: move |_| props.on_image_error.call(()),
                                 }
@@ -99,7 +100,7 @@ fn MemberHeader(props: MemberHeaderProps) -> Element {
                         }
                     }
                     ImageState::GeneratedAvatar => rsx! {
-                        GeneratedAvatar { member: props.member.clone() }
+                        GeneratedAvatar { request: props.request.clone() }
                     },
                     ImageState::DefaultIcon => rsx! {
                         div { class: "w-full h-full flex items-center justify-center bg-primary-100",
@@ -121,11 +122,11 @@ fn MemberHeader(props: MemberHeaderProps) -> Element {
                 }
             }
             h4 { class: "text-xl font-semibold text-gray-900",
-                "{props.member.name} {props.member.last_name}"
+                "{props.request.name} {props.request.last_name}"
             }
-            p { class: "text-gray-600", "رقم العضوية: {props.member.id}" }
+            p { class: "text-gray-600", "رقم الطلب: {props.request.id}" }
             div { class: "flex justify-center mt-2",
-                match props.member.gender {
+                match props.request.gender {
                     Gender::Male => rsx! {
                         span { class: "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800",
                             "ذكر"
@@ -144,17 +145,17 @@ fn MemberHeader(props: MemberHeaderProps) -> Element {
 
 #[derive(Props, Clone, PartialEq)]
 struct GeneratedAvatarProps {
-    member: MemberResponseFlat,
+    request: RequestedMember,
 }
 
 #[component]
 fn GeneratedAvatar(props: GeneratedAvatarProps) -> Element {
     let initials = format!(
         "{}{}",
-        props.member.name.chars().next().unwrap_or('؟'),
-        props.member.last_name.chars().next().unwrap_or('؟'),
+        props.request.name.chars().next().unwrap_or('؟'),
+        props.request.last_name.chars().next().unwrap_or('؟'),
     );
-    let bg_class = match props.member.gender {
+    let bg_class = match props.request.gender {
         Gender::Male => "bg-blue-500 text-white",
         Gender::Female => "bg-pink-500 text-white",
     };
@@ -167,7 +168,7 @@ fn GeneratedAvatar(props: GeneratedAvatarProps) -> Element {
 
 #[derive(Props, Clone, PartialEq)]
 struct BasicInformationSectionProps {
-    member: MemberResponseFlat,
+    request: RequestedMember,
 }
 
 #[component]
@@ -177,13 +178,13 @@ fn BasicInformationSection(props: BasicInformationSectionProps) -> Element {
             h5 { class: "text-lg font-semibold text-gray-900 border-b pb-2",
                 "المعلومات الأساسية"
             }
-            if let Some(birthday) = &props.member.birthday {
+            if let Some(birthday) = &props.request.birthday {
                 div {
                     label { class: "text-sm font-medium text-gray-500", "تاريخ الميلاد" }
                     p { class: "text-gray-900", "{birthday}" }
                 }
             }
-            if let Some(birthday) = props.member.birthday {
+            if let Some(birthday) = props.request.birthday {
                 div {
                     label { class: "text-sm font-medium text-gray-500", "العمر" }
                     p { class: "text-gray-900",
@@ -197,7 +198,7 @@ fn BasicInformationSection(props: BasicInformationSectionProps) -> Element {
 
 #[derive(Props, Clone, PartialEq)]
 struct FamilyRelationshipsSectionProps {
-    member: MemberResponseFlat,
+    request: RequestedMember,
 }
 
 #[component]
@@ -207,28 +208,28 @@ fn FamilyRelationshipsSection(props: FamilyRelationshipsSectionProps) -> Element
             h5 { class: "text-lg font-semibold text-gray-900 border-b pb-2",
                 "العلاقات العائلية"
             }
-            if let Some(father_name) = &props.member.father_name {
+            if let Some(father_name) = &props.request.father_name {
                 div {
                     label { class: "text-sm font-medium text-gray-500", "الوالد" }
                     p { class: "text-gray-900", "{father_name}" }
                 }
             }
-            if let Some(mother_name) = &props.member.mother_name {
+            if let Some(mother_name) = &props.request.mother_name {
                 div {
                     label { class: "text-sm font-medium text-gray-500", "الوالدة" }
                     p { class: "text-gray-900", "{mother_name}" }
                 }
             }
-            if !props.member.children.is_empty() {
-                div {
-                    label { class: "text-sm font-medium text-gray-500", "الأطفال" }
-                    div { class: "space-y-1",
-                        for child in props.member.children {
-                            p { class: "text-gray-900 text-sm", "{child.name} {child.last_name}" }
-                        }
-                    }
-                }
-            }
+            // if !props.request.children.is_empty() {
+            //     div {
+            //         label { class: "text-sm font-medium text-gray-500", "الأطفال" }
+            //         div { class: "space-y-1",
+            //             for child in props.request.children {
+            //                 p { class: "text-gray-900 text-sm", "{child.name} {child.last_name}" }
+            //             }
+            //         }
+            //     }
+            // }
         }
     }
 }
@@ -259,8 +260,8 @@ fn PersonalInformationSection(props: PersonalInformationSectionProps) -> Element
 
 #[derive(Props, Clone, PartialEq)]
 struct QuickActionsSectionProps {
-    member_id: i64,
-    on_edit: EventHandler<i64>,
+    request_id: Uuid,
+    on_edit: EventHandler<Uuid>,
     on_close: EventHandler<()>,
 }
 
@@ -271,7 +272,7 @@ fn QuickActionsSection(props: QuickActionsSectionProps) -> Element {
             button {
                 class: "btn btn-secondary",
                 onclick: move |_| {
-                    props.on_edit.call(props.member_id);
+                    props.on_edit.call(props.request_id);
                     props.on_close.call(());
                 },
                 svg {

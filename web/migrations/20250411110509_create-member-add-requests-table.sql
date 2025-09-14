@@ -21,9 +21,9 @@ CREATE TABLE IF NOT EXISTS member_add_requests
     personal_info jsonb,
     status request_status NOT NULL DEFAULT 'pending',
     submitted_by TEXT,
-    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    reviewed_at TIMESTAMP,
-    reviewed_by TEXT,
+    submitted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMPTZ,
+    reviewed_by UUID,
     rejection_reason TEXT,
 
    CONSTRAINT fk_mother
@@ -33,5 +33,9 @@ CREATE TABLE IF NOT EXISTS member_add_requests
    CONSTRAINT fk_father
       FOREIGN KEY(father_id)
         REFERENCES members(id)
+        ON DELETE SET NULL,
+   CONSTRAINT fk_reviewer
+      FOREIGN KEY(reviewed_by)
+        REFERENCES users(id)
         ON DELETE SET NULL
 );

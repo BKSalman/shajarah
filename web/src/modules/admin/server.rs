@@ -9,8 +9,20 @@ use garde::Validate;
 #[server]
 pub async fn get_admin() -> ServerFnResult<UserResponseBrief> {
     use crate::middleware::auth::AuthExtractor;
-    let auth = extract::<AuthExtractor<{ UserRole::Admin as u8 }>, _>().await?;
-    Ok(auth.current_user)
+    match extract::<AuthExtractor<{ UserRole::Admin as u8 }>, _>().await {
+        Ok(auth) => Ok(auth.current_user),
+        Err(e) => {
+            use dioxus::server::server_context;
+
+            *server_context().status_mut() = axum::http::status::StatusCode::TEMPORARY_REDIRECT;
+
+            server_context()
+                .headers_mut()
+                .insert("Location", "/".parse().unwrap());
+
+            Err(e.into())
+        }
+    }
 }
 
 #[server]

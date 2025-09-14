@@ -34,6 +34,7 @@ pub fn AddMember() -> Element {
     let mut field_errors = use_signal(|| HashMap::<String, String>::new());
     let mut error_message = use_signal(|| Option::<String>::None);
     let mut is_submitting = use_signal(|| false);
+    let mut show_success = use_signal(|| false);
 
     let get_field_error =
         move |field: &str| -> Option<String> { field_errors.read().get(field).cloned() };
@@ -48,6 +49,7 @@ pub fn AddMember() -> Element {
 
     rsx! {
         div { class: "min-h-screen flex items-center justify-center bg-tree-texture p-6",
+            dir: "rtl",
 
             div { class: "card card-forest w-3/4 max-w-2xl fade-in hover:shadow-forest",
 
@@ -66,12 +68,15 @@ pub fn AddMember() -> Element {
 
                     form {
                         class: "space-y-6",
+                        autocomplete: "off",
                         onsubmit: move |e| {
                             e.prevent_default();
                             async move {
                                 if is_submitting() {
                                     return;
                                 }
+
+                                show_success.set(false);
 
                                 // Clear previous errors
                                 error_message.set(None);
@@ -92,18 +97,6 @@ pub fn AddMember() -> Element {
                                     return;
                                 }
 
-                                request_data
-                                    .info()
-                                    .set(
-                                        request_data
-                                            .info()
-                                            .read()
-                                            .iter()
-                                            .map(|(k, v)| (k.clone(), v.clone()))
-                                            .filter(|(key, value)| !(key.is_empty() || value.is_empty()))
-                                            .collect(),
-                                    );
-
                                 match add_request(request_data()).await {
                                     Ok(_) => {
                                         request_data.name().set(None);
@@ -114,6 +107,7 @@ pub fn AddMember() -> Element {
                                         request_data.info().set(IndexMap::new());
                                         request_data.image().set(None);
                                         request_data.image_type().set(None);
+                                        show_success.set(true);
                                     }
                                     Err(server_error) => {
                                         error_message.set(Some(server_error.to_string()));
@@ -495,6 +489,30 @@ pub fn AddMember() -> Element {
                                 "جاري الإرسال..."
                             } else {
                                 "إرسال للمراجعة"
+                            }
+                        }
+
+                        if show_success() {
+                            div {
+                                class: "alert alert-success",
+                                div {
+                                    class: "flex items-center",
+                                    svg {
+                                        class: "w-5 h-5 ml-2",
+                                        fill: "none",
+                                        stroke: "currentColor",
+                                        view_box: "0 0 24 24",
+                                        path {
+                                            stroke_linecap: "round",
+                                            stroke_linejoin: "round",
+                                            stroke_width: "2",
+                                            d: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        }
+                                    }
+                                    p { class: "text-green-500",
+                                        "تم الإرسال بنجاح!" }
+                                }
+                                p { "تم إرسال معلومات العضو للمراجعة. شكراً لمساهمتك!" }
                             }
                         }
 

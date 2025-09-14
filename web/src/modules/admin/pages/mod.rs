@@ -2,7 +2,10 @@ use super::server::get_admin;
 use crate::{
     Route,
     modules::{
-        add_request::server::requested_members,
+        add_request::{
+            server::{approve_request, disapprove_request, member_requests},
+            types::RequestStatus,
+        },
         admin::{
             components::{
                 add_member_modal::{AddMemberModal, MemberFormData},
@@ -10,29 +13,39 @@ use crate::{
                 member_card::MemberCard,
                 request_card::RequestCard,
                 view_member_modal::ViewMemberModal,
+                view_request_modal::ViewRequestModal,
             },
             server::logout_admin,
         },
-        member::server::{add_member, members_flat, upload_members_csv},
+        member::{
+            server::{add_member, members_flat, upload_members_csv},
+            types::MemberResponseFlat,
+        },
     },
 };
 use dioxus::prelude::*;
+use uuid::Uuid;
+
 pub mod login;
 pub mod register;
+
 enum Tab {
     Members,
     Requests,
 }
-#[derive(Clone, Debug)]
+
+#[derive(Clone, PartialEq, Debug)]
 enum ShowModal {
-    ViewMember,
+    ViewMember(i64),
+    ViewRequest(Uuid),
     AddMember,
     EditMember,
 }
+
 #[component]
 pub fn Admin() -> Element {
     let mut members_resource = use_resource(members_flat);
-    let mut add_requests_resource = use_resource(requested_members);
+    let mut add_requests_resource = use_resource(member_requests);
     let admin_future = use_server_future(get_admin)?;
 
     use_effect(move || {
@@ -66,7 +79,15 @@ pub fn Admin() -> Element {
 
     let add_requests_count = (&*add_requests_resource.read())
         .as_ref()
-        .and_then(|e| e.as_ref().map(|e| e.len()).ok())
+        .and_then(|e| {
+            e.as_ref()
+                .map(|r| {
+                    r.iter()
+                        .filter(|r| matches!(r.status, RequestStatus::Pending))
+                        .count()
+                })
+                .ok()
+        })
         .unwrap_or(0);
 
     let members_grid = match &*members_resource.read() {
@@ -96,19 +117,19 @@ pub fn Admin() -> Element {
                 } else {
                     for member in members {
                         ViewMemberModal {
-                            show: show_modal().is_some_and(|m| matches!(m, ShowModal::ViewMember)),
+                            on_edit: move |_| {
+                                show_modal.set(Some(ShowModal::EditMember));
+                            },
+                            show: show_modal().is_some_and(|m| m == ShowModal::ViewMember(member.id)),
                             member: member.clone(),
                             on_close: move |_| {
                                 show_modal.set(None);
                             },
-                            on_edit: move |_| {
-                                show_modal.set(Some(ShowModal::EditMember));
-                            },
                         }
                         MemberCard {
                             member: member.clone(),
-                            on_view: move |_| {
-                                show_modal.set(Some(ShowModal::ViewMember));
+                            on_view: move |member: MemberResponseFlat| {
+                                show_modal.set(Some(ShowModal::ViewMember(member.id)));
                             },
                             on_edit: |_| {
                                 tracing::info!("on edit");
@@ -163,17 +184,39 @@ pub fn Admin() -> Element {
                         }
                     } else {
                         div { class: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-6",
-                            for request in requests {
+                            for request in requests.iter().filter(|r| matches!(r.status, RequestStatus::Pending)) {
+                                ViewRequestModal {
+                                    show: show_modal().is_some_and(|r| r == ShowModal::ViewRequest(request.id)),
+                                    request: request.clone(),
+                                    on_close: move |_| {
+                                        show_modal.set(None);
+                                    },
+                                    on_edit: move |_| {
+                                        tracing::debug!("on_edit");
+                                    },
+                                }
+
                                 RequestCard {
                                     request: request.clone(),
-                                    on_approve: move |_| {
-                                        tracing::info!("on_approve");
+                                    on_approve: move |id| async move {
+                                        match approve_request(id).await {
+                                            Ok(_) => {
+                                                add_requests_resource.restart();
+                                                members_resource.restart();
+                                            },
+                                            Err(e) => {}
+                                        }
                                     },
-                                    on_reject: move |_| {
-                                        tracing::info!("on_reject");
+                                    on_reject: move |id| async move {
+                                        match disapprove_request(id).await {
+                                            Ok(_) => {
+                                                add_requests_resource.restart();
+                                            },
+                                            Err(e) => {}
+                                        }
                                     },
-                                    on_view: move |_| {
-                                        tracing::info!("on_view");
+                                    on_view: move |id| {
+                                        show_modal.set(Some(ShowModal::ViewRequest(id)));
                                     },
                                 }
                             }
@@ -196,6 +239,7 @@ pub fn Admin() -> Element {
 
     rsx! {
         div { class: "w-3/4 mx-auto",
+            dir: "rtl",
             div { class: "text-red-500", "{error}" }
 
             div { class: "card card-forest fade-in",

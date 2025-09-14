@@ -111,7 +111,9 @@ pub async fn add_member(
     if first_name.is_empty() || last_name.is_empty() {
         return Err(ServerFnError::new(""));
     }
+
     let state = get_state().await?;
+
     sqlx::query!(
         r#"
             INSERT INTO members (name, last_name, gender, birthday)
@@ -124,6 +126,7 @@ pub async fn add_member(
     )
     .execute(&state.db_pool)
     .await?;
+
     Ok(())
 }
 

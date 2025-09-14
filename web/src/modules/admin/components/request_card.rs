@@ -3,13 +3,12 @@ use dioxus::prelude::*;
 use uuid::Uuid;
 
 use crate::modules::{
-    add_request::types::RequestedMemberResponse, admin::components::ImageState,
-    member::types::Gender,
+    add_request::types::RequestedMember, admin::components::ImageState, member::types::Gender,
 };
 
 #[derive(Props, Clone, PartialEq)]
 pub struct RequestCardProps {
-    request: RequestedMemberResponse,
+    request: RequestedMember,
     on_approve: EventHandler<Uuid>,
     on_reject: EventHandler<Uuid>,
     on_view: EventHandler<Uuid>,

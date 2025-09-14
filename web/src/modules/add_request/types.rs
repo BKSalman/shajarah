@@ -42,8 +42,9 @@ pub enum RequestStatus {
     Disapproved,
 }
 
+#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub struct RequestedMemberResponse {
+pub struct RequestedMember {
     pub id: Uuid,
     pub name: String,
     pub gender: Gender,
@@ -53,6 +54,25 @@ pub struct RequestedMemberResponse {
     pub father_name: Option<String>,
     pub mother_id: Option<i64>,
     pub mother_name: Option<String>,
+    pub personal_info: Option<IndexMap<String, String>>,
+    pub image: Option<Vec<u8>>,
+    pub image_type: Option<String>,
+    pub status: RequestStatus,
+}
+
+#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub struct RequestedMemberBrief {
+    pub id: Uuid,
+    pub name: String,
+    pub gender: Gender,
+    pub birthday: Option<DateTime<Utc>>,
+    pub last_name: String,
+    pub father_id: Option<i64>,
+    pub mother_id: Option<i64>,
+    #[cfg(feature = "server")]
+    pub personal_info: Option<sqlx::types::Json<IndexMap<String, String>>>,
+    #[cfg(not(feature = "server"))]
     pub personal_info: Option<IndexMap<String, String>>,
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,

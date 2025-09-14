@@ -69,3 +69,5 @@ server = [
 
 [patch.crates-io]
 garde = { git = "https://github.com/jprochazk/garde", branch = "i18n" }
+dioxus = { git = "https://github.com/BKSalman/dioxus", branch = "main" }
+subsecond = { git = "https://github.com/BKSalman/dioxus", branch = "main" }

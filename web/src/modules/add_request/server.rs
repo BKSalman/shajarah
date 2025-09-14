@@ -2,10 +2,13 @@ use chrono::Utc;
 use dioxus::prelude::*;
 use garde::Validate;
 use indexmap::IndexMap;
+use uuid::Uuid;
 
 use crate::modules::add_request::types::{
-    RequestData, RequestedMemberResponse, RequestedMemberRowWithParents,
+    RequestData, RequestStatus, RequestedMember, RequestedMemberBrief,
+    RequestedMemberRowWithParents,
 };
+use crate::modules::member::types::Gender;
 
 #[server]
 pub async fn add_request(request_data: RequestData) -> ServerFnResult<()> {
@@ -40,7 +43,7 @@ pub async fn add_request(request_data: RequestData) -> ServerFnResult<()> {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         "#,
         uuid::Uuid::new_v4(), name, gender as _, birthday, last_name, father_id, mother_id,
-        image, image_type, info, Utc::now().naive_utc(),
+        image, image_type, info, Utc::now(),
     )
     .execute(&state.db_pool)
     .await?;
@@ -49,8 +52,11 @@ pub async fn add_request(request_data: RequestData) -> ServerFnResult<()> {
 }
 
 #[server]
-pub async fn requested_members() -> ServerFnResult<Vec<RequestedMemberResponse>> {
+pub async fn member_requests() -> ServerFnResult<Vec<RequestedMember>> {
+    use crate::modules::admin::server::get_admin;
     use crate::server::get_state;
+
+    let _admin = get_admin().await?;
 
     let state = get_state().await?;
 
@@ -90,9 +96,9 @@ pub async fn requested_members() -> ServerFnResult<Vec<RequestedMemberResponse>>
     .fetch_all(&state.db_pool)
     .await?;
 
-    let requested_members: Vec<RequestedMemberResponse> = recs
+    let requested_members: Vec<RequestedMember> = recs
         .into_iter()
-        .map(|m| RequestedMemberResponse {
+        .map(|m| RequestedMember {
             id: m.id,
             name: m.name,
             gender: m.gender,
@@ -117,4 +123,84 @@ pub async fn requested_members() -> ServerFnResult<Vec<RequestedMemberResponse>>
         .collect();
 
     Ok(requested_members)
+}
+
+#[server]
+pub async fn approve_request(request_id: Uuid) -> ServerFnResult<()> {
+    use crate::modules::admin::server::get_admin;
+    use crate::server::get_state;
+
+    use sqlx::types::Json;
+
+    let admin = get_admin().await?;
+
+    let state = get_state().await?;
+
+    let mut tx = state.db_pool.begin().await?;
+
+    let requested_member_info = sqlx::query_as!(
+        RequestedMemberBrief,
+        r#"
+            UPDATE member_add_requests request
+            SET reviewed_at = $1, reviewed_by = $2, status = 'approved'
+            WHERE request.id = $3
+            RETURNING id, name, gender as "gender: Gender", birthday, last_name, image, status as "status: RequestStatus",
+                image_type, mother_id, father_id, personal_info as "personal_info: Json<IndexMap<String, String>>";
+        "#,
+        Utc::now(),
+        admin.id,
+        request_id,
+    )
+    .fetch_optional(&mut *tx)
+    .await?;
+
+    let Some(member_info) = requested_member_info else {
+        return Err(ServerFnError::new("Bad Request"));
+    };
+
+    sqlx::query!(
+        r#"
+            INSERT INTO members (name, last_name, gender, birthday)
+            VALUES ($1, $2, $3, $4);
+        "#,
+        member_info.name,
+        member_info.last_name,
+        member_info.gender as _,
+        member_info.birthday,
+    )
+    .execute(&state.db_pool)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(())
+}
+
+#[server]
+pub async fn disapprove_request(request_id: Uuid) -> ServerFnResult<()> {
+    use crate::modules::admin::server::get_admin;
+    use crate::server::get_state;
+
+    let admin = get_admin().await?;
+
+    let state = get_state().await?;
+
+    let mut tx = state.db_pool.begin().await?;
+
+    sqlx::query!(
+        r#"
+            UPDATE member_add_requests request
+            SET reviewed_at = $1, reviewed_by = $2, status = 'disapproved'
+            WHERE request.id = $3;
+        "#,
+        Utc::now(),
+        admin.id,
+        request_id,
+    )
+    .fetch_optional(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(())
 }
