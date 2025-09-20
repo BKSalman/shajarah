@@ -105,6 +105,8 @@ pub async fn members_flat() -> ServerFnResult<Vec<MemberResponseFlat>> {
 pub async fn add_member(
     first_name: String,
     last_name: String,
+    father_id: Option<i64>,
+    mother_id: Option<i64>,
     gender: Gender,
     birthday: Option<DateTime<Utc>>,
 ) -> ServerFnResult<()> {
@@ -116,16 +118,72 @@ pub async fn add_member(
 
     sqlx::query!(
         r#"
-            INSERT INTO members (name, last_name, gender, birthday)
-            VALUES ($1, $2, $3, $4);
+            INSERT INTO members (name, last_name, father_id, mother_id, gender, birthday)
+            VALUES ($1, $2, $3, $4, $5, $6);
         "#,
         first_name,
         last_name,
+        father_id,
+        mother_id,
         gender as _,
         birthday,
     )
     .execute(&state.db_pool)
     .await?;
+
+    Ok(())
+}
+
+#[server]
+pub async fn edit_member(
+    member_id: i64,
+    first_name: Option<String>,
+    last_name: Option<String>,
+    father_id: Option<i64>,
+    mother_id: Option<i64>,
+    gender: Option<Gender>,
+    birthday: Option<DateTime<Utc>>,
+) -> ServerFnResult<()> {
+    if first_name.is_some()
+        || last_name.is_some()
+        || father_id.is_some()
+        || mother_id.is_some()
+        || gender.is_some()
+        || birthday.is_some()
+    {
+        let state = get_state().await?;
+
+        let mut query = sqlx::QueryBuilder::new("UPDATE members SET ");
+        let mut sep = query.separated(", ");
+
+        if let Some(first_name) = first_name {
+            sep.push_unseparated("name = ").push_bind(first_name);
+        }
+
+        if let Some(last_name) = last_name {
+            sep.push_unseparated("last_name = ").push_bind(last_name);
+        }
+
+        if let Some(gender) = gender {
+            sep.push_unseparated("gender = ").push_bind(gender);
+        }
+
+        if let Some(birthday) = birthday {
+            sep.push_unseparated("birthday = ").push_bind(birthday);
+        }
+
+        if let Some(father_id) = father_id {
+            sep.push_unseparated("father_id = ").push_bind(father_id);
+        }
+
+        if let Some(mother_id) = mother_id {
+            sep.push_unseparated("mother_id = ").push_bind(mother_id);
+        }
+
+        query.push(" WHERE id = ").push_bind(member_id);
+
+        query.build().execute(&state.db_pool).await?;
+    }
 
     Ok(())
 }

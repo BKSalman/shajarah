@@ -11,11 +11,22 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "server", derive(sqlx::Type))]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, strum::EnumIter, PartialEq)]
 #[serde(rename_all = "snake_case")]
-#[cfg_attr(feature = "server", sqlx(type_name = "gender"))]
-#[cfg_attr(feature = "server", sqlx(rename_all = "snake_case"))]
+#[cfg_attr(
+    feature = "server",
+    sqlx(type_name = "gender", rename_all = "snake_case")
+)]
 pub enum Gender {
     Male,
     Female,
+}
+
+impl core::fmt::Display for Gender {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Gender::Male => write!(f, "male"),
+            Gender::Female => write!(f, "female"),
+        }
+    }
 }
 
 impl IntoAttributeValue for Gender {

@@ -1,7 +1,7 @@
 use crate::{
     modules::{
-        admin::types::{MemberFormData, MemberFormDataStoreExt},
-        member::types::Gender,
+        admin::types::{EditMemberFormData, MemberFormData, MemberFormDataStoreExt},
+        member::types::{Gender, MemberResponseFlat},
     },
     ui::{
         form::FormSection,
@@ -13,37 +13,56 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use dioxus::prelude::*;
 
 #[derive(Props, Clone, PartialEq)]
-pub struct AddMemberModalProps {
+pub struct EditMemberModalProps {
     pub show: bool,
+    pub member: MemberResponseFlat,
     pub on_close: EventHandler<()>,
-    pub on_submit: EventHandler<MemberFormData>,
+    pub on_submit: EventHandler<EditMemberFormData>,
 }
 
 #[component]
-pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
+pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
     let form_data = use_store(|| MemberFormData {
-        name: String::new(),
-        last_name: String::new(),
-        gender: None,
-        birthday: None,
-        mother_id: None,
-        father_id: None,
-        personal_info: None,
+        name: props.member.name.clone(),
+        last_name: props.member.last_name.clone(),
+        gender: Some(props.member.gender),
+        birthday: props.member.birthday,
+        mother_id: props.member.mother_id,
+        father_id: props.member.father_id,
+        personal_info: props.member.personal_info.clone(),
     });
 
     rsx! {
         Modal {
             show: props.show,
-            title: "إضافة عضو جديد".to_string(),
+            title: "تحرير العضو".to_string(),
             max_width: Some("4xl".to_string()),
             on_close: move |_| props.on_close.call(()),
             form {
                 id: "add-member-form",
                 class: "space-y-6",
                 autocomplete: "off",
-                onsubmit: move |evt| {
-                    evt.prevent_default();
-                    props.on_submit.call(form_data());
+                onsubmit: {
+                    let member = props.member.clone();
+                    move |evt| {
+                        evt.prevent_default();
+                        let data = form_data();
+
+                        let submission_data = EditMemberFormData {
+                            id: member.id,
+                            name: (member.name != data.name).then_some(data.name),
+                            last_name: (member.last_name != data.last_name).then_some(data.last_name),
+                            gender: (data.gender.and_then(|gender| (gender != member.gender).then_some(gender))),
+                            birthday: (data.birthday != member.birthday).then_some(data.birthday).unwrap_or(None),
+                            mother_id: (data.mother_id != member.mother_id).then_some(data.mother_id).unwrap_or(None),
+                            father_id: (data.father_id != member.father_id).then_some(data.father_id).unwrap_or(None),
+                            personal_info: (data.personal_info != member.personal_info).then_some(data.personal_info).unwrap_or(None)
+                        };
+
+                        tracing::info!("{submission_data:?}");
+
+                        props.on_submit.call(submission_data);
+                    }
                 },
                 FormSection {
                     title: "المعلومات الأساسية".to_string(),
@@ -95,13 +114,16 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                                 name: "gender",
                                 required: true,
                                 class: "dropdown",
+                                value: "{form_data().gender.map(|g| g.to_string()).unwrap_or(String::new())}",
                                 onchange: move |evt| {
+                                    let mut gender = form_data.gender();
+
                                     if evt.value() == "male" {
-                                        form_data.gender().set(Some(Gender::Male));
+                                        gender.set(Some(Gender::Male));
                                     } else if evt.value() == "female" {
-                                        form_data.gender().set(Some(Gender::Female));
+                                        gender.set(Some(Gender::Female));
                                     } else {
-                                        form_data.gender().set(None);
+                                        gender.set(None);
                                     }
                                 },
                                 option { value: "", "اختر الجنس" }
@@ -120,6 +142,7 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                                 r#type: "date",
                                 required: true,
                                 class: "input",
+                                value: r#"{form_data().birthday.map(|d| d.date_naive().to_string()).unwrap_or(String::new())}"#,
                                 oninput: move |evt| {
                                     let date = NaiveDate::parse_from_str(&evt.value(), "%Y-%m-%d")
                                         .ok()
@@ -143,6 +166,7 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                                 r#type: "number",
                                 class: "input",
                                 placeholder: "ادخل معرف الوالدة (رقم)",
+                                value: "{form_data().mother_id.map(|id| id.to_string()).unwrap_or_default()}",
                                 oninput: move |evt| {
                                     form_data.mother_id().set(evt.value().parse().ok());
                                 },
@@ -158,6 +182,7 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                                 r#type: "number",
                                 class: "input",
                                 placeholder: "ادخل معرف الوالد (رقم)",
+                                value: "{form_data().father_id.map(|id| id.to_string()).unwrap_or_default()}",
                                 oninput: move |evt| {
                                     form_data.father_id().set(evt.value().parse().ok());
                                 },
@@ -234,7 +259,7 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                                 d: "M12 6v6m0 0v6m0-6h6m-6 0H6",
                             }
                         }
-                        "إضافة العضو"
+                        "تحرير العضو"
                     }
                 }
             }

@@ -8,19 +8,15 @@ use crate::{
         },
         admin::{
             components::{
-                add_member_modal::{AddMemberModal, MemberFormData},
-                family_management_header::FamilyManagementHeader,
-                member_card::MemberCard,
-                request_card::RequestCard,
-                view_member_modal::ViewMemberModal,
+                add_member_modal::AddMemberModal, edit_member_modal::EditMemberModal,
+                family_management_header::FamilyManagementHeader, member_card::MemberCard,
+                request_card::RequestCard, view_member_modal::ViewMemberModal,
                 view_request_modal::ViewRequestModal,
             },
             server::logout_admin,
+            types::{EditMemberFormData, MemberFormData},
         },
-        member::{
-            server::{add_member, members_flat, upload_members_csv},
-            types::MemberResponseFlat,
-        },
+        member::server::{add_member, edit_member, members_flat, upload_members_csv},
     },
 };
 use dioxus::prelude::*;
@@ -39,7 +35,7 @@ enum ShowModal {
     ViewMember(i64),
     ViewRequest(Uuid),
     AddMember,
-    EditMember,
+    EditMember(i64),
 }
 
 #[component]
@@ -115,31 +111,57 @@ pub fn Admin() -> Element {
                         }
                     }
                 } else {
-                    for member in members {
-                        ViewMemberModal {
-                            on_edit: move |_| {
-                                show_modal.set(Some(ShowModal::EditMember));
-                            },
-                            show: show_modal().is_some_and(|m| m == ShowModal::ViewMember(member.id)),
-                            member: member.clone(),
-                            on_close: move |_| {
-                                show_modal.set(None);
-                            },
-                        }
-                        MemberCard {
-                            member: member.clone(),
-                            on_view: move |member: MemberResponseFlat| {
-                                show_modal.set(Some(ShowModal::ViewMember(member.id)));
-                            },
-                            on_edit: |_| {
-                                tracing::info!("on edit");
-                            },
-                            on_invite: |_| {
-                                tracing::info!("on invite");
-                            },
-                            on_delete: |_| {
-                                tracing::info!("on delete");
-                            },
+                    div {
+                        class: "grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 pb-6",
+                        id: "members-grid",
+                        for member in members {
+                            ViewMemberModal {
+                                on_edit: move |id| {
+                                    show_modal.set(Some(ShowModal::EditMember(id)));
+                                },
+                                show: show_modal().is_some_and(|m| m == ShowModal::ViewMember(member.id)),
+                                member: member.clone(),
+                                on_close: move |_| {
+                                    show_modal.set(None);
+                                },
+                            }
+                            EditMemberModal {
+                                show: show_modal().is_some_and(|m| m == ShowModal::EditMember(member.id)),
+                                member: member.clone(),
+                                on_close: move |_| {
+                                    show_modal.set(None);
+                                },
+                                on_submit: move |data: EditMemberFormData| async move {
+                                    let _ = edit_member(
+                                        data.id,
+                                        data.name,
+                                        data.last_name,
+                                        data.father_id,
+                                        data.mother_id,
+                                        data.gender,
+                                        data.birthday
+                                    ).await;
+
+                                    members_resource.restart();
+
+                                    show_modal.set(None);
+                                },
+                            }
+                            MemberCard {
+                                member: member.clone(),
+                                on_view: move |id| {
+                                    show_modal.set(Some(ShowModal::ViewMember(id)));
+                                },
+                                on_edit: move |id| {
+                                    show_modal.set(Some(ShowModal::EditMember(id)));
+                                },
+                                on_invite: |_| {
+                                    tracing::info!("on invite");
+                                },
+                                on_delete: |_| {
+                                    tracing::info!("on delete");
+                                },
+                            }
                         }
                     }
                 }
@@ -429,7 +451,7 @@ pub fn Admin() -> Element {
                         return;
                     };
 
-                    let _ = add_member(data.name, data.last_name, gender, data.birthday).await;
+                    let _ = add_member(data.name, data.last_name, data.father_id, data.mother_id, gender, data.birthday).await;
 
                     members_resource.restart();
 
@@ -457,11 +479,7 @@ pub fn Admin() -> Element {
                             }
                         },
                     }
-                    div {
-                        class: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 pb-6",
-                        id: "members-grid",
-                        {members_grid}
-                    }
+                    {members_grid}
                 },
                 Tab::Requests => rsx! {
                     {add_requests_grid}

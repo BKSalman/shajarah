@@ -177,13 +177,11 @@ fn BasicInformationSection(props: BasicInformationSectionProps) -> Element {
             h5 { class: "text-lg font-semibold text-gray-900 border-b pb-2",
                 "المعلومات الأساسية"
             }
-            if let Some(birthday) = &props.member.birthday {
+            if let Some(birthday) = props.member.birthday {
                 div {
                     label { class: "text-sm font-medium text-gray-500", "تاريخ الميلاد" }
-                    p { class: "text-gray-900", "{birthday}" }
+                    p { class: "text-gray-900", "{birthday.date_naive()}" }
                 }
-            }
-            if let Some(birthday) = props.member.birthday {
                 div {
                     label { class: "text-sm font-medium text-gray-500", "العمر" }
                     p { class: "text-gray-900",

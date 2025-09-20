@@ -11,9 +11,7 @@ pub struct ModalProps {
 pub fn Modal(props: ModalProps) -> Element {
     let max_width_class = props.max_width.unwrap_or_else(|| "4xl".to_string());
     if !props.show {
-        return rsx! {
-            div {}
-        };
+        return rsx! {};
     }
     rsx! {
         div {

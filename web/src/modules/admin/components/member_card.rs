@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 #[derive(Props, PartialEq, Clone)]
 pub struct MemberCardProps {
     member: MemberResponseFlat,
-    on_view: EventHandler<MemberResponseFlat>,
+    on_view: EventHandler<i64>,
     on_edit: EventHandler<i64>,
     on_invite: EventHandler<(i64, String)>,
     on_delete: EventHandler<i64>,
@@ -77,7 +77,7 @@ pub fn MemberCard(props: MemberCardProps) -> Element {
                                 d: "M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6l1 12H7L8 7z",
                             }
                         }
-                        span { "{birthday}" }
+                        span { "{birthday.date_naive()}" }
                     }
                 }
                 div { class: "space-y-1 mb-3",
@@ -166,7 +166,7 @@ pub fn MemberCard(props: MemberCardProps) -> Element {
                             title: "عرض التفاصيل",
                             onclick: {
                                 let member = props.member.clone();
-                                move |_| props.on_view.call(member.clone())
+                                move |_| props.on_view.call(member.id)
                             },
                             svg {
                                 class: "w-4 h-4",
