@@ -21,15 +21,7 @@ pub struct AddMemberModalProps {
 
 #[component]
 pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
-    let form_data = use_store(|| MemberFormData {
-        name: String::new(),
-        last_name: String::new(),
-        gender: None,
-        birthday: None,
-        mother_id: None,
-        father_id: None,
-        personal_info: None,
-    });
+    let mut form_data = use_store(|| MemberFormData::default());
 
     rsx! {
         Modal {
@@ -44,6 +36,7 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                 onsubmit: move |evt| {
                     evt.prevent_default();
                     props.on_submit.call(form_data());
+                    form_data.set(MemberFormData::default());
                 },
                 FormSection {
                     title: "المعلومات الأساسية".to_string(),

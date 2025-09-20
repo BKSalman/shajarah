@@ -27,7 +27,7 @@ pub struct LoginData {
     pub password: Option<String>,
 }
 
-#[derive(Clone, Store, PartialEq)]
+#[derive(Default, Clone, Store, PartialEq)]
 pub struct MemberFormData {
     pub name: String,
     pub last_name: String,

@@ -16,7 +16,9 @@ use crate::{
             server::logout_admin,
             types::{EditMemberFormData, MemberFormData},
         },
-        member::server::{add_member, edit_member, members_flat, upload_members_csv},
+        member::server::{
+            add_member, delete_member, edit_member, members_flat, upload_members_csv,
+        },
     },
 };
 use dioxus::prelude::*;
@@ -155,11 +157,13 @@ pub fn Admin() -> Element {
                                 on_edit: move |id| {
                                     show_modal.set(Some(ShowModal::EditMember(id)));
                                 },
-                                on_invite: |_| {
+                                on_invite: move |_| {
                                     tracing::info!("on invite");
                                 },
-                                on_delete: |_| {
-                                    tracing::info!("on delete");
+                                on_delete: move |id| async move {
+                                    if delete_member(id).await.is_ok() {
+                                        members_resource.restart();
+                                    }
                                 },
                             }
                         }
