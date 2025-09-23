@@ -20,6 +20,7 @@ use crate::{
             add_member, delete_member, edit_member, members_flat, upload_members_csv,
         },
     },
+    ui::modal::Modal,
 };
 use dioxus::prelude::*;
 use uuid::Uuid;
@@ -38,6 +39,7 @@ enum ShowModal {
     ViewRequest(Uuid),
     AddMember,
     EditMember(i64),
+    DeleteMember(i64),
 }
 
 #[component]
@@ -149,6 +151,38 @@ pub fn Admin() -> Element {
                                     show_modal.set(None);
                                 },
                             }
+                            Modal {
+                                show: show_modal().is_some_and(|m| m == ShowModal::DeleteMember(member.id)),
+                                title: String::from("تأكيد حذف العضو"),
+                                on_close: move |_| show_modal.set(None),
+                                max_width: Some(String::from("xl")),
+
+                                span {
+                                    "هل أنت متأكد من حذف {member.name}؟"
+                                }
+
+                                div {
+                                    class: "flex justify-center gap-4",
+                                    button {
+                                        class: "btn btn-danger",
+                                        onclick: {
+                                            let member_id = member.id.clone();
+                                            move |_| async move {
+                                                if delete_member(member_id).await.is_ok() {
+                                                    show_modal.set(None);
+                                                    members_resource.restart();
+                                                }
+                                            }
+                                        },
+                                        "حذف"
+                                    }
+                                    button {
+                                        class: "btn btn-secondary",
+                                        onclick: move |_| show_modal.set(None),
+                                        "إلغاء"
+                                    }
+                                }
+                            }
                             MemberCard {
                                 member: member.clone(),
                                 on_view: move |id| {
@@ -161,9 +195,7 @@ pub fn Admin() -> Element {
                                     tracing::info!("on invite");
                                 },
                                 on_delete: move |id| async move {
-                                    if delete_member(id).await.is_ok() {
-                                        members_resource.restart();
-                                    }
+                                    show_modal.set(Some(ShowModal::DeleteMember(id)));
                                 },
                             }
                         }

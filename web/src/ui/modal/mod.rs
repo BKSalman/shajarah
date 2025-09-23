@@ -21,7 +21,7 @@ pub fn Modal(props: ModalProps) -> Element {
             div {
                 class: "bg-white rounded-none md:rounded-xl md:max-w-{max_width_class} h-full md:h-auto max-h-screen overflow-y-auto shadow-2xl md:border md:border-gray-200 transform transition ease-out duration-200",
                 onclick: move |e| e.stop_propagation(),
-                div { class: "card-header flex justify-between items-center",
+                div { class: "card-header flex justify-between gap-4 items-center",
                     h3 { class: "text-xl font-bold text-gray-900", "{props.title}" }
                     button {
                         class: "text-gray-400 hover:text-gray-600",

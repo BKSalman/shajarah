@@ -9,7 +9,7 @@ use crate::{
         modal::Modal,
     },
 };
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::{NaiveDate, NaiveTime};
 use dioxus::prelude::*;
 
 #[derive(Props, Clone, PartialEq)]
