@@ -12,6 +12,81 @@ use super::types::{ChildMember, Gender, MemberResponse, MemberResponseFlat};
 #[cfg(feature = "server")]
 use server_imports::*;
 
+#[server(endpoint = "members")]
+pub async fn members() -> ServerFnResult<Option<MemberResponse>> {
+    let state = get_state().await?;
+
+    let recs = sqlx::query_as!(
+        MemberRowWithParents,
+        r#"
+            SELECT
+                m.id,
+                m.name,
+                m.gender as "gender: Gender",
+                m.birthday,
+                m.last_name,
+                m.image,
+                m.image_type,
+                m.personal_info,
+                m.email,
+                mother.id AS mother_id,
+                mother.name AS mother_name,
+                mother.gender AS "mother_gender: Gender",
+                mother.birthday AS mother_birthday,
+                mother.last_name AS mother_last_name,
+                father.id AS father_id,
+                father.name AS father_name,
+                father.gender AS "father_gender: Gender",
+                father.birthday AS father_birthday,
+                father.last_name AS father_last_name
+            FROM
+                members m
+            LEFT JOIN
+                members mother ON m.mother_id = mother.id
+            LEFT JOIN
+                members father ON m.father_id = father.id;
+        "#,
+    )
+    .fetch_all(&state.db_pool)
+    .await?;
+
+    if recs.is_empty() {
+        return Ok(None);
+    }
+
+    let Some(root) = recs
+        .iter()
+        .find(|rec| rec.father_id.is_none() && rec.mother_id.is_none())
+    else {
+        return Err(ServerFnError::new("No root member"));
+    };
+
+    let mut root = MemberResponse {
+        id: root.id,
+        name: root.name.clone(),
+        gender: root.gender,
+        birthday: root.birthday,
+        last_name: root.last_name.clone(),
+        father_id: None,
+        mother_id: None,
+        personal_info: root.personal_info.as_ref().and_then(|p| {
+            p.as_object().map(|o| {
+                o.into_iter()
+                    .map(|(k, v)| (k.to_string(), v.as_str().unwrap_or("").to_string()))
+                    .rev()
+                    .collect::<IndexMap<String, String>>()
+            })
+        }),
+        children: Vec::new(),
+        image: root.image.clone(),
+        image_type: root.image_type.clone(),
+    };
+
+    root.add_all_children(&recs);
+
+    Ok(Some(root))
+}
+
 #[server]
 pub async fn members_flat() -> ServerFnResult<Vec<MemberResponseFlat>> {
     let state = get_state().await?;
@@ -201,23 +276,6 @@ pub async fn delete_member(id: i64) -> ServerFnResult<()> {
     .execute(&state.db_pool)
     .await?;
     Ok(())
-}
-
-#[server(endpoint = "members")]
-async fn members() -> ServerFnResult<Option<MemberResponse>> {
-    Ok(Some(MemberResponse {
-        id: 1,
-        name: String::from("سلمان"),
-        gender: Gender::Male,
-        birthday: Some(Utc::now()),
-        last_name: String::from("السلماني"),
-        father_id: None,
-        mother_id: None,
-        personal_info: None,
-        children: Vec::new(),
-        image: None,
-        image_type: None,
-    }))
 }
 
 #[server]

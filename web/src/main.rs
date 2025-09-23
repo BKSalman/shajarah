@@ -15,6 +15,7 @@ pub mod pages;
 #[cfg(feature = "server")]
 pub mod server;
 pub mod ui;
+pub mod util;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct ErrorResponse {

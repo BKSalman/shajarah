@@ -38,6 +38,8 @@ tokio-util = "0.7.16"
 hyper = { version = "1.7.0", features = ["server"] }
 hyper-util = { version = "0.1.16", features = ["server", "server-auto"] }
 tower = "0.5.2"
+futures-util = "0.3.31"
+web-sys = { version = "0.3.77", features = ["Window"] }
 
 [target.wasm32-unknown-unknown.dependencies]
 uuid = { version = "1.18.0", features = ["serde", "v4", "js"] }
@@ -69,5 +71,3 @@ server = [
 
 [patch.crates-io]
 garde = { git = "https://github.com/jprochazk/garde", branch = "i18n" }
-dioxus = { git = "https://github.com/BKSalman/dioxus", branch = "main" }
-subsecond = { git = "https://github.com/BKSalman/dioxus", branch = "main" }

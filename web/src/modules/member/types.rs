@@ -50,7 +50,7 @@ impl FromStr for Gender {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Store, Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct MemberResponse {
     pub id: i64,
     pub name: String,
@@ -64,6 +64,42 @@ pub struct MemberResponse {
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
 }
+
+impl MemberResponse {
+    pub fn add_all_children(&mut self, all_members: &[MemberRowWithParents]) {
+        self.children = all_members
+            .iter()
+            .filter(|m| {
+                m.father_id.is_some_and(|fid| fid == self.id)
+                    || m.mother_id.is_some_and(|mid| mid == self.id)
+            })
+            .map(|m| MemberResponse {
+                id: m.id,
+                name: m.name.clone(),
+                gender: m.gender,
+                birthday: m.birthday,
+                last_name: m.last_name.clone(),
+                father_id: m.father_id,
+                mother_id: m.mother_id,
+                personal_info: m.personal_info.as_ref().and_then(|p| {
+                    p.as_object().map(|o| {
+                        o.into_iter()
+                            .map(|(k, v)| (k.to_string(), v.as_str().unwrap_or("").to_string()))
+                            .rev()
+                            .collect::<IndexMap<String, String>>()
+                    })
+                }),
+                children: vec![],
+                image: m.image.clone(),
+                image_type: m.image_type.clone(),
+            })
+            .collect();
+        for child in &mut self.children {
+            child.add_all_children(all_members);
+        }
+    }
+}
+
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct ChildMember {
