@@ -127,13 +127,9 @@ pub fn Home() -> Element {
             ontouchend: move |touch_event| {
                 // touch_event.prevent_default();
             },
-            div {
-                position: "absolute",
-                left: "{offset().x}px",
-                top: "{offset().y}px",
-                transform: "translate(-50%, -50%) scale({zoom()})",
-                display: "flex",
-                Tree {}
+            Tree {
+                offset,
+                zoom
             }
         }
     }
