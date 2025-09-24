@@ -8,41 +8,29 @@ pub fn MemberNode(root: Store<MemberResponse>) -> Element {
 
     rsx! {
         div {
+            flex_shrink: "0",
             class: "flex flex-col justify-start items-center",
             div {
                 class: "flex flex-col justify-center items-center",
-                button {
-                    ondoubleclick: move |_| {
-                        let mut is_collapsed = is_collapsed.write();
-                        *is_collapsed = !*is_collapsed;
-                    },
-                    onclick: move |_| {
-                    },
-                    img {
-                        width: "30px",
-                        height: "30px",
-                        border_radius: "50%",
-                        src: "https://placehold.co/300x300",
-                    },
-                }
-                p { "{root.name()}" }
+                img {
+                    width: "30px",
+                    height: "30px",
+                    border_radius: "50%",
+                    src: "https://placehold.co/300x300",
+                },
                 if !root.children().is_empty() {
-                    if is_collapsed() {
-                        p {
-                            position: "relative",
-                            bottom: "30px",
-                            right: "30px",
-                            ">"
-                        }
-                    } else {
-                        p {
-                            position: "relative",
-                            bottom: "30px",
-                            right: "30px",
-                            "V"
-                        }
+                    button {
+                        onclick: move |_| {
+                            let mut is_collapsed = is_collapsed.write();
+                            *is_collapsed = !*is_collapsed;
+                        },
+                        position: "relative",
+                        bottom: "30px",
+                        right: "30px",
+                        if is_collapsed() { "▶" } else { "▼" }
                     }
                 }
+                p { "{root.name()}" }
             }
             if !is_collapsed() {
                 div {

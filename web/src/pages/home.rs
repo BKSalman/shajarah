@@ -44,6 +44,13 @@ pub fn Home() -> Element {
         div {
             width: "100vw",
             height: "100vh",
+            overflow: "hidden",
+            position: "relative",
+            onmounted: move |evt| async move {
+                if let Ok(r) = evt.data().get_client_rect().await {
+                    offset.set(Position { x: r.width() / 2., y: r.height() / 2.});
+                }
+            },
             onpointerdown: move |pointer_down_event| {
                 pointer_down_event.prevent_default();
                 pointer_event_cache.push(pointer_down_event);
@@ -67,7 +74,6 @@ pub fn Home() -> Element {
 
                 let cache = pointer_event_cache.read();
 
-                // Handle pinch zoom with exactly 2 pointers
                 if cache.len() == 2 {
                     let p1 = Position { x: cache[0].client_coordinates().x, y: cache[0].client_coordinates().y };
                     let p2 = Position { x: cache[1].client_coordinates().x, y: cache[1].client_coordinates().y };
@@ -85,9 +91,10 @@ pub fn Home() -> Element {
                 if !cache.is_empty() {
                     let coords = cache[0].client_coordinates();
                     if let Some(last_touch) = last_touch() {
-                        let mut offset = offset.write();
-                        offset.x -= last_touch.x - coords.x;
-                        offset.y -= last_touch.y - coords.y;
+                        offset.with_mut(|offset| {
+                            offset.x -= (last_touch.x - coords.x) * 0.9;
+                            offset.y -= (last_touch.y - coords.y) * 0.9;
+                        });
                     }
 
                     last_touch.set(Some(Position { x: coords.x, y: coords.y}));
@@ -102,9 +109,10 @@ pub fn Home() -> Element {
                             let delta = -vector3_d.y * ZOOM_SENSITIVITY * 2.0;
                             apply_zoom(delta);
                         } else {
-                            let mut offset = offset.write();
-                            offset.x -= vector3_d.x;
-                            offset.y -= vector3_d.y;
+                            offset.with_mut(|offset| {
+                                offset.x -= vector3_d.x;
+                                offset.y -= vector3_d.y;
+                            });
                         }
                     },
                     _ => {},
@@ -112,21 +120,19 @@ pub fn Home() -> Element {
             },
             ontouchmove: move |move_event| {
                 move_event.prevent_default();
-                tracing::info!("alo");
             },
             ontouchstart: move |touch_event| {
-                touch_event.prevent_default();
-                tracing::info!("alo1");
+                // touch_event.prevent_default();
             },
             ontouchend: move |touch_event| {
-                touch_event.prevent_default();
-                tracing::info!("alo2");
+                // touch_event.prevent_default();
             },
             div {
                 position: "absolute",
                 left: "{offset().x}px",
                 top: "{offset().y}px",
-                transform: "scale({zoom()})",
+                transform: "translate(-50%, -50%) scale({zoom()})",
+                display: "flex",
                 Tree {}
             }
         }
