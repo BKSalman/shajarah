@@ -64,7 +64,7 @@ async fn launch_server() {
     use server::{AppState, InnerAppState};
     use sqlx::PgPool;
     use tower_cookies::CookieManagerLayer;
-    use tower_http::limit::RequestBodyLimitLayer;
+    use tower_http::{limit::RequestBodyLimitLayer, services::ServeDir};
 
     let (devtools_tx, mut devtools_rx) = tokio::sync::mpsc::unbounded_channel();
 
@@ -100,7 +100,7 @@ async fn launch_server() {
     let port = dioxus::cli_config::server_port().unwrap_or(8080);
     let address = SocketAddr::new(ip, port);
 
-    let router = axum::Router::<AppState>::new()
+    let mut router = axum::Router::<AppState>::new()
         .route("/api/members/export", get(export_members))
         .serve_dioxus_application(
             ServeConfigBuilder::new()
@@ -117,6 +117,14 @@ async fn launch_server() {
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(25 * 1024 * 1024 /* 25mb */))
         .with_state(app_state.clone());
+
+    if let Ok(dist) = std::env::var("SHAJARAH_DIST") {
+        router = router.nest_service("/assets", ServeDir::new(dist));
+    } else if let Some(dist) = option_env!("SHAJARAH_DIST") {
+        router = router.nest_service("/assets", ServeDir::new(dist));
+    } else {
+        tracing::warn!("SHAJARAH_DIST is not set");
+    }
 
     let task_pool = LocalPoolHandle::new(
         std::thread::available_parallelism()

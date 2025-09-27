@@ -1,9 +1,12 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
     use eframe::egui;
+
     env_logger::init();
+
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([400.0, 300.0])
@@ -14,35 +17,44 @@ fn main() -> eframe::Result {
             ),
         ..Default::default()
     };
+
     eframe::run_native(
         "الشجرة",
         native_options,
         Box::new(|cc| Ok(Box::new(gui::App::new(cc)))),
     )
 }
+
 #[cfg(target_arch = "wasm32")]
 fn main() {
-    use eframe::wasm_bindgen::JsCast;
-    eframe::WebLogger::init(log::LevelFilter::max()).ok();
+    use eframe::wasm_bindgen::JsCast as _;
+
+    eframe::WebLogger::init(log::LevelFilter::Debug).ok();
+
     let web_options = eframe::WebOptions::default();
-    let document = eframe::web_sys::window().unwrap().document().unwrap();
-    let canvas = document.get_element_by_id("canvas").unwrap();
-    let canvas: eframe::web_sys::HtmlCanvasElement = canvas
-        .dyn_into::<eframe::web_sys::HtmlCanvasElement>()
-        .map_err(|_| ())
-        .unwrap();
+
     wasm_bindgen_futures::spawn_local(async {
+        let document = web_sys::window()
+            .expect("No window")
+            .document()
+            .expect("No document");
+
+        let canvas = document
+            .get_element_by_id("canvas")
+            .expect("Failed to find the_canvas_id")
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .expect("the_canvas_id was not a HtmlCanvasElement");
+
         let start_result = eframe::WebRunner::new()
             .start(
-                eframe::web_sys::HtmlCanvasElement::from(canvas),
+                canvas,
                 web_options,
                 Box::new(|cc| Ok(Box::new(gui::App::new(cc)))),
             )
             .await;
-        let loading_text = web_sys::window()
-            .and_then(|w| w.document())
-            .and_then(|d| d.get_element_by_id("loading_text"));
-        if let Some(loading_text) = loading_text {
+
+        // Remove the loading text and spinner:
+        if let Some(loading_text) = document.get_element_by_id("loading_text") {
             match start_result {
                 Ok(_) => {
                     loading_text.remove();

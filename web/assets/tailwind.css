@@ -263,6 +263,9 @@
   .right-3 {
     right: calc(var(--spacing) * 3);
   }
+  .left-0 {
+    left: calc(var(--spacing) * 0);
+  }
   .left-2 {
     left: calc(var(--spacing) * 2);
   }
@@ -320,6 +323,9 @@
   .ml-2 {
     margin-left: calc(var(--spacing) * 2);
   }
+  .block {
+    display: block;
+  }
   .flex {
     display: flex;
   }
@@ -364,6 +370,9 @@
   }
   .h-32 {
     height: calc(var(--spacing) * 32);
+  }
+  .h-80 {
+    height: calc(var(--spacing) * 80);
   }
   .h-full {
     height: 100%;

@@ -1,12 +1,14 @@
-use crate::{Message, load_family_data, setup_fonts, tree::TreeUi};
+use crate::{load_family_data, setup_fonts, tree::TreeUi, Message};
 use eframe::egui;
 use std::sync::mpsc::{self, Receiver, Sender};
+
 pub struct App {
     tree: TreeUi,
     message_receiver: Receiver<Message>,
     message_sender: Sender<Message>,
     backend_address: String,
 }
+
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         setup_fonts(&cc.egui_ctx);
@@ -25,8 +27,10 @@ impl App {
         }
     }
 }
+
 impl eframe::App for App {
     fn save(&mut self, _storage: &mut dyn eframe::Storage) {}
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
@@ -39,14 +43,17 @@ impl eframe::App for App {
                     });
                     ui.add_space(16.0);
                 }
-                egui::widgets::global_theme_preference_buttons(ui);
-                let reload = ui.button("⟳").on_hover_text("Refresh tree");
-                if reload.clicked() {
-                    load_family_data(&self.backend_address, self.message_sender.clone(), ctx);
-                    self.tree.request_recenter();
-                }
+
                 let is_debug = cfg!(debug_assertions);
                 if is_debug {
+                    egui::widgets::global_theme_preference_buttons(ui);
+
+                    let reload = ui.button("⟳").on_hover_text("Refresh tree");
+                    if reload.clicked() {
+                        load_family_data(&self.backend_address, self.message_sender.clone(), ctx);
+                        self.tree.request_recenter();
+                    }
+
                     let label = ui.label("backend address:");
                     egui::TextEdit::singleline(&mut self.backend_address)
                         .hint_text("http://localhost:3001")

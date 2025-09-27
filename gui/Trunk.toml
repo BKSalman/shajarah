@@ -1,1 +1,3 @@
 [build]
+dist = "../web/dist"
+public_url = "/assets"

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::path::PathBuf;
 use thiserror::Error;
+
 #[derive(Error, Debug)]
 pub enum ConfigError {
     #[error("IO error: {0}")]
@@ -18,17 +19,20 @@ pub enum ConfigError {
     #[error("Missing required configuration: {0}")]
     Missing(String),
 }
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct EmailCredentials {
     pub username: String,
     #[serde(skip_serializing)]
     pub password: String,
 }
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct EmailConfig {
     pub smtp_server: String,
     pub credentials: EmailCredentials,
 }
+
 #[derive(Serialize, Deserialize)]
 pub struct Config {
     #[serde(serialize_with = "serialize_key", deserialize_with = "deserialize_key")]
@@ -43,15 +47,19 @@ pub struct Config {
     #[serde(default = "default_log_level")]
     pub log_level: String,
 }
+
 fn default_port() -> u16 {
     8080
 }
+
 fn default_log_level() -> String {
     "info".to_string()
 }
+
 fn default_base_url() -> url::Url {
     "http://localhost:8080".parse().unwrap()
 }
+
 fn serialize_key<S>(key: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
@@ -59,6 +67,7 @@ where
     let encoded = BASE64_STANDARD.encode(key);
     serializer.serialize_str(&encoded)
 }
+
 fn deserialize_key<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -68,6 +77,7 @@ where
         .decode(encoded)
         .map_err(serde::de::Error::custom)
 }
+
 impl Config {
     /// Load configuration with the following precedence (highest to lowest):
     /// 1. Environment variables
@@ -87,6 +97,7 @@ impl Config {
         tracing::info!("Configuration loaded successfully");
         Ok(config)
     }
+
     fn load_from_toml() -> Result<Self, ConfigError> {
         let config_path = Self::get_config_path();
         tracing::debug!("Loading config from: {:?}", config_path);
@@ -97,6 +108,7 @@ impl Config {
         let config: Self = toml::from_str(&config_content)?;
         Ok(config)
     }
+
     fn get_config_path() -> PathBuf {
         let config_dir = env::var("SHAJARAH_CONFIG_PATH").unwrap_or_else(|_| ".".to_string());
         let config_name =
@@ -105,6 +117,7 @@ impl Config {
         path.push(config_name);
         path
     }
+
     fn apply_env_overrides(&mut self) -> Result<(), ConfigError> {
         if let Ok(secret_b64) = env::var("SHAJARAH_COOKIE_SECRET") {
             tracing::debug!("Using cookie secret from environment");
@@ -129,6 +142,7 @@ impl Config {
         self.apply_email_env_overrides()?;
         Ok(())
     }
+
     fn apply_email_env_overrides(&mut self) -> Result<(), ConfigError> {
         let smtp_server = env::var("SHAJARAH_SMTP_SERVER").ok();
         let email_username = env::var("SHAJARAH_EMAIL_USERNAME").ok();
@@ -157,6 +171,7 @@ impl Config {
         }
         Ok(())
     }
+
     fn validate(&self) -> Result<(), ConfigError> {
         if self.cookie_secret.is_empty() {
             return Err(ConfigError::Missing(
@@ -210,6 +225,7 @@ impl Config {
         tracing::info!("Configuration validation passed");
         Ok(())
     }
+
     /// Generate a new random encryption key and return it as base64
     pub fn generate_totp_key() -> String {
         use rand::RngCore;
@@ -217,6 +233,7 @@ impl Config {
         rand::rng().fill_bytes(&mut key);
         BASE64_STANDARD.encode(key)
     }
+
     /// Generate a new random cookie secret and return it as base64
     pub fn generate_cookie_secret() -> String {
         use rand::RngCore;
@@ -225,6 +242,7 @@ impl Config {
         BASE64_STANDARD.encode(secret)
     }
 }
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -237,17 +255,23 @@ impl Default for Config {
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_key_generation() {
         let key = Config::generate_totp_key();
         let decoded = BASE64_STANDARD.decode(&key).unwrap();
+
         assert_eq!(decoded.len(), 32);
+
         let secret = Config::generate_cookie_secret();
+
         assert!(secret.len() >= 32);
     }
+
     #[test]
     fn test_validation() {
         let mut config = Config {
@@ -258,9 +282,12 @@ mod tests {
             port: 8080,
             log_level: "info".to_string(),
         };
+
         assert!(config.validate().is_err());
+
         config.cookie_secret = vec![0; 32];
         config.totp_encryption_key = vec![0; 32];
+
         assert!(config.validate().is_ok());
     }
 }

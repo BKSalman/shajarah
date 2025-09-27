@@ -1,14 +1,16 @@
 use crate::Gender;
 use chrono::{DateTime, Utc};
 use eframe::egui;
-use egui::{Vec2, include_image};
+use egui::{include_image, Vec2};
 use indexmap::IndexMap;
 use layout::LayoutTree;
 use serde::{Deserialize, Serialize};
 pub mod draw;
 pub mod layout;
+
 const DEFAULT_IMAGE: egui::ImageSource<'static> = include_image!("../../assets/avatar.png");
 const NODE_RADIUS: u8 = 40;
+
 pub struct TreeUi {
     pub offset: Vec2,
     centered: bool,
@@ -16,6 +18,7 @@ pub struct TreeUi {
     pub root: Option<Node>,
     pub layout_tree: LayoutTree,
 }
+
 impl TreeUi {
     pub fn new(root: Option<Node>) -> Self {
         let mut tree = LayoutTree::new();
@@ -28,26 +31,33 @@ impl TreeUi {
             root,
         }
     }
+
     pub fn set_root(&mut self, root: Option<Node>) {
         self.root = root;
         self.layout_tree.set_root(self.root.clone());
     }
+
     pub fn layout(&mut self) {
         self.layout_tree.layout();
     }
+
     fn scale(&mut self, new_scale: f32) {
         self.scale = new_scale;
     }
+
     fn pan(&mut self, delta: Vec2) {
         self.offset += delta;
     }
+
     pub fn request_recenter(&mut self) {
         self.centered = false;
     }
 }
+
 fn yes() -> bool {
     true
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node {
     pub id: i32,
@@ -66,7 +76,9 @@ pub struct Node {
     #[serde(default = "yes")]
     collapsed: bool,
 }
+
 impl Node {}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimpleNode {
     pub id: i32,
@@ -75,6 +87,7 @@ pub struct SimpleNode {
     birthday: Option<DateTime<Utc>>,
     last_name: String,
 }
+
 impl From<Node> for SimpleNode {
     fn from(value: Node) -> Self {
         Self {
@@ -86,6 +99,7 @@ impl From<Node> for SimpleNode {
         }
     }
 }
+
 impl From<&Node> for SimpleNode {
     fn from(value: &Node) -> Self {
         Self {

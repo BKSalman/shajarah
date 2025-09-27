@@ -5,19 +5,23 @@ mod zoom;
 pub use app::App;
 use eframe::egui;
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, mpsc::Sender};
+use std::sync::{mpsc::Sender, Arc};
 use tree::Node;
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Gender {
     Male,
     Female,
 }
+
 #[derive(Debug)]
 enum Message {
     LoadedFamilyData(Node),
 }
+
 const FONT: &[u8] = include_bytes!("../fonts/arial.ttf");
+
 fn setup_fonts(ctx: &egui::Context) {
     let mut fonts = egui::FontDefinitions::default();
     fonts.font_data.insert(
@@ -36,9 +40,10 @@ fn setup_fonts(ctx: &egui::Context) {
         .push("arial".to_owned());
     ctx.set_fonts(fonts);
 }
+
 fn load_family_data(address: &str, sender: Sender<Message>, ctx: &egui::Context) {
     let ctx = ctx.clone();
-    let request = ehttp::Request::get(format!("{address}/api/members"));
+    let request = ehttp::Request::post(format!("{address}/api/members"), b"{}".to_vec());
     ehttp::fetch(request, move |res| match res {
         Ok(res) => {
             if !res.ok {
