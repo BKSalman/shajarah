@@ -1,36 +1,29 @@
 use dioxus::prelude::*;
 
-const EGUI: &str = include_str!("../../dist/index.html");
+use crate::{config, modules::tree::components::tree::Tree};
 
 #[component]
 pub fn Home() -> Element {
-    let mut fullscreen_tree = use_signal(|| false);
+    let config = use_context::<config::client::Config>();
 
     rsx! {
-        h1 {
-            dir: "rtl",
-            "شجرة العائلة"
-        }
         div {
-            dir: "rtl",
-            class: "flex flex-col w-full",
-            class: if fullscreen_tree() {
-                       "h-full absolute top-0 left-0"
-                   } else {
-                       "h-80 p-4 border border-gray-300"
-                   },
-            button {
-                class: "btn btn-primary",
-                onclick: move |_| {
-                    fullscreen_tree.with_mut(|f| *f = !*f);
-                },
-                if fullscreen_tree() { "صغر الشجرة" } else { "كبر الشجرة" }
-            }
+            class: "h-full w-full",
             div {
-                flex: 1,
-                height: "100%",
-                dangerous_inner_html: EGUI,
+                class: "h-80",
+                h1 {
+                    class: "heading font-bold text-forest-dark text-center",
+                    if let Some(family_name) = config.family_name {
+                        "عائلة {family_name}"
+                    } else {
+                        "العائلة فلان"
+                    }
+                }
             }
+            // TODO: Achievements
+            // TODO: Events
+            // TODO: Remarkable family members
+            Tree {}
         }
     }
 }

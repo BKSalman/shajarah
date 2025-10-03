@@ -1,6 +1,7 @@
-cookie_secret = "��(qB�MJ��ڇQz�D�\u0013sM,�\u007F2�\b\\�[3+^aF�NĳX��\u0006z�\u0010ʪ�n�_�ɾ 1�\u001F��?\u001F~"
-totp_encryption_key = [209, 218, 102, 129, 204, 165, 154, 173, 228, 18, 177, 160, 184, 38, 241, 23, 104, 29, 61, 92, 254, 240, 250, 70, 131, 145, 78, 201, 74, 10, 114, 210]
+cookie_secret = "xFMumzi0dgXPL1FScy49aqYf3xREkXOA2LPBqITFOkoF1NNRTm2g4eQDit3XD0LVOrmZUQo8EE/PN/PVj+fNOw=="
+totp_encryption_key = "+P+yNBfjOALlK757Vaeg8LhVe7mXwkAMPGijkKxZbN8="
 base_url = "http://localhost:3030"
+family_name = "آل سميح"
 
 [email_config.credentials]
 username = "lmao@localhost"

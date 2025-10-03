@@ -114,7 +114,7 @@ pub async fn login_admin(login_data: LoginData) -> ServerFnResult<()> {
     let mut tx = state.db_pool.begin().await?;
 
     if let Some(session_id) = cookies
-        .private(&state.cookies_secret)
+        .private(&state.config.cookies_secret)
         .get(SESSION_COOKIE_NAME)
     {
         if sqlx::query!(
@@ -209,7 +209,7 @@ pub async fn login_admin(login_data: LoginData) -> ServerFnResult<()> {
 
     let cookie = cookie.build();
 
-    cookies.private(&state.cookies_secret).add(cookie);
+    cookies.private(&state.config.cookies_secret).add(cookie);
 
     tx.commit().await?;
 
@@ -227,7 +227,7 @@ pub async fn logout_admin() -> ServerFnResult<()> {
     let mut tx = state.db_pool.begin().await?;
 
     if let Some(session_id) = cookies
-        .private(&state.cookies_secret)
+        .private(&state.config.cookies_secret)
         .get(SESSION_COOKIE_NAME)
     {
         sqlx::query!(
@@ -246,7 +246,7 @@ pub async fn logout_admin() -> ServerFnResult<()> {
             .http_only(true)
             .build();
 
-        cookies.private(&state.cookies_secret).remove(cookie);
+        cookies.private(&state.config.cookies_secret).remove(cookie);
     }
 
     Ok(())

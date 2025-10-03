@@ -1,57 +1,32 @@
 use dioxus::prelude::*;
 
-use crate::modules::tree::types::Position;
-use crate::modules::{member::server::members, tree::components::node::MemberNode};
-use crate::util::use_store_resource;
+const EGUI: &str = include_str!("../../../../dist/index.html");
 
 #[component]
-pub fn Tree(offset: ReadSignal<Position>, zoom: ReadSignal<f64>) -> Element {
-    let members_resource = use_store_resource(members);
-
-    let members = members_resource
-        .transpose()
-        .map(|s| s.transpose().map(|s| s.transpose()));
+pub fn Tree() -> Element {
+    let mut fullscreen_tree = use_signal(|| false);
 
     rsx! {
-        match members {
-            Some(Ok(root)) => {
-                match root {
-                    Some(root) => {
-                        rsx! {
-                            div {
-                                position: "absolute",
-                                left: "{offset().x}px",
-                                top: "{offset().y}px",
-                                transform: "translate(-50%, -50%) scale({zoom()})",
-                                display: "flex",
-                                MemberNode {
-                                    root,
-                                }
-                            }
-                        }
-                    }
-                    None => {
-                        rsx! {
-                            p {
-                                dir: "rtl",
-                                "لا يوجد أعضاء في شجرة العائلة"
-                            }
-                        }
-                    }
-                }
+        div {
+            dir: "rtl",
+            class: "flex flex-col w-full",
+            class: if fullscreen_tree() {
+                       "h-full absolute top-0 left-0"
+                   } else {
+                       "h-80 p-4 border border-gray-300"
+                   },
+            h3 { "شجرة العائلة" }
+            button {
+                class: "btn btn-primary",
+                onclick: move |_| {
+                    fullscreen_tree.with_mut(|f| *f = !*f);
+                },
+                if fullscreen_tree() { "صغر الشجرة" } else { "كبر الشجرة" }
             }
-            Some(Err(e)) => {
-                return rsx! {
-                    p { "Error: {e}" }
-                };
-            }
-            None => {
-                return rsx! {
-                    p {
-                        dir: "rtl",
-                        "جاري التحميل..."
-                    }
-                };
+            div {
+                flex: 1,
+                height: "100%",
+                dangerous_inner_html: EGUI,
             }
         }
     }

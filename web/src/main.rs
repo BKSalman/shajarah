@@ -5,14 +5,14 @@ use modules::admin::pages::{Admin, login::AdminLogin, register::AdminRegister};
 use pages::Home;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "server")]
+use crate::server::get_config;
+
 pub mod config;
 pub mod i18n;
 #[cfg(feature = "server")]
 pub mod middleware;
 pub mod modules;
 pub mod pages;
-#[cfg(feature = "server")]
 pub mod server;
 pub mod ui;
 pub mod util;
@@ -78,20 +78,15 @@ async fn launch_server() {
             .await
             .expect("Failed to connect to DB");
 
-    let config = config::Config::load_config().unwrap();
+    let config = config::server::Config::load_config().unwrap();
 
     let (email_sender, email_receiver) = tokio::sync::mpsc::channel(10);
 
     let app_state = AppState {
         inner: Arc::new(InnerAppState {
             db_pool: pool,
-            cookies_secret: tower_cookies::Key::from(&config.cookie_secret),
-            totp_encryption_key: aes_gcm::Key::<aes_gcm::Aes256Gcm>::from_exact_iter(
-                config.totp_encryption_key,
-            )
-            .unwrap(),
-            base_url: config.base_url,
             email_sender,
+            config,
         }),
     };
 
@@ -291,6 +286,9 @@ fn main() {
 
 #[component]
 fn App() -> Element {
+    let config_resource = use_server_future(get_config)?.value();
+    use_context_provider(|| config_resource().unwrap().unwrap());
+
     rsx! {
         document::Link { rel: "icon", href: asset!("/assets/favicon.ico") }
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/main.css") }
