@@ -3,6 +3,14 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-(trap 'kill 0' SIGINT; \
- bash -c 'cd gui; trunk watch' & \
- bash -c 'cd web; SHAJARAH_DIST="dist" dx serve')
+cleanup() {
+    kill $TRUNK_PID 2>/dev/null || true
+    exit
+}
+
+trap cleanup SIGINT SIGTERM EXIT
+
+(cd gui && trunk watch) &
+TRUNK_PID=$!
+
+(cd web && SHAJARAH_DIST="dist" dx serve)
