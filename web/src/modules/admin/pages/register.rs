@@ -4,7 +4,7 @@ use crate::{
     Route,
     i18n::Arabic,
     modules::admin::{
-        server::{get_admin, register_admin},
+        server::register_admin,
         types::{RegisterData, RegisterDataStoreExt},
     },
 };
@@ -38,14 +38,6 @@ pub fn AdminRegister() -> Element {
         field_errors.write().clear();
         error_message.write().take();
     };
-
-    use_effect(|| {
-        spawn(async {
-            if get_admin().await.is_ok() {
-                use_navigator().replace(Route::Admin);
-            }
-        });
-    });
 
     rsx! {
         div { class: "min-h-screen flex items-center justify-center bg-tree-texture p-6",

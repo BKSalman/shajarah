@@ -4,9 +4,10 @@ use crate::{
     modules::user::types::{UserResponseBrief, UserRole},
     server::AppState,
 };
-use axum::{RequestPartsExt, extract::FromRequestParts, http::StatusCode, response::IntoResponse};
+use axum::{
+    Extension, RequestPartsExt, extract::FromRequestParts, http::StatusCode, response::IntoResponse,
+};
 use chrono::Utc;
-use dioxus::server::{FromContext, FromServerContext};
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
@@ -57,14 +58,19 @@ impl IntoResponse for AuthError {
     }
 }
 
-impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE> {
+impl<S: Sync + Send, const USER_ROLE: u8> FromRequestParts<S> for AuthExtractor<USER_ROLE> {
     type Rejection = AuthError;
+
     async fn from_request_parts(
         parts: &mut axum::http::request::Parts,
-        state: &AppState,
+        state: &S,
     ) -> std::result::Result<Self, Self::Rejection> {
+        let Extension(state) = Extension::<AppState>::from_request_parts(parts, state)
+            .await
+            .unwrap();
+
         let session_id = parts
-            .extract_with_state::<UserSession, _>(state)
+            .extract_with_state::<UserSession, _>(&state)
             .await?
             .session_id
             .ok_or_else(|| {
@@ -83,6 +89,8 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
             role: UserRole,
         }
 
+        let AppState(state) = state;
+
         match role {
             UserRole::Admin => {
                 let Some(rec) = sqlx::query_as!(
@@ -95,10 +103,10 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
                     "#,
                     session_id, Utc::now(),
                 )
-                    .fetch_optional(&state.inner.db_pool)
+                    .fetch_optional(&state.db_pool)
                     .await? else {
                     sqlx::query!(r#"DELETE FROM sessions WHERE id = $1"#, session_id)
-                        .execute(&state.inner.db_pool)
+                        .execute(&state.db_pool)
                         .await
                         .ok();
                     return Err(AuthError::InvalidCredentials);
@@ -125,10 +133,10 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
                     "#,
                     session_id, Utc::now(),
                 )
-                    .fetch_optional(&state.inner.db_pool)
+                    .fetch_optional(&state.db_pool)
                     .await? else {
                     sqlx::query!(r#"DELETE FROM sessions WHERE id = $1"#, session_id)
-                        .execute(&state.inner.db_pool)
+                        .execute(&state.db_pool)
                         .await
                         .ok();
                     return Err(AuthError::InvalidCredentials);
@@ -145,17 +153,5 @@ impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE
                 })
             }
         }
-    }
-}
-
-#[async_trait::async_trait]
-impl<const USER_ROLE: u8> FromServerContext<AppState> for AuthExtractor<USER_ROLE> {
-    type Rejection = <AuthExtractor<USER_ROLE> as FromRequestParts<AppState>>::Rejection;
-    async fn from_request(
-        req: &dioxus::server::DioxusServerContext,
-    ) -> Result<Self, Self::Rejection> {
-        let state: FromContext<AppState> = req.extract().await.unwrap();
-        let mut lock = req.request_parts_mut();
-        AuthExtractor::<USER_ROLE>::from_request_parts(&mut lock, &state.0).await
     }
 }

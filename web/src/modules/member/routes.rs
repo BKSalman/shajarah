@@ -1,15 +1,19 @@
+use axum::{extract::State, response::IntoResponse};
+
 use super::error::MembersError;
 use crate::{
     middleware::auth::AuthExtractor,
-    modules::member::types::{Gender, MemberRow},
-    modules::user::types::UserRole,
-    server::InnerAppState,
+    modules::{
+        member::types::{Gender, MemberRow},
+        user::types::UserRole,
+    },
+    server::AppState,
 };
-use axum::{extract::State, response::IntoResponse};
-use std::sync::Arc;
+
+#[axum::debug_handler]
 pub async fn export_members(
+    State(AppState(state)): State<AppState>,
     _auth: AuthExtractor<{ UserRole::Admin as u8 }>,
-    State(state): State<Arc<InnerAppState>>,
 ) -> Result<impl IntoResponse, MembersError> {
     let recs = sqlx::query_as!(
         MemberRow,

@@ -12,10 +12,12 @@ use crate::{
     },
     AppState, ErrorResponse,
 };
+
 pub struct AuthExtractor<const USER_ROLE: u8> {
     pub current_user: UserResponseBrief,
     pub session_id: Uuid,
 }
+
 #[derive(thiserror::Error, Debug)]
 pub enum AuthError {
     #[error("something went wrong")]
@@ -27,6 +29,7 @@ pub enum AuthError {
     #[error("invalid session")]
     SessionError(#[from] SessionError),
 }
+
 impl IntoResponse for AuthError {
     fn into_response(self) -> axum::response::Response {
         log::error!("{self:#?}");
@@ -49,6 +52,7 @@ impl IntoResponse for AuthError {
         }
     }
 }
+
 #[async_trait]
 impl<const USER_ROLE: u8> FromRequestParts<AppState> for AuthExtractor<USER_ROLE> {
     type Rejection = AuthError;

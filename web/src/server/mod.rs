@@ -1,11 +1,12 @@
 use dioxus::prelude::*;
+use std::sync::Arc;
 
 use crate::config;
 
 #[cfg(feature = "server")]
 mod server_only {
+    pub use axum::Extension;
     use axum::extract::FromRef;
-    use dioxus::prelude::*;
     use sqlx::PgPool;
     use std::sync::Arc;
 
@@ -24,28 +25,15 @@ mod server_only {
     }
 
     #[derive(Clone, FromRef)]
-    pub struct AppState {
-        pub inner: Arc<InnerAppState>,
-    }
-
-    pub async fn get_state() -> ServerFnResult<Arc<InnerAppState>> {
-        Ok(extract::<FromContext<AppState>, _>().await?.0.inner)
-    }
-
-    pub async fn get_cookies() -> ServerFnResult<tower_cookies::Cookies> {
-        Ok(extract::<tower_cookies::Cookies, _>()
-            .await
-            .map_err(|_e| ServerFnError::new("Bad Request"))?)
-    }
+    pub struct AppState(pub Arc<InnerAppState>);
 }
 
 #[cfg(feature = "server")]
 pub use server_only::*;
 
-#[server]
-pub async fn get_config() -> ServerFnResult<config::client::Config> {
-    let state = get_state().await?;
-
+#[get("/api/v1/config", state: Extension<AppState>)]
+pub async fn get_config() -> anyhow::Result<config::client::Config> {
+    let Extension(AppState(state)) = state;
     let config = config::client::Config {
         family_name: state.config.family_name.clone(),
     };

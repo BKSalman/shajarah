@@ -1,7 +1,9 @@
+use anyhow::anyhow;
 use chrono::Utc;
 use dioxus::prelude::*;
 use garde::Validate;
 use indexmap::IndexMap;
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::modules::add_request::types::{
@@ -9,11 +11,21 @@ use crate::modules::add_request::types::{
     RequestedMemberRowWithParents,
 };
 use crate::modules::member::types::Gender;
+use crate::modules::user::types::UserRole;
+#[cfg(feature = "server")]
+use crate::server::InnerAppState;
 
-#[server]
-pub async fn add_request(request_data: RequestData) -> ServerFnResult<()> {
-    use crate::server::get_state;
+#[cfg(feature = "server")]
+mod server_imports {
+    pub use crate::middleware::auth::AuthExtractor;
+    pub use axum::extract::Extension;
+}
 
+#[cfg(feature = "server")]
+use server_imports::*;
+
+#[post("/api/v1/member/request", state: Extension<Arc<InnerAppState>>)]
+pub async fn add_request(request_data: RequestData) -> Result<(), anyhow::Error> {
     request_data.validate()?;
 
     let RequestData {
@@ -28,13 +40,11 @@ pub async fn add_request(request_data: RequestData) -> ServerFnResult<()> {
         image_type,
     } = request_data
     else {
-        return Err(ServerFnError::new("Something went wrong"));
+        return Err(anyhow!("Something went wrong"));
     };
 
-    let state = get_state().await?;
-
     let Ok(info) = serde_json::value::to_value(info) else {
-        return Err(ServerFnError::new("Something went wrong"));
+        return Err(anyhow!("Something went wrong"));
     };
 
     sqlx::query!(
@@ -51,15 +61,8 @@ pub async fn add_request(request_data: RequestData) -> ServerFnResult<()> {
     Ok(())
 }
 
-#[server]
-pub async fn member_requests() -> ServerFnResult<Vec<RequestedMember>> {
-    use crate::modules::admin::server::get_admin;
-    use crate::server::get_state;
-
-    let _admin = get_admin().await?;
-
-    let state = get_state().await?;
-
+#[get("/api/v1/member/request", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<Arc<InnerAppState>>)]
+pub async fn member_requests() -> Result<Vec<RequestedMember>, anyhow::Error> {
     let recs: Vec<RequestedMemberRowWithParents> = sqlx::query_as(
         r#"
         SELECT
@@ -125,16 +128,9 @@ pub async fn member_requests() -> ServerFnResult<Vec<RequestedMember>> {
     Ok(requested_members)
 }
 
-#[server]
-pub async fn approve_request(request_id: Uuid) -> ServerFnResult<()> {
-    use crate::modules::admin::server::get_admin;
-    use crate::server::get_state;
-
+#[put("/api/v1/member/request/approve", admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<Arc<InnerAppState>>)]
+pub async fn approve_request(request_id: Uuid) -> Result<(), anyhow::Error> {
     use sqlx::types::Json;
-
-    let admin = get_admin().await?;
-
-    let state = get_state().await?;
 
     let mut tx = state.db_pool.begin().await?;
 
@@ -148,14 +144,14 @@ pub async fn approve_request(request_id: Uuid) -> ServerFnResult<()> {
                 image_type, mother_id, father_id, personal_info as "personal_info: Json<IndexMap<String, String>>";
         "#,
         Utc::now(),
-        admin.id,
+        admin.current_user.id,
         request_id,
     )
     .fetch_optional(&mut *tx)
     .await?;
 
     let Some(member_info) = requested_member_info else {
-        return Err(ServerFnError::new("Bad Request"));
+        return Err(anyhow!("Bad Request"));
     };
 
     sqlx::query!(
@@ -176,15 +172,8 @@ pub async fn approve_request(request_id: Uuid) -> ServerFnResult<()> {
     Ok(())
 }
 
-#[server]
-pub async fn disapprove_request(request_id: Uuid) -> ServerFnResult<()> {
-    use crate::modules::admin::server::get_admin;
-    use crate::server::get_state;
-
-    let admin = get_admin().await?;
-
-    let state = get_state().await?;
-
+#[put("/api/v1/member/request/disapprove", admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<Arc<InnerAppState>>)]
+pub async fn disapprove_request(request_id: Uuid) -> Result<(), anyhow::Error> {
     let mut tx = state.db_pool.begin().await?;
 
     sqlx::query!(
@@ -194,7 +183,7 @@ pub async fn disapprove_request(request_id: Uuid) -> ServerFnResult<()> {
             WHERE request.id = $3;
         "#,
         Utc::now(),
-        admin.id,
+        admin.current_user.id,
         request_id,
     )
     .fetch_optional(&mut *tx)

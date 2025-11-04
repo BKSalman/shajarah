@@ -1,40 +1,27 @@
-use super::types::RegisterData;
-use crate::modules::{
-    admin::types::LoginData,
-    user::types::{UserResponseBrief, UserRole},
-};
 use dioxus::prelude::*;
 use garde::Validate;
+use std::sync::Arc;
 
-#[server]
-pub async fn get_admin() -> ServerFnResult<UserResponseBrief> {
-    use crate::middleware::auth::AuthExtractor;
-    match extract::<AuthExtractor<{ UserRole::Admin as u8 }>, _>().await {
-        Ok(auth) => Ok(auth.current_user),
-        Err(e) => {
-            use dioxus::server::server_context;
+use super::types::RegisterData;
+use crate::modules::{admin::types::LoginData, user::types::UserRole};
 
-            *server_context().status_mut() = axum::http::status::StatusCode::TEMPORARY_REDIRECT;
-
-            server_context()
-                .headers_mut()
-                .insert("Location", "/".parse().unwrap());
-
-            Err(e.into())
-        }
-    }
+#[cfg(feature = "server")]
+mod server_imports {
+    pub use crate::server::InnerAppState;
+    pub use axum::extract::Extension;
 }
 
-#[server]
-pub async fn register_admin(register_data: RegisterData) -> ServerFnResult<()> {
+#[cfg(feature = "server")]
+use server_imports::*;
+
+#[post("/api/v1/user/", state: Extension<Arc<InnerAppState>>)]
+pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
     use argon2::{
         Argon2,
         password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
     };
     use chrono::Utc;
     use uuid::Uuid;
-
-    let state = crate::server::get_state().await?;
 
     if sqlx::query!(
         r#"
@@ -47,7 +34,7 @@ pub async fn register_admin(register_data: RegisterData) -> ServerFnResult<()> {
     .await?
     .is_some()
     {
-        return Err(ServerFnError::new("Bad Request"));
+        return Err(anyhow::anyhow!("Bad Request"));
     }
 
     register_data.validate()?;
@@ -61,14 +48,14 @@ pub async fn register_admin(register_data: RegisterData) -> ServerFnResult<()> {
     } = register_data
     else {
         // this shouldn't run since we validate that all fields have values
-        return Err(ServerFnError::new("Something went wrong"));
+        return Err(anyhow::anyhow!("Something went wrong"));
     };
 
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     let hashed_password = argon2
         .hash_password(password.as_bytes(), &salt)
-        .map_err(|e| ServerFnError::new("Something went wrong"))?
+        .map_err(|e| anyhow::anyhow!("Something went wrong"))?
         .to_string();
 
     sqlx::query_as!(
@@ -91,8 +78,8 @@ pub async fn register_admin(register_data: RegisterData) -> ServerFnResult<()> {
     Ok(())
 }
 
-#[server]
-pub async fn login_admin(login_data: LoginData) -> ServerFnResult<()> {
+#[post("/api/v1/user/login", state: Extension<Arc<InnerAppState>>, cookies: tower_cookies::Cookies)]
+pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
     use crate::middleware::sessions::{SESSION_COOKIE_NAME, types::CreateSession};
     use argon2::{Argon2, PasswordVerifier, password_hash::PasswordHash};
     use chrono::Utc;
@@ -105,11 +92,8 @@ pub async fn login_admin(login_data: LoginData) -> ServerFnResult<()> {
         password: Some(password),
     } = login_data
     else {
-        return Err(ServerFnError::new("Something went wrong"));
+        return Err(anyhow::anyhow!("Something went wrong"));
     };
-
-    let state = crate::server::get_state().await?;
-    let cookies = crate::server::get_cookies().await?;
 
     let mut tx = state.db_pool.begin().await?;
 
@@ -122,14 +106,13 @@ pub async fn login_admin(login_data: LoginData) -> ServerFnResult<()> {
                 SELECT id from sessions
                 WHERE sessions.id = $1
             "#,
-            Uuid::parse_str(session_id.value())
-                .map_err(|e| { ServerFnError::new("Bad Request") })?
+            Uuid::parse_str(session_id.value()).map_err(|e| { anyhow::anyhow!("Bad Request") })?
         )
         .fetch_optional(&mut *tx)
         .await?
         .is_some()
         {
-            return Err(ServerFnError::new("Bad Request"));
+            return Err(anyhow::anyhow!("Bad Request"));
         }
     }
 
@@ -152,21 +135,21 @@ pub async fn login_admin(login_data: LoginData) -> ServerFnResult<()> {
     .fetch_optional(&mut *tx)
     .await?
     else {
-        return Err(ServerFnError::new("Bad Request"));
+        return Err(anyhow::anyhow!("Bad Request"));
     };
 
     let Some(ref user_password) = user.password else {
-        return Err(ServerFnError::new("Invalid credentials"));
+        return Err(anyhow::anyhow!("Invalid credentials"));
     };
 
-    let parsed_password = PasswordHash::new(&user_password)
-        .map_err(|e| ServerFnError::new("Something went wrong"))?;
+    let parsed_password =
+        PasswordHash::new(&user_password).map_err(|e| anyhow::anyhow!("Something went wrong"))?;
 
     if argon2
         .verify_password(password.as_bytes(), &parsed_password)
         .is_err()
     {
-        return Err(ServerFnError::new("Inavlid credentials"));
+        return Err(anyhow::anyhow!("Inavlid credentials"));
     }
 
     let now = Utc::now();
@@ -216,13 +199,10 @@ pub async fn login_admin(login_data: LoginData) -> ServerFnResult<()> {
     Ok(())
 }
 
-#[server]
-pub async fn logout_admin() -> ServerFnResult<()> {
+#[post("/api/v1/user/logout", state: Extension<Arc<InnerAppState>>, cookies: tower_cookies::Cookies)]
+pub async fn logout_admin() -> anyhow::Result<()> {
     use crate::middleware::sessions::SESSION_COOKIE_NAME;
     use uuid::Uuid;
-
-    let state = crate::server::get_state().await?;
-    let cookies = crate::server::get_cookies().await?;
 
     let mut tx = state.db_pool.begin().await?;
 
@@ -235,8 +215,7 @@ pub async fn logout_admin() -> ServerFnResult<()> {
                 DELETE from sessions
                 WHERE sessions.id = $1
             "#,
-            Uuid::parse_str(session_id.value())
-                .map_err(|e| { ServerFnError::new("Bad Request") })?
+            Uuid::parse_str(session_id.value()).map_err(|e| { anyhow::anyhow!("Bad Request") })?
         )
         .execute(&mut *tx)
         .await?;

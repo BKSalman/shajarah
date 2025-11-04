@@ -1,4 +1,3 @@
-use super::server::get_admin;
 use crate::{
     Route,
     modules::{
@@ -19,6 +18,7 @@ use crate::{
         member::server::{
             add_member, delete_member, edit_member, members_flat, upload_members_csv,
         },
+        user::types::UserResponseBrief,
     },
     ui::modal::Modal,
 };
@@ -46,27 +46,9 @@ enum ShowModal {
 pub fn Admin() -> Element {
     let mut members_resource = use_resource(members_flat);
     let mut add_requests_resource = use_resource(member_requests);
-    let admin_future = use_server_future(get_admin)?;
+    let admin_future: Resource<UserResponseBrief> = use_server_future(|| async { todo!() })?;
 
-    use_effect(move || {
-        if let Some(Err(e)) = admin_future() {
-            navigator().replace(Route::Home);
-        }
-    });
-
-    let admin = match admin_future() {
-        Some(Ok(admin)) => admin,
-        Some(Err(_)) => {
-            return rsx! {
-                p { "Unauthorized." }
-            };
-        }
-        None => {
-            return rsx! {
-                p { "جاري التحميل..." }
-            };
-        }
-    };
+    let admin = admin_future.unwrap();
 
     let mut error = use_signal(|| String::new());
     let mut tab = use_signal(|| Tab::Members);
@@ -502,14 +484,11 @@ pub fn Admin() -> Element {
                             show_modal.set(Some(ShowModal::AddMember));
                         },
                         on_csv_upload: move |e: Event<FormData>| async move {
-                            if let Some(file_engine) = &e.files() {
-                                let files = file_engine.files();
-                                for file_name in files {
-                                    if let Some(file) = file_engine.read_file_to_string(&file_name).await {
-                                        match upload_members_csv(file).await {
-                                            Ok(_) => members_resource.restart(),
-                                            Err(e) => tracing::error!("{e}"),
-                                        }
+                            if let Some(file_data) = e.files().iter().next() {
+                                if let Ok(data) = file_data.read_string().await {
+                                    match upload_members_csv(data).await {
+                                        Ok(_) => members_resource.restart(),
+                                        Err(e) => tracing::error!("{e}"),
                                     }
                                 }
                             }

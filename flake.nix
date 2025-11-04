@@ -83,7 +83,9 @@
           wasm-bindgen-cli = pkgs.wasm-bindgen-cli;
         });
       in with pkgs; {
-        devShells.default = mkShell rec {
+        devShells.default = mkShell.override {
+            stdenv = pkgs.stdenvAdapters.useMoldLinker pkgs.clangStdenv;
+          } rec {
           packages = [
             # Rust
             (rust-bin.stable.latest.default.override {

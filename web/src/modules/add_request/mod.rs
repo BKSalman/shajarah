@@ -401,17 +401,14 @@ pub fn AddMember() -> Element {
                                 onchange: move |evt| async move {
                                     #[cfg(feature = "web")]
                                     {
-                                        use dioxus::web::WebFileEngineExt;
-
-                                        if let Some(file_engine) = &evt.files() {
-                                            let files = file_engine.files();
-                                            for file_name in files {
-                                                if let Some(file) = file_engine.get_web_file(&file_name).await {
-                                                    let mime_type = file.type_();
+                                        if let Some(file_data) = evt.files().iter().next() {
+                                                    let Some(mime_type) = file_data.content_type() else {
+                                                        return;
+                                                    };
                                                     let max_size = 25 * 1024 * 1024; // 25MB
                                                     let allowed_types = ["image/jpeg", "image/png", "image/gif"];
 
-                                                    if file.size() as usize > max_size {
+                                                    if file_data.size() as usize > max_size {
                                                         field_errors
 
                                                             .with_mut(|errors| {
@@ -437,17 +434,15 @@ pub fn AddMember() -> Element {
                                                             });
                                                         return;
                                                     }
-                                                    if let Some(file_data) = file_engine.read_file(&file_name).await
+                                                    if let Ok(file_data) = file_data.read_bytes().await
                                                     {
-                                                        request_data.image().set(Some(file_data));
+                                                        request_data.image().set(Some(file_data.to_vec()));
                                                         request_data.image_type().set(Some(mime_type));
                                                         field_errors
                                                             .with_mut(|errors| {
                                                                 errors.remove("image");
                                                             });
                                                     }
-                                                }
-                                            }
                                         }
                                     }
                                 },

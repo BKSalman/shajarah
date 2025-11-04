@@ -4,7 +4,7 @@ use crate::{
     Route,
     i18n::Arabic,
     modules::admin::{
-        server::{get_admin, login_admin},
+        server::login_admin,
         types::{LoginData, LoginDataStoreExt},
     },
 };
@@ -39,14 +39,6 @@ pub fn AdminLogin() -> Element {
         move |field: &str| -> Option<String> { field_errors.read().get(field).cloned() };
 
     let has_field_error = move |field: &str| -> bool { field_errors.read().contains_key(field) };
-
-    use_effect(|| {
-        spawn(async {
-            if get_admin().await.is_ok() {
-                use_navigator().replace(Route::Admin);
-            }
-        });
-    });
 
     rsx! {
         div {

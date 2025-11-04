@@ -1,9 +1,14 @@
 use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
+use std::sync::Arc;
+
 #[cfg(feature = "server")]
 mod server_imports {
+    pub use crate::middleware::auth::AuthExtractor;
     pub use crate::modules::member::types::MemberRowWithParents;
-    pub use crate::server::get_state;
+    pub use crate::modules::user::types::UserRole;
+    pub use crate::server::InnerAppState;
+    pub use axum::extract::Extension;
     pub use indexmap::IndexMap;
 }
 use crate::modules::member::types::MemberRow;
@@ -12,10 +17,8 @@ use super::types::{ChildMember, Gender, MemberResponse, MemberResponseFlat};
 #[cfg(feature = "server")]
 use server_imports::*;
 
-#[server(endpoint = "members")]
-pub async fn members() -> ServerFnResult<Option<MemberResponse>> {
-    let state = get_state().await?;
-
+#[get("/api/v1/member", state: Extension<Arc<InnerAppState>>)]
+pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
     let recs = sqlx::query_as!(
         MemberRowWithParents,
         r#"
@@ -58,7 +61,7 @@ pub async fn members() -> ServerFnResult<Option<MemberResponse>> {
         .iter()
         .find(|rec| rec.father_id.is_none() && rec.mother_id.is_none())
     else {
-        return Err(ServerFnError::new("No root member"));
+        return Err(anyhow::anyhow!("No root member"));
     };
 
     let mut root = MemberResponse {
@@ -87,9 +90,8 @@ pub async fn members() -> ServerFnResult<Option<MemberResponse>> {
     Ok(Some(root))
 }
 
-#[server]
-pub async fn members_flat() -> ServerFnResult<Vec<MemberResponseFlat>> {
-    let state = get_state().await?;
+#[get("/api/v1/member/flat", state: Extension<Arc<InnerAppState>>)]
+pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
     let recs: Vec<MemberRowWithParents> = sqlx::query_as(
         r#"
         SELECT
@@ -176,7 +178,7 @@ pub async fn members_flat() -> ServerFnResult<Vec<MemberResponseFlat>> {
     Ok(members)
 }
 
-#[server]
+#[post("/api/v1/member", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<Arc<InnerAppState>>)]
 pub async fn add_member(
     first_name: String,
     last_name: String,
@@ -184,12 +186,10 @@ pub async fn add_member(
     mother_id: Option<i64>,
     gender: Gender,
     birthday: Option<DateTime<Utc>>,
-) -> ServerFnResult<()> {
+) -> anyhow::Result<()> {
     if first_name.is_empty() || last_name.is_empty() {
-        return Err(ServerFnError::new(""));
+        return Err(anyhow::anyhow!(""));
     }
-
-    let state = get_state().await?;
 
     sqlx::query!(
         r#"
@@ -209,16 +209,16 @@ pub async fn add_member(
     Ok(())
 }
 
-#[server]
+#[put("/api/v1/member/{id}", state: Extension<Arc<InnerAppState>>)]
 pub async fn edit_member(
-    member_id: i64,
+    id: i64,
     first_name: Option<String>,
     last_name: Option<String>,
     father_id: Option<i64>,
     mother_id: Option<i64>,
     gender: Option<Gender>,
     birthday: Option<DateTime<Utc>>,
-) -> ServerFnResult<()> {
+) -> anyhow::Result<()> {
     if first_name.is_some()
         || last_name.is_some()
         || father_id.is_some()
@@ -226,8 +226,6 @@ pub async fn edit_member(
         || gender.is_some()
         || birthday.is_some()
     {
-        let state = get_state().await?;
-
         let mut query = sqlx::QueryBuilder::new("UPDATE members SET ");
         let mut sep = query.separated(", ");
 
@@ -255,7 +253,7 @@ pub async fn edit_member(
             sep.push_unseparated("mother_id = ").push_bind(mother_id);
         }
 
-        query.push(" WHERE id = ").push_bind(member_id);
+        query.push(" WHERE id = ").push_bind(id);
 
         query.build().execute(&state.db_pool).await?;
     }
@@ -263,9 +261,8 @@ pub async fn edit_member(
     Ok(())
 }
 
-#[server]
-pub async fn delete_member(id: i64) -> ServerFnResult<()> {
-    let state = get_state().await?;
+#[delete("/api/v1/member/{id}", state: Extension<Arc<InnerAppState>>)]
+pub async fn delete_member(id: i64) -> anyhow::Result<()> {
     sqlx::query!(
         r#"
             DELETE FROM members
@@ -278,11 +275,8 @@ pub async fn delete_member(id: i64) -> ServerFnResult<()> {
     Ok(())
 }
 
-#[server]
-pub async fn upload_members_csv(csv_str: String) -> ServerFnResult<()> {
-    let _ = crate::modules::admin::server::get_admin().await?;
-    let state = crate::server::get_state().await?;
-
+#[post("/api/v1/member/csv", state: Extension<Arc<InnerAppState>>)]
+pub async fn upload_members_csv(csv_str: String) -> anyhow::Result<()> {
     let mut csv_reader = csv::ReaderBuilder::new()
         .delimiter(b',')
         .from_reader(csv_str.as_bytes());
@@ -291,10 +285,10 @@ pub async fn upload_members_csv(csv_str: String) -> ServerFnResult<()> {
         .map(|r| {
             r.map_err(|e| {
                 tracing::error!("{e}");
-                ServerFnError::new("Something went wrong")
+                anyhow::anyhow!("Something went wrong")
             })
         })
-        .collect::<ServerFnResult<Vec<MemberRow>>>()?;
+        .collect::<anyhow::Result<Vec<MemberRow>>>()?;
 
     let mut tx = state.db_pool.begin().await?;
 
