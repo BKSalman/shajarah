@@ -5,7 +5,7 @@ mod zoom;
 pub use app::App;
 use eframe::egui;
 use serde::{Deserialize, Serialize};
-use std::sync::{mpsc::Sender, Arc};
+use std::sync::{Arc, mpsc::Sender};
 use tree::Node;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -43,7 +43,7 @@ fn setup_fonts(ctx: &egui::Context) {
 
 fn load_family_data(address: &str, sender: Sender<Message>, ctx: &egui::Context) {
     let ctx = ctx.clone();
-    let request = ehttp::Request::post(format!("{address}/api/members"), b"{}".to_vec());
+    let request = ehttp::Request::post(format!("{address}/api/v1/members"), b"{}".to_vec());
     ehttp::fetch(request, move |res| match res {
         Ok(res) => {
             if !res.ok {

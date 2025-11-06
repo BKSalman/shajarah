@@ -3,7 +3,6 @@ use chrono::Utc;
 use dioxus::prelude::*;
 use garde::Validate;
 use indexmap::IndexMap;
-use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::modules::add_request::types::{
@@ -12,20 +11,20 @@ use crate::modules::add_request::types::{
 };
 use crate::modules::member::types::Gender;
 use crate::modules::user::types::UserRole;
-#[cfg(feature = "server")]
-use crate::server::InnerAppState;
 
 #[cfg(feature = "server")]
 mod server_imports {
     pub use crate::middleware::auth::AuthExtractor;
+    pub use crate::server::AppState;
     pub use axum::extract::Extension;
 }
 
 #[cfg(feature = "server")]
 use server_imports::*;
 
-#[post("/api/v1/member/request", state: Extension<Arc<InnerAppState>>)]
+#[post("/api/v1/member/request", state: Extension<AppState>)]
 pub async fn add_request(request_data: RequestData) -> Result<(), anyhow::Error> {
+    let Extension(state) = state;
     request_data.validate()?;
 
     let RequestData {
@@ -55,14 +54,16 @@ pub async fn add_request(request_data: RequestData) -> Result<(), anyhow::Error>
         uuid::Uuid::new_v4(), name, gender as _, birthday, last_name, father_id, mother_id,
         image, image_type, info, Utc::now(),
     )
-    .execute(&state.db_pool)
+    .execute(&state.0.db_pool)
     .await?;
 
     Ok(())
 }
 
-#[get("/api/v1/member/request", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<Arc<InnerAppState>>)]
+#[get("/api/v1/member/request", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
 pub async fn member_requests() -> Result<Vec<RequestedMember>, anyhow::Error> {
+    let Extension(state) = state;
+
     let recs: Vec<RequestedMemberRowWithParents> = sqlx::query_as(
         r#"
         SELECT
@@ -96,7 +97,7 @@ pub async fn member_requests() -> Result<Vec<RequestedMember>, anyhow::Error> {
             m.name ASC
             "#,
     )
-    .fetch_all(&state.db_pool)
+    .fetch_all(&state.0.db_pool)
     .await?;
 
     let requested_members: Vec<RequestedMember> = recs
@@ -128,11 +129,12 @@ pub async fn member_requests() -> Result<Vec<RequestedMember>, anyhow::Error> {
     Ok(requested_members)
 }
 
-#[put("/api/v1/member/request/approve", admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<Arc<InnerAppState>>)]
+#[put("/api/v1/member/request/approve", admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
 pub async fn approve_request(request_id: Uuid) -> Result<(), anyhow::Error> {
     use sqlx::types::Json;
+    let Extension(state) = state;
 
-    let mut tx = state.db_pool.begin().await?;
+    let mut tx = state.0.db_pool.begin().await?;
 
     let requested_member_info = sqlx::query_as!(
         RequestedMemberBrief,
@@ -164,7 +166,7 @@ pub async fn approve_request(request_id: Uuid) -> Result<(), anyhow::Error> {
         member_info.gender as _,
         member_info.birthday,
     )
-    .execute(&state.db_pool)
+    .execute(&mut *tx)
     .await?;
 
     tx.commit().await?;
@@ -172,9 +174,11 @@ pub async fn approve_request(request_id: Uuid) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-#[put("/api/v1/member/request/disapprove", admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<Arc<InnerAppState>>)]
+#[put("/api/v1/member/request/disapprove", admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
 pub async fn disapprove_request(request_id: Uuid) -> Result<(), anyhow::Error> {
-    let mut tx = state.db_pool.begin().await?;
+    let Extension(state) = state;
+
+    let mut tx = state.0.db_pool.begin().await?;
 
     sqlx::query!(
         r#"

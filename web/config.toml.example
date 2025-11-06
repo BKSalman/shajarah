@@ -1,7 +1,7 @@
-cookie_secret = "xFMumzi0dgXPL1FScy49aqYf3xREkXOA2LPBqITFOkoF1NNRTm2g4eQDit3XD0LVOrmZUQo8EE/PN/PVj+fNOw=="
+cookies_secret = "xFMumzi0dgXPL1FScy49aqYf3xREkXOA2LPBqITFOkoF1NNRTm2g4eQDit3XD0LVOrmZUQo8EE/PN/PVj+fNOw=="
 totp_encryption_key = "+P+yNBfjOALlK757Vaeg8LhVe7mXwkAMPGijkKxZbN8="
 base_url = "http://localhost:3030"
-family_name = "آل سميح"
+family_name = "ْْآل سلوم"
 
 [email_config.credentials]
 username = "lmao@localhost"

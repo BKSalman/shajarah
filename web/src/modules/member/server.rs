@@ -1,13 +1,12 @@
 use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
-use std::sync::Arc;
 
 #[cfg(feature = "server")]
 mod server_imports {
     pub use crate::middleware::auth::AuthExtractor;
     pub use crate::modules::member::types::MemberRowWithParents;
     pub use crate::modules::user::types::UserRole;
-    pub use crate::server::InnerAppState;
+    pub use crate::server::AppState;
     pub use axum::extract::Extension;
     pub use indexmap::IndexMap;
 }
@@ -17,8 +16,10 @@ use super::types::{ChildMember, Gender, MemberResponse, MemberResponseFlat};
 #[cfg(feature = "server")]
 use server_imports::*;
 
-#[get("/api/v1/member", state: Extension<Arc<InnerAppState>>)]
+#[get("/api/v1/member", state: Extension<AppState>)]
 pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
+    let Extension(state) = state;
+
     let recs = sqlx::query_as!(
         MemberRowWithParents,
         r#"
@@ -50,7 +51,7 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
                 members father ON m.father_id = father.id;
         "#,
     )
-    .fetch_all(&state.db_pool)
+    .fetch_all(&state.0.db_pool)
     .await?;
 
     if recs.is_empty() {
@@ -90,8 +91,10 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
     Ok(Some(root))
 }
 
-#[get("/api/v1/member/flat", state: Extension<Arc<InnerAppState>>)]
+#[get("/api/v1/member/flat", state: Extension<AppState>)]
 pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
+    let Extension(state) = state;
+
     let recs: Vec<MemberRowWithParents> = sqlx::query_as(
         r#"
         SELECT
@@ -124,7 +127,7 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
             m.id, m.name ASC
             "#,
     )
-    .fetch_all(&state.db_pool)
+    .fetch_all(&state.0.db_pool)
     .await?;
     let all_children: Vec<ChildMember> = sqlx::query_as(
         r#"
@@ -142,8 +145,9 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
         ORDER BY name ASC
         "#,
     )
-    .fetch_all(&state.db_pool)
+    .fetch_all(&state.0.db_pool)
     .await?;
+
     let members: Vec<MemberResponseFlat> = recs
         .into_iter()
         .map(|m| {
@@ -175,10 +179,11 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
             }
         })
         .collect();
+
     Ok(members)
 }
 
-#[post("/api/v1/member", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<Arc<InnerAppState>>)]
+#[post("/api/v1/member", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
 pub async fn add_member(
     first_name: String,
     last_name: String,
@@ -190,6 +195,8 @@ pub async fn add_member(
     if first_name.is_empty() || last_name.is_empty() {
         return Err(anyhow::anyhow!(""));
     }
+
+    let Extension(state) = state;
 
     sqlx::query!(
         r#"
@@ -203,13 +210,13 @@ pub async fn add_member(
         gender as _,
         birthday,
     )
-    .execute(&state.db_pool)
+    .execute(&state.0.db_pool)
     .await?;
 
     Ok(())
 }
 
-#[put("/api/v1/member/{id}", state: Extension<Arc<InnerAppState>>)]
+#[put("/api/v1/member/{id}", state: Extension<AppState>)]
 pub async fn edit_member(
     id: i64,
     first_name: Option<String>,
@@ -219,6 +226,8 @@ pub async fn edit_member(
     gender: Option<Gender>,
     birthday: Option<DateTime<Utc>>,
 ) -> anyhow::Result<()> {
+    let Extension(state) = state;
+
     if first_name.is_some()
         || last_name.is_some()
         || father_id.is_some()
@@ -255,14 +264,16 @@ pub async fn edit_member(
 
         query.push(" WHERE id = ").push_bind(id);
 
-        query.build().execute(&state.db_pool).await?;
+        query.build().execute(&state.0.db_pool).await?;
     }
 
     Ok(())
 }
 
-#[delete("/api/v1/member/{id}", state: Extension<Arc<InnerAppState>>)]
+#[delete("/api/v1/member/{id}", state: Extension<AppState>)]
 pub async fn delete_member(id: i64) -> anyhow::Result<()> {
+    let Extension(state) = state;
+
     sqlx::query!(
         r#"
             DELETE FROM members
@@ -270,13 +281,15 @@ pub async fn delete_member(id: i64) -> anyhow::Result<()> {
         "#,
         id,
     )
-    .execute(&state.db_pool)
+    .execute(&state.0.db_pool)
     .await?;
     Ok(())
 }
 
-#[post("/api/v1/member/csv", state: Extension<Arc<InnerAppState>>)]
+#[post("/api/v1/member/csv", state: Extension<AppState>)]
 pub async fn upload_members_csv(csv_str: String) -> anyhow::Result<()> {
+    let Extension(state) = state;
+
     let mut csv_reader = csv::ReaderBuilder::new()
         .delimiter(b',')
         .from_reader(csv_str.as_bytes());
@@ -290,7 +303,7 @@ pub async fn upload_members_csv(csv_str: String) -> anyhow::Result<()> {
         })
         .collect::<anyhow::Result<Vec<MemberRow>>>()?;
 
-    let mut tx = state.db_pool.begin().await?;
+    let mut tx = state.0.db_pool.begin().await?;
 
     let mut query = sqlx::QueryBuilder::new(
         "INSERT INTO members (id, name, last_name, gender, birthday, mother_id, father_id)",

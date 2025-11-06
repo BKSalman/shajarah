@@ -79,11 +79,6 @@ async fn launch_server() -> Result<axum::Router, anyhow::Error> {
         config,
     }));
 
-    let ip =
-        dioxus::cli_config::server_ip().unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
-    let port = dioxus::cli_config::server_port().unwrap_or(8080);
-    let address = SocketAddr::new(ip, port);
-
     let cfg = ServeConfig::new();
     let mut router = axum::Router::new()
         .route("/api/v1/members/export", get(export_members))

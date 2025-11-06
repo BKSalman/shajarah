@@ -12,7 +12,7 @@ use crate::{
                 request_card::RequestCard, view_member_modal::ViewMemberModal,
                 view_request_modal::ViewRequestModal,
             },
-            server::logout_admin,
+            server::{get_admin, logout_admin},
             types::{EditMemberFormData, MemberFormData},
         },
         member::server::{
@@ -46,9 +46,9 @@ enum ShowModal {
 pub fn Admin() -> Element {
     let mut members_resource = use_resource(members_flat);
     let mut add_requests_resource = use_resource(member_requests);
-    let admin_future: Resource<UserResponseBrief> = use_server_future(|| async { todo!() })?;
+    let admin_future = use_server_future(get_admin)?;
 
-    let admin = admin_future.unwrap();
+    let admin = admin_future.unwrap()?;
 
     let mut error = use_signal(|| String::new());
     let mut tab = use_signal(|| Tab::Members);
