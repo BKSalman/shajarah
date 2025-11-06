@@ -9,6 +9,7 @@ pub fn Home() -> Element {
     rsx! {
         div {
             class: "h-full w-full",
+            dir: "rtl",
             div {
                 class: "p-10",
                 h1 {
@@ -20,7 +21,14 @@ pub fn Home() -> Element {
                     }
                 }
             }
-            // TODO: Family description
+            if let Some(family_description) = config.family_description {
+                div {
+                    class: "text-center p-10",
+                    h3 {
+                        "{family_description}"
+                    }
+                }
+            }
             // TODO: Achievements
             // TODO: Events
             // TODO: Remarkable family members

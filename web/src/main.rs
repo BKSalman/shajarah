@@ -48,10 +48,7 @@ pub enum Route {
 
 #[cfg(feature = "server")]
 async fn launch_server() -> Result<axum::Router, anyhow::Error> {
-    use std::{
-        net::{IpAddr, Ipv4Addr, SocketAddr},
-        sync::Arc,
-    };
+    use std::sync::Arc;
 
     use axum::{Extension, extract::DefaultBodyLimit, routing::get};
     use middleware::sessions::refresh_session;

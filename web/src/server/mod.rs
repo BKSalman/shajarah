@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use std::sync::Arc;
 
 use crate::config;
 
@@ -36,6 +35,7 @@ pub async fn get_config() -> anyhow::Result<config::client::Config> {
     let Extension(AppState(state)) = state;
     let config = config::client::Config {
         family_name: state.config.family_name.clone(),
+        family_description: state.config.family_description.clone(),
     };
 
     Ok(config)

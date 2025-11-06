@@ -52,6 +52,8 @@ pub mod server {
         pub base_url: url::Url,
         #[serde(default)]
         pub family_name: Option<String>,
+        #[serde(default)]
+        pub family_description: Option<String>,
         #[serde(default = "default_port")]
         pub port: u16,
         #[serde(default = "default_log_level")]
@@ -291,6 +293,7 @@ pub mod server {
                 port: default_port(),
                 log_level: default_log_level(),
                 family_name: None,
+                family_description: None,
             }
         }
     }
@@ -327,11 +330,16 @@ pub mod client {
     pub struct Config {
         #[serde(default)]
         pub family_name: Option<String>,
+        #[serde(default)]
+        pub family_description: Option<String>,
     }
 
     impl Default for Config {
         fn default() -> Self {
-            Self { family_name: None }
+            Self {
+                family_name: None,
+                family_description: None,
+            }
         }
     }
 }

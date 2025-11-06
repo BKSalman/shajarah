@@ -18,7 +18,6 @@ use crate::{
         member::server::{
             add_member, delete_member, edit_member, members_flat, upload_members_csv,
         },
-        user::types::UserResponseBrief,
     },
     ui::modal::Modal,
 };
