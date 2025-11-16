@@ -7,11 +7,17 @@ fn Sidebar(show_sidebar: Signal<bool>) -> Element {
     rsx! {
         div {
             class: if !show_sidebar() {
-                "hidden"
+                "translate-x-full"
+            } else {
+                "translate-x-0"
             },
-            class: "flex flex-col fixed right-0 z-1 bg-(--color-forest-background) h-full px-8 py-5 space-y-10",
+            class: "flex flex-col fixed right-0 top-16 z-10 bg-white h-full px-8 py-5 space-y-4 shadow-lg rounded-l-lg transition-transform duration-150 ease-in-out",
 
-            Link { to: Route::Home {}, "الصفحة الرئيسية" }
+            Link {
+                to: Route::Home {},
+                class: "px-4 py-3 rounded-lg text-forest-dark hover:bg-forest-light transition-colors duration-200 cursor-pointer",
+                "الصفحة الرئيسية"
+            }
         }
     }
 }
@@ -19,47 +25,66 @@ fn Sidebar(show_sidebar: Signal<bool>) -> Element {
 #[component]
 pub fn Home() -> Element {
     let config = use_context::<config::client::Config>();
-    let mut show_sidebar = use_signal(|| true);
+    let mut show_sidebar = use_signal(|| false);
 
     rsx! {
         div {
-            class: "h-full w-full p-3",
+            class: "min-h-screen w-full bg-forest-background",
             dir: "rtl",
             div {
                 button {
-                    class: "btn p-5",
+                    class: "btn btn-primary fixed top-5 right-5 z-20 shadow-md hover:shadow-lg transition-all duration-200",
                     onclick: move |_| {
                         show_sidebar.with_mut(|show_sidebar| {
                             *show_sidebar = !*show_sidebar;
                         });
                     },
-                    "<"
+                    if show_sidebar() {
+                        "☰"
+                    } else {
+                        "☰"
+                    }
                 }
                 Sidebar { show_sidebar }
             }
             div {
-                class: "p-10",
-                h1 {
-                    class: "heading font-bold text-forest-dark text-center",
-                    if let Some(family_name) = config.family_name {
-                        "عائلة {family_name}"
-                    } else {
-                        "عائلة فلان"
-                    }
-                }
-            }
-            if let Some(family_description) = config.family_description {
+                class: "max-w-6xl mx-auto px-4 py-12 space-y-8",
+
+                // Family name card
                 div {
-                    class: "text-center p-10",
-                    h3 {
-                        "{family_description}"
+                    class: "card fade-in text-center py-12 px-8",
+                    h1 {
+                        class: "heading font-bold text-forest-dark text-4xl md:text-5xl",
+                        if let Some(family_name) = config.family_name {
+                            "عائلة {family_name}"
+                        } else {
+                            "عائلة فلان"
+                        }
                     }
                 }
+
+                // Family description card
+                if let Some(family_description) = config.family_description {
+                    div {
+                        class: "card fade-in text-center py-8 px-6",
+                        h3 {
+                            class: "text-forest-dark text-lg md:text-xl leading-relaxed",
+                            "{family_description}"
+                        }
+                    }
+                }
+
+                // TODO: Events
+
+                // TODO: Achievements
+                // TODO: Remarkable family members
+
+                // Tree section
+                div {
+                    class: "fade-in",
+                    Tree {}
+                }
             }
-            // TODO: Achievements
-            // TODO: Events
-            // TODO: Remarkable family members
-            Tree {}
         }
     }
 }

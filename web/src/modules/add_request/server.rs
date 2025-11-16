@@ -22,7 +22,7 @@ mod server_imports {
 #[cfg(feature = "server")]
 use server_imports::*;
 
-#[post("/api/v1/member/request", state: Extension<AppState>)]
+#[post("/api/v1/members/request", state: Extension<AppState>)]
 pub async fn add_request(request_data: RequestData) -> Result<(), anyhow::Error> {
     let Extension(state) = state;
     request_data.validate()?;
@@ -60,7 +60,7 @@ pub async fn add_request(request_data: RequestData) -> Result<(), anyhow::Error>
     Ok(())
 }
 
-#[get("/api/v1/member/request", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
+#[get("/api/v1/members/request", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
 pub async fn member_requests() -> Result<Vec<RequestedMember>, anyhow::Error> {
     let Extension(state) = state;
 
@@ -129,7 +129,7 @@ pub async fn member_requests() -> Result<Vec<RequestedMember>, anyhow::Error> {
     Ok(requested_members)
 }
 
-#[put("/api/v1/member/request/approve", admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
+#[put("/api/v1/members/request/approve", admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
 pub async fn approve_request(request_id: Uuid) -> Result<(), anyhow::Error> {
     use sqlx::types::Json;
     let Extension(state) = state;
@@ -174,7 +174,7 @@ pub async fn approve_request(request_id: Uuid) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-#[put("/api/v1/member/request/disapprove", admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
+#[put("/api/v1/members/request/disapprove", admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
 pub async fn disapprove_request(request_id: Uuid) -> Result<(), anyhow::Error> {
     let Extension(state) = state;
 

@@ -43,7 +43,7 @@ fn setup_fonts(ctx: &egui::Context) {
 
 fn load_family_data(address: &str, sender: Sender<Message>, ctx: &egui::Context) {
     let ctx = ctx.clone();
-    let request = ehttp::Request::post(format!("{address}/api/v1/members"), b"{}".to_vec());
+    let request = ehttp::Request::get(format!("{address}/api/v1/members"));
     ehttp::fetch(request, move |res| match res {
         Ok(res) => {
             if !res.ok {

@@ -16,7 +16,7 @@ use super::types::{ChildMember, Gender, MemberResponse, MemberResponseFlat};
 #[cfg(feature = "server")]
 use server_imports::*;
 
-#[get("/api/v1/member", state: Extension<AppState>)]
+#[get("/api/v1/members", state: Extension<AppState>)]
 pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
     let Extension(state) = state;
 
@@ -91,7 +91,7 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
     Ok(Some(root))
 }
 
-#[get("/api/v1/member/flat", state: Extension<AppState>)]
+#[get("/api/v1/members/flat", state: Extension<AppState>)]
 pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
     let Extension(state) = state;
 
@@ -183,7 +183,7 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
     Ok(members)
 }
 
-#[post("/api/v1/member", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
+#[post("/api/v1/members", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
 pub async fn add_member(
     first_name: String,
     last_name: String,
@@ -216,7 +216,7 @@ pub async fn add_member(
     Ok(())
 }
 
-#[put("/api/v1/member/{id}", state: Extension<AppState>)]
+#[put("/api/v1/members/{id}", state: Extension<AppState>)]
 pub async fn edit_member(
     id: i64,
     first_name: Option<String>,
@@ -270,7 +270,7 @@ pub async fn edit_member(
     Ok(())
 }
 
-#[delete("/api/v1/member/{id}", state: Extension<AppState>)]
+#[delete("/api/v1/members/{id}", state: Extension<AppState>)]
 pub async fn delete_member(id: i64) -> anyhow::Result<()> {
     let Extension(state) = state;
 
@@ -286,7 +286,7 @@ pub async fn delete_member(id: i64) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[post("/api/v1/member/csv", state: Extension<AppState>)]
+#[post("/api/v1/members/csv", state: Extension<AppState>)]
 pub async fn upload_members_csv(csv_str: String) -> anyhow::Result<()> {
     let Extension(state) = state;
 
