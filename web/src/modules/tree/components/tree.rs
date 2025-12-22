@@ -1,10 +1,13 @@
 use dioxus::prelude::*;
 
-const EGUI: &str = include_str!("../../../../dist/index.html");
-
 #[component]
 pub fn Tree() -> Element {
     let mut fullscreen_tree = use_signal(|| false);
+
+    #[cfg(target_arch = "wasm32")]
+    spawn(async move {
+        gui::run_eframe();
+    });
 
     rsx! {
         div {
@@ -25,9 +28,6 @@ pub fn Tree() -> Element {
                         fullscreen_tree.with_mut(|f| *f = !*f);
                     },
                     if fullscreen_tree() { "صغر الشجرة" } else { "كبر الشجرة" }
-                }
-                div {
-                    dangerous_inner_html: EGUI,
                 }
                 canvas {
                     id: "canvas",

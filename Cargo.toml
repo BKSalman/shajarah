@@ -1,0 +1,8 @@
+[workspace]
+members = ["web", "gui"]
+resolver = "3"
+
+[workspace.package]
+
+[patch.crates-io]
+garde = { git = "https://github.com/jprochazk/garde", branch = "i18n" }

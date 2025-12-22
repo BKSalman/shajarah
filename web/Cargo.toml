@@ -6,10 +6,8 @@ edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[workspace]
-
 [dependencies]
-dioxus = { version = "0.7", features = ["router", "fullstack"] }
+dioxus = { version = "0.7.2", features = ["router", "fullstack"] }
 axum = { version = "0.8.4", features = ["macros", "multipart"], optional = true }
 tokio = { version = "1.0", features = ["full"], optional = true }
 tower-http = { version = "0.6.6", features = ["cors", "limit", "fs"], optional = true }
@@ -39,6 +37,7 @@ tower = "0.5.2"
 futures-util = "0.3.31"
 web-sys = { version = "0.3.77", features = ["Window"] }
 anyhow = "1"
+gui = { path = "../gui" }
 
 [target.wasm32-unknown-unknown.dependencies]
 uuid = { version = "1.18.0", features = ["serde", "v4", "js"] }
@@ -67,6 +66,3 @@ server = [
   "dep:aes-gcm",
   "dep:csv"
 ]
-
-[patch.crates-io]
-garde = { git = "https://github.com/jprochazk/garde", branch = "i18n" }
