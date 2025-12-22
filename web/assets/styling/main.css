@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&display=swap');
+
 :root {
   /* Shajarah Design System - Forest Heritage Palette */
   /* Primary Tree-Inspired Green Colors */
@@ -45,7 +47,7 @@
   --color-gray-900: #111827;
 
   /* Typography */
-  --font-family-arabic: 'Noto Sans Arabic', 'Cairo', 'Tajawal', system-ui, sans-serif;
+  --font-family-arabic: 'Tajawal', 'Noto Sans Arabic', 'Cairo', system-ui, sans-serif;
   --font-family-system: system-ui, -apple-system, sans-serif;
 
   --font-size-xs: 0.75rem;

@@ -11,7 +11,7 @@ pub fn Tree() -> Element {
 
     rsx! {
         div {
-            class: "flex flex-col items-center border border-gray-300 p-8",
+            class: "flex flex-col items-center border border-gray-300 py-2 lg:p-8",
             dir: "rtl",
             h3 { "شجرة العائلة" }
             div {
@@ -20,7 +20,7 @@ pub fn Tree() -> Element {
                 class: if fullscreen_tree() {
                            "h-full absolute top-0 left-0 z-100 bg-white"
                        } else {
-                           "h-200 p-4"
+                           "h-150 lg:h-200 py-2 lg:p-4"
                        },
                 button {
                     class: "btn btn-primary",

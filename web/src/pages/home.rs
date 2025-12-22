@@ -48,7 +48,7 @@ pub fn Home() -> Element {
                 Sidebar { show_sidebar }
             }
             div {
-                class: "max-w-6xl mx-auto px-4 py-12 space-y-8",
+                class: "max-w-6xl mx-auto lg:px-4 lg:py-12 space-y-8",
 
                 // Family name card
                 div {
