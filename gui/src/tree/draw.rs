@@ -30,6 +30,11 @@ impl TreeUi {
             log::debug!("new offset: {:?}", self.offset);
         }
         let background_clicked = bg_resp.clicked_by(PointerButton::Primary);
+
+        if bg_resp.double_clicked_by(PointerButton::Primary) {
+            self.request_recenter();
+        }
+
         if let Some(hover_pos) = ui.ctx().input(|i| i.pointer.hover_pos()) {
             if bg_resp.hovered() {
                 let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
