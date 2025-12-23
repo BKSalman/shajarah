@@ -58,6 +58,8 @@ pub mod server {
         pub port: u16,
         #[serde(default = "default_log_level")]
         pub log_level: String,
+        #[serde(default)]
+        pub public: bool,
     }
 
     fn default_port() -> u16 {
@@ -294,6 +296,7 @@ pub mod server {
                 log_level: default_log_level(),
                 family_name: None,
                 family_description: None,
+                public: false,
             }
         }
     }

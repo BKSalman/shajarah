@@ -63,11 +63,9 @@ impl<S: Sync + Send, const USER_ROLE: u8> FromRequestParts<S> for AuthExtractor<
 
     async fn from_request_parts(
         parts: &mut axum::http::request::Parts,
-        state: &S,
+        _state: &S,
     ) -> std::result::Result<Self, Self::Rejection> {
-        let Extension(state) = Extension::<AppState>::from_request_parts(parts, state)
-            .await
-            .unwrap();
+        let Extension(state) = parts.extract::<Extension<AppState>>().await.unwrap();
 
         let session_id = parts
             .extract_with_state::<UserSession, _>(&state)

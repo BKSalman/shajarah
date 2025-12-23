@@ -1,3 +1,6 @@
+use dioxus::{fullstack::Form, prelude::*};
+use uuid::Uuid;
+
 use crate::{
     Route,
     modules::{
@@ -12,8 +15,8 @@ use crate::{
                 request_card::RequestCard, view_member_modal::ViewMemberModal,
                 view_request_modal::ViewRequestModal,
             },
-            server::{get_admin, logout_admin},
-            types::{EditMemberFormData, MemberFormData},
+            server::{create_tree_invite, get_admin, logout_admin},
+            types::{EditMemberFormData, InviteForm, MemberFormData},
         },
         member::server::{
             add_member, delete_member, edit_member, members_flat, upload_members_csv,
@@ -21,8 +24,6 @@ use crate::{
     },
     ui::modal::Modal,
 };
-use dioxus::prelude::*;
-use uuid::Uuid;
 
 pub mod login;
 pub mod register;
@@ -39,6 +40,7 @@ enum ShowModal {
     AddMember,
     EditMember(i64),
     DeleteMember(i64),
+    TreeInvite,
 }
 
 #[component]
@@ -56,6 +58,40 @@ fn Sidebar(show_sidebar: Signal<bool>) -> Element {
                 to: Route::Home {},
                 class: "text-center text-4xl md:text-base block md:hidden px-4 py-3 rounded-lg text-forest-dark hover:bg-forest-light transition-colors duration-200 cursor-pointer",
                 "الصفحة الرئيسية"
+            }
+        }
+    }
+}
+
+#[component]
+fn Invite(show_modal: Signal<Option<ShowModal>>) -> Element {
+    rsx! {
+        button {
+            class: "btn btn-primary",
+            onclick: move |_| {
+                show_modal.set(Some(ShowModal::TreeInvite));
+            },
+            "دعوة للشجرة"
+        }
+
+        Modal {
+            show: matches!(&*show_modal.read(), Some(ShowModal::TreeInvite)),
+            title: "دعوة للشجرة".to_string(),
+            max_width: Some("2xl".to_string()),
+            on_close: move |_| show_modal.set(None),
+            div { class: "space-y-6",
+                form {
+                    onsubmit: move |evt: FormEvent| async move {
+                        evt.prevent_default();
+
+                        let values: InviteForm = evt.parsed_values().unwrap();
+
+                        create_tree_invite(Form(values)).await;
+                    },
+                    input {
+                        class: "",
+                    }
+                }
             }
         }
     }
@@ -333,6 +369,7 @@ pub fn Admin() -> Element {
                                 }
                             }
                             div { class: "flex flex-col sm:flex-row gap-2",
+                                Invite { show_modal }
                                 Link {
                                     class: "btn btn-outline btn-sm",
                                     to: Route::Home,

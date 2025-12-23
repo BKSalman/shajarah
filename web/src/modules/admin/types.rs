@@ -49,3 +49,6 @@ pub struct EditMemberFormData {
     pub father_id: Option<i64>,
     pub personal_info: Option<IndexMap<String, String>>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InviteForm {}

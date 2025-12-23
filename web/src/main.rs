@@ -58,6 +58,8 @@ async fn launch_server() -> Result<axum::Router, anyhow::Error> {
     use tower_cookies::CookieManagerLayer;
     use tower_http::{limit::RequestBodyLimitLayer, services::ServeDir};
 
+    use crate::middleware::private_tree::block_non_invited;
+
     let pool =
         PgPool::connect(
                 &std::env::var("DATABASE_URL")
@@ -81,6 +83,7 @@ async fn launch_server() -> Result<axum::Router, anyhow::Error> {
         .route("/api/v1/members/export", get(export_members))
         .with_state(app_state.clone())
         .serve_dioxus_application(cfg.clone(), app)
+        .layer(axum::middleware::from_fn(block_non_invited))
         .layer(axum::middleware::from_fn_with_state(
             app_state.clone(),
             refresh_session,

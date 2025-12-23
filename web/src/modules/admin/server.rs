@@ -1,9 +1,9 @@
-use dioxus::prelude::*;
+use dioxus::{fullstack::Form, prelude::*};
 use garde::Validate;
 
 use super::types::RegisterData;
 use crate::modules::{
-    admin::types::LoginData,
+    admin::types::{InviteForm, LoginData},
     user::types::{UserResponseBrief, UserRole},
 };
 
@@ -244,5 +244,10 @@ pub async fn logout_admin() -> anyhow::Result<()> {
             .remove(cookie);
     }
 
+    Ok(())
+}
+
+#[post("/api/v1/tree/invite", state: Extension<AppState>, cookies: tower_cookies::Cookies)]
+pub async fn create_tree_invite(invite: Form<InviteForm>) -> anyhow::Result<()> {
     Ok(())
 }

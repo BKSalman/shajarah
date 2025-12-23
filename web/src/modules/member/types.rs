@@ -9,7 +9,7 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "server", derive(sqlx::Type))]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, strum::EnumIter, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(
     feature = "server",
