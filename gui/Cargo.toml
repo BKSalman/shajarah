@@ -10,18 +10,17 @@ all-features = true
 targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
 
 [dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1.0.120", features = ["preserve_order"] }
-indexmap = { version = "2.3.0", features = ["serde"] }
-anyhow = "1.0.86"
-chrono = { version = "0.4.38", features = ["serde"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+indexmap = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
 log = "0.4"
-lazy_static = "1.5.0"
 ar-reshaper = "1.5.0"
 unicode-bidi = "0.3.18"
 egui_extras = { version = "0.33", features = ["image", "http"] }
-image = { version = "0.25", features = ["jpeg", "png", "webp"] }
-ehttp = { version = "0.5.0", features = ["json"] }
+image = { version = "0.25", default-features = false, features = ["rayon", "jpeg", "png", "webp"] }
+ehttp = { version = "0.6.0", features = ["json"] }
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -31,13 +30,12 @@ eframe = { version = "0.33", default-features = false, features = [
     "default_fonts",
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
     # "persistence",   # Enable restoring app state when restarting the app.
-    "wayland",
-    "x11",
     # "wgpu",
 ] }
 
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true }
 wasm-bindgen-futures = "0.4"
 eframe = { version = "0.33", default-features = false, features = [
     "accesskit",     # Make egui compatible with screen readers. NOTE: adds a lot of dependencies.
@@ -48,25 +46,5 @@ eframe = { version = "0.33", default-features = false, features = [
     # "wgpu",
 ] }
 
-# to access the DOM (to hide the loading text)
-[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
-version = "0.3.4"
-
 [features]
 debug-ui = []
-
-[profile.release]
-opt-level = 2 # fast and small wasm
-
-# Optimize all dependencies even in debug builds:
-[profile.dev.package."*"]
-opt-level = 2
-
-[patch.crates-io]
-# eframe = { git = "https://github.com/emilk/egui", branch = "master" }
-# egui = { git = "https://github.com/emilk/egui", branch = "master" }
-# egui_extras = { git = "https://github.com/emilk/egui", branch = "master" }
-
-# If you fork https://github.com/emilk/egui you can test with:
-# egui = { path = "../egui/crates/egui" }
-# eframe = { path = "../egui/crates/eframe" }

@@ -4,5 +4,27 @@ resolver = "3"
 
 [workspace.package]
 
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+indexmap = { version = "2.3.0", features = ["serde"] }
+chrono = { version = "0.4.41", features = ["serde"] }
+anyhow = "1"
+web-sys = { version = "0.3.77" }
+
+[profile.release]
+opt-level = 2 # fast and small wasm
+
+# Optimize all dependencies even in debug builds:
+[profile.dev.package."*"]
+opt-level = 2
+
 [patch.crates-io]
 garde = { git = "https://github.com/jprochazk/garde", branch = "i18n" }
+# eframe = { git = "https://github.com/emilk/egui", branch = "master" }
+# egui = { git = "https://github.com/emilk/egui", branch = "master" }
+# egui_extras = { git = "https://github.com/emilk/egui", branch = "master" }
+
+# If you fork https://github.com/emilk/egui you can test with:
+# egui = { path = "../egui/crates/egui" }
+# eframe = { path = "../egui/crates/eframe" }
