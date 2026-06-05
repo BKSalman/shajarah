@@ -13,6 +13,20 @@
   gap: var(--spacing-2);
 }
 
+.btn-rect {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: var(--transition-colors);
+  text-decoration: none;
+  gap: var(--spacing-2);
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

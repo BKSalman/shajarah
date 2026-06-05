@@ -4,14 +4,16 @@ use dioxus::prelude::*;
 pub fn Tree() -> Element {
     let mut fullscreen_tree = use_signal(|| false);
 
-    #[cfg(target_arch = "wasm32")]
-    spawn(async move {
-        gui::run_eframe();
+    use_effect(|| {
+        #[cfg(target_arch = "wasm32")]
+        spawn(async move {
+            gui::run_eframe();
+        });
     });
 
     rsx! {
         div {
-            class: "flex flex-col items-center border border-gray-300 py-2 lg:p-8",
+            class: "card flex flex-col items-center sm:border sm:border-gray-300 py-2 lg:p-8",
             dir: "rtl",
             h3 { "شجرة العائلة" }
             div {
@@ -23,7 +25,7 @@ pub fn Tree() -> Element {
                            "h-150 lg:h-200 py-2 lg:p-4"
                        },
                 button {
-                    class: "btn btn-primary",
+                    class: "btn-rect btn-primary",
                     onclick: move |e| {
                         fullscreen_tree.with_mut(|f| *f = !*f);
                     },

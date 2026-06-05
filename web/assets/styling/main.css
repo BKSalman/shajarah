@@ -92,6 +92,8 @@
   /* Transitions */
   --transition-base: 150ms ease;
   --transition-colors: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+
+  --hover-highlight: rgba(74, 103, 65, 0.2)
 }
 
 html {

@@ -1,4 +1,4 @@
-use axum::{extract::State, response::IntoResponse};
+use axum::{extract::Extension, response::IntoResponse};
 
 use super::error::MembersError;
 use crate::{
@@ -12,25 +12,25 @@ use crate::{
 
 #[axum::debug_handler]
 pub async fn export_members(
-    State(AppState(state)): State<AppState>,
+    Extension(AppState(state)): Extension<AppState>,
     _auth: AuthExtractor<{ UserRole::Admin as u8 }>,
 ) -> Result<impl IntoResponse, MembersError> {
     let recs = sqlx::query_as!(
         MemberRow,
         r#"
-SELECT
-m.id,
-m.name,
-m.gender as "gender: Gender",
-m.birthday,
-m.last_name,
-m.image,
-m.image_type,
-m.personal_info,
-m.father_id,
-m.mother_id
-FROM members m
-"#,
+            SELECT
+            m.id,
+            m.name,
+            m.gender as "gender: Gender",
+            m.birthday,
+            m.last_name,
+            m.image,
+            m.image_type,
+            m.personal_info,
+            m.father_id,
+            m.mother_id
+            FROM members m
+        "#,
     )
     .fetch_all(&state.db_pool)
     .await?;

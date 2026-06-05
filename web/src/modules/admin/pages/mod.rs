@@ -27,6 +27,7 @@ use crate::{
 
 pub mod login;
 pub mod register;
+pub mod settings;
 
 enum Tab {
     Members,
@@ -52,12 +53,18 @@ fn Sidebar(show_sidebar: Signal<bool>) -> Element {
             } else {
                 "md:translate-x-0 translate-x-0"
             },
-            class: "w-full md:w-auto md:flex lg:flex flex-col fixed z-10 bg-white h-full px-10 md:px-8 py-10 md:py-5 space-y-4 shadow-lg rounded-l-lg transition-transform duration-150 ease-in-out",
+            class: "h-full w-full md:w-auto md:flex lg:flex flex-col max-sm:fixed right-0 z-10 bg-white px-10 md:px-8 py-10 md:py-5 space-y-4 shadow-lg rounded-l-lg text-nowrap transition-transform duration-150 ease-in-out",
 
             Link {
-                to: Route::Home {},
-                class: "text-center text-4xl md:text-base block md:hidden px-4 py-3 rounded-lg text-forest-dark hover:bg-forest-light transition-colors duration-200 cursor-pointer",
+                to: Route::Admin {},
+                class: "text-center text-4xl md:text-base block px-4 py-3 rounded-lg text-forest-dark hover:bg-forest-light transition-colors duration-200 cursor-pointer",
                 "الصفحة الرئيسية"
+            }
+
+            Link {
+                to: Route::AdminSettings {},
+                class: "text-center text-4xl md:text-base block px-4 py-3 rounded-lg text-forest-dark hover:bg-forest-light transition-colors duration-200 cursor-pointer",
+                "الإعدادات"
             }
         }
     }
@@ -86,7 +93,7 @@ fn Invite(show_modal: Signal<Option<ShowModal>>) -> Element {
 
                         let values: InviteForm = evt.parsed_values().unwrap();
 
-                        create_tree_invite(Form(values)).await;
+                        let _ = create_tree_invite(Form(values)).await;
                     },
                     input {
                         class: "",
@@ -541,24 +548,26 @@ pub fn Admin() -> Element {
                     },
                 }
                 match &*tab.read() {
-                    Tab::Members => rsx! {
-                        FamilyManagementHeader {
-                            members_count,
-                            on_add_member: move |_| {
-                                show_modal.set(Some(ShowModal::AddMember));
-                            },
-                            on_csv_upload: move |e: Event<FormData>| async move {
-                                if let Some(file_data) = e.files().iter().next() {
-                                    if let Ok(data) = file_data.read_string().await {
-                                        match upload_members_csv(data).await {
-                                            Ok(_) => members_resource.restart(),
-                                            Err(e) => tracing::error!("{e}"),
-                                        }
-                                    }
-                                }
-                            },
+                    Tab::Members => {
+                        let mut csv_upload = use_action(move |e: Event<FormData>| async move {
+                            if let Some(file_data) = e.files().iter().next() &&
+                                let Ok(data) = file_data.read_string().await {
+                                    return upload_members_csv(data).await;
+                            }
+
+                            Err(anyhow::anyhow!(""))
+                        });
+
+                        rsx! {
+                            FamilyManagementHeader {
+                                members_count,
+                                on_add_member: move |_| {
+                                    show_modal.set(Some(ShowModal::AddMember));
+                                },
+                                on_csv_upload: move |e| csv_upload.call(e),
+                            }
+                            {members_grid}
                         }
-                        {members_grid}
                     },
                     Tab::Requests => rsx! {
                         {add_requests_grid}

@@ -1,7 +1,9 @@
 use dioxus::{logger::tracing::Level, prelude::*};
 
 use modules::add_request::AddMember;
-use modules::admin::pages::{Admin, login::AdminLogin, register::AdminRegister};
+use modules::admin::pages::{
+    Admin, login::AdminLogin, register::AdminRegister, settings::AdminSettings,
+};
 use pages::Home;
 use serde::{Deserialize, Serialize};
 
@@ -40,16 +42,48 @@ impl axum::response::IntoResponse for ErrorResponse {
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 pub enum Route {
-    #[route("/")]
-    Home,
     #[route("/admin")]
     Admin,
     #[route("/admin/login")]
     AdminLogin,
     #[route("/admin/register")]
     AdminRegister,
+    #[route("/admin/settings")]
+    AdminSettings,
+    #[layout(PrivateTreeGuard)]
+    #[route("/")]
+    Home,
     #[route("/add")]
     AddMember,
+    #[end_layout]
+    #[route("/unauthorized")]
+    Unauthorized,
+}
+
+#[component]
+pub fn PrivateTreeGuard() -> Element {
+    let nav = navigator();
+    let is_authed =
+        use_resource(|| async move { crate::modules::admin::server::get_admin().await });
+
+    let config = use_loader(move || async move { get_config().await })?;
+
+    if config().public {
+        return rsx! {};
+    }
+
+    match is_authed() {
+        None => return rsx! { div { "Loading..." } }, // still fetching
+        Some(Err(_)) => {
+            nav.replace(Route::Unauthorized {});
+            return rsx! {};
+        }
+        Some(Ok(_)) => {} // fall through to render outlet
+    }
+
+    rsx! {
+        Outlet::<Route> {}
+    }
 }
 
 #[cfg(feature = "server")]
@@ -85,11 +119,10 @@ async fn launch_server() -> Result<axum::Router, anyhow::Error> {
     }));
 
     let cfg = ServeConfig::new();
-    let mut router = axum::Router::new()
+    let mut router = dioxus::server::router(app)
         .route("/api/v1/members/export", get(export_members))
-        .with_state(app_state.clone())
-        .serve_dioxus_application(cfg.clone(), app)
-        .layer(axum::middleware::from_fn(block_non_invited))
+        // .with_state(app_state.clone())
+        // .layer(axum::middleware::from_fn(block_non_invited))
         .layer(axum::middleware::from_fn_with_state(
             app_state.clone(),
             refresh_session,
@@ -99,13 +132,13 @@ async fn launch_server() -> Result<axum::Router, anyhow::Error> {
         .layer(RequestBodyLimitLayer::new(25 * 1024 * 1024 /* 25mb */))
         .layer(Extension(app_state.clone()));
 
-    if let Ok(dist) = std::env::var("SHAJARAH_DIST") {
-        router = router.nest_service("/assets", ServeDir::new(dist));
-    } else if let Some(dist) = option_env!("SHAJARAH_DIST") {
-        router = router.nest_service("/assets", ServeDir::new(dist));
-    } else {
-        tracing::warn!("SHAJARAH_DIST is not set");
-    }
+    // if let Ok(dist) = std::env::var("SHAJARAH_DIST") {
+    //     router = router.nest_service("/assets", ServeDir::new(dist));
+    // } else if let Some(dist) = option_env!("SHAJARAH_DIST") {
+    //     router = router.nest_service("/assets", ServeDir::new(dist));
+    // } else {
+    //     tracing::warn!("SHAJARAH_DIST is not set");
+    // }
 
     Ok(router)
 }
@@ -122,12 +155,20 @@ fn main() {
     }
 }
 
+#[component]
+fn Unauthorized() -> Element {
+    rsx! {
+        div { "Unauthorized" }
+    }
+}
+
 fn app() -> Element {
     let config_resource = use_server_future(get_config)?.value();
     let config = config_resource.as_ref().unwrap().as_ref().unwrap().clone();
     use_context_provider(move || config);
 
     rsx! {
+        document::Meta { name: "viewport", content: "width=device-width, initial-scale=1" }
         document::Link { rel: "icon", href: asset!("/assets/favicon.ico") }
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/main.css") }
         document::Link { rel: "stylesheet", href: asset!("/assets/tailwind.css") }
@@ -139,6 +180,7 @@ fn app() -> Element {
         }
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/form.css") }
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/card.css") }
+        document::Link { rel: "stylesheet", href: format!("{FONT_AWESOME}/css/all.css") }
 
         Router::<Route> {}
     }

@@ -36,6 +36,7 @@ pub async fn get_config() -> anyhow::Result<config::client::Config> {
     let config = config::client::Config {
         family_name: state.config.family_name.clone(),
         family_description: state.config.family_description.clone(),
+        public: state.config.public,
     };
 
     Ok(config)

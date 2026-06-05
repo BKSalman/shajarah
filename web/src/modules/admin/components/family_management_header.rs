@@ -8,7 +8,7 @@ pub struct FamilyManagementHeaderProps {
 #[component]
 pub fn FamilyManagementHeader(props: FamilyManagementHeaderProps) -> Element {
     rsx! {
-        div { class: "card-header",
+        div { class: "card-header mb-4",
             div { class: "flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4",
                 HeaderTitle { members_count: props.members_count }
                 ActionButtons {
@@ -58,7 +58,7 @@ struct ActionButtonsProps {
 #[component]
 fn ActionButtons(props: ActionButtonsProps) -> Element {
     rsx! {
-        div { class: "flex flex-col sm:flex-row gap-2",
+        div { class: "flex gap-2",
             AddMemberButton { on_click: props.on_add_member }
             ExportButton {}
             CsvUploadButton { on_upload: props.on_csv_upload }

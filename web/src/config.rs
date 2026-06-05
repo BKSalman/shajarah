@@ -22,20 +22,20 @@ pub mod server {
         Missing(String),
     }
 
-    #[derive(Serialize, Deserialize, Clone)]
+    #[derive(Serialize, Deserialize, Clone, PartialEq)]
     pub struct EmailCredentials {
         pub username: String,
         #[serde(skip_serializing)]
         pub password: String,
     }
 
-    #[derive(Serialize, Deserialize, Clone)]
+    #[derive(Serialize, Deserialize, Clone, PartialEq)]
     pub struct EmailConfig {
         pub smtp_server: String,
         pub credentials: EmailCredentials,
     }
 
-    #[derive(Serialize, Deserialize)]
+    #[derive(Serialize, PartialEq, Deserialize)]
     pub struct Config {
         #[serde(
             serialize_with = "serialize_cookie_key",
@@ -329,12 +329,13 @@ pub mod server {
 pub mod client {
     use serde::{Deserialize, Serialize};
 
-    #[derive(Clone, Serialize, Deserialize)]
+    #[derive(Clone, PartialEq, Serialize, Deserialize)]
     pub struct Config {
         #[serde(default)]
         pub family_name: Option<String>,
         #[serde(default)]
         pub family_description: Option<String>,
+        pub public: bool,
     }
 
     impl Default for Config {
@@ -342,6 +343,7 @@ pub mod client {
             Self {
                 family_name: None,
                 family_description: None,
+                public: false,
             }
         }
     }

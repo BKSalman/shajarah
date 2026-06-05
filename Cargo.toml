@@ -20,7 +20,7 @@ opt-level = 2 # fast and small wasm
 opt-level = 2
 
 [patch.crates-io]
-garde = { git = "https://github.com/jprochazk/garde", branch = "i18n" }
+# garde = { git = "https://github.com/jprochazk/garde", branch = "i18n" }
 # eframe = { git = "https://github.com/emilk/egui", branch = "master" }
 # egui = { git = "https://github.com/emilk/egui", branch = "master" }
 # egui_extras = { git = "https://github.com/emilk/egui", branch = "master" }

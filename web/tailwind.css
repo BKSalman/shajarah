@@ -11,3 +11,7 @@
     line-height: var(--text-2xl--line-height);
   }
 }
+
+@theme {
+  --shadow-md: 0 0 0 3px rgba(74, 103, 65, 0.2);
+}

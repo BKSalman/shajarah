@@ -112,10 +112,10 @@
             wayland
 
             # x11 libraries
-            xorg.libXcursor
-            xorg.libXrandr
-            xorg.libXi
-            xorg.libX11
+            libXcursor
+            libXrandr
+            libXi
+            libX11
           ];
 
           LD_LIBRARY_PATH = "${lib.makeLibraryPath buildInputs}";
@@ -130,29 +130,35 @@
             trap cleanup EXIT
 
             run-services() {
-              docker run --rm \
-                --name shajarah-dev-db \
-                -p 5445:5432 \
-                -e POSTGRES_PASSWORD=shajarah-dev-db \
-                -d postgres &> /dev/null || true
+              if ! docker ps --format '{{.Names}}' | grep -q '^shajarah-dev-db$'; then
+                docker run --rm \
+                  --name shajarah-dev-db \
+                  -p 5445:5432 \
+                  -e POSTGRES_PASSWORD=shajarah-dev-db \
+                  -d postgres &> /dev/null
+              fi
 
-              docker run --rm \
-                --name shajarah-dev-pgweb \
-                -p 8081:8081 \
-                -d sosedoff/pgweb &> /dev/null || true
+              if ! docker ps --format '{{.Names}}' | grep -q '^shajarah-dev-pgweb$'; then
+                docker run --rm \
+                  --name shajarah-dev-pgweb \
+                  -p 8081:8081 \
+                  -d sosedoff/pgweb &> /dev/null
+              fi
 
-              docker run --rm \
-                --name shajarah-dev-mailhog \
-                -p 1025:1025 -p 8025:8025 \
-                -d mailhog/mailhog:v1.0.1 &> /dev/null || true
+              if ! docker ps --format '{{.Names}}' | grep -q '^shajarah-dev-mailhog$'; then
+                docker run --rm \
+                  --name shajarah-dev-mailhog \
+                  -p 1025:1025 -p 8025:8025 \
+                  -d mailhog/mailhog:v1.0.1 &> /dev/null
+              fi
 
-
-               ${sqlx-cli}/bin/sqlx migrate run
+              ${sqlx-cli}/bin/sqlx migrate run || ${sqlx-cli}/bin/sqlx migrate run --source web/migrations
             }
 
-             export DATABASE_URL=postgres://postgres:shajarah-dev-db@localhost:5445/postgres
+            export DATABASE_URL=postgres://postgres:shajarah-dev-db@localhost:5445/postgres
 
             export $(cat .env)
+            run-services
           '';
         };
 
