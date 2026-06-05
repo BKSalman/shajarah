@@ -5,17 +5,19 @@ use crate::{Route, config, modules::tree::components::tree::Tree};
 #[component]
 fn Sidebar(show_sidebar: Signal<bool>) -> Element {
     rsx! {
-        div {
-            class: if !show_sidebar() {
-                "translate-x-full"
-            } else {
+        nav {
+            class: if show_sidebar() {
                 "translate-x-0"
+            } else {
+                "translate-x-full"
             },
-            class: "flex flex-col fixed right-0 top-16 z-10 bg-white h-full px-8 py-5 space-y-4 shadow-lg rounded-l-lg transition-transform duration-150 ease-in-out",
+            class: "flex flex-col fixed right-0 z-30 bg-white h-full w-full sm:w-60 px-6 py-6 space-y-2 shadow-lg transition-transform duration-200 ease-in-out",
+            dir: "rtl",
 
             Link {
                 to: Route::Home {},
-                class: "px-4 py-3 rounded-lg text-forest-dark hover:bg-forest-light transition-colors duration-200 cursor-pointer",
+                class: "px-4 py-3 rounded-lg text-forest-dark font-medium hover:bg-forest-light transition-colors duration-200 cursor-pointer",
+                onclick: move |_| show_sidebar.set(false),
                 "الصفحة الرئيسية"
             }
         }
@@ -31,44 +33,35 @@ pub fn Home() -> Element {
         div {
             class: "min-h-screen w-full bg-forest-background",
             dir: "rtl",
-            div {
-                button {
-                    class: "btn btn-primary fixed top-5 right-5 z-20 shadow-md hover:shadow-lg transition-all duration-200",
-                    onclick: move |_| {
-                        show_sidebar.with_mut(|show_sidebar| {
-                            *show_sidebar = !*show_sidebar;
-                        });
-                    },
-                    if show_sidebar() {
-                        "☰"
-                    } else {
-                        "☰"
-                    }
-                }
-                Sidebar { show_sidebar }
-            }
-            div {
-                class: "max-w-6xl mx-auto lg:px-4 lg:py-12 space-y-8",
 
-                // Family name card
-                div {
-                    class: "card fade-in text-center py-12 px-8",
+            div {
+                class: "sticky top-0 z-10 bg-white/90 sm:bg-white p-4",
+                button {
+                    class: "btn btn-primary shadow-md hover:shadow-lg transition-all duration-200",
+                    aria_label: "فتح القائمة",
+                    onclick: move |_| show_sidebar.toggle(),
+                    i { class: "fa-solid fa-bars" }
+                }
+            }
+
+            Sidebar { show_sidebar }
+
+            main {
+                class: "sm:max-w-6xl mx-auto sm:p-6 space-y-6 sm:space-y-8",
+
+                section {
+                    class: "card fade-in text-center py-12 sm:py-16 px-6 sm:px-8",
                     h1 {
-                        class: "heading font-bold text-forest-dark text-4xl md:text-5xl",
-                        if let Some(family_name) = config.family_name {
+                        class: "heading font-bold text-forest-dark text-3xl sm:text-4xl md:text-5xl",
+                        if let Some(family_name) = config.family_name.clone() {
                             "عائلة {family_name}"
                         } else {
                             "عائلة فلان"
                         }
                     }
-                }
-
-                // Family description card
-                if let Some(family_description) = config.family_description {
-                    div {
-                        class: "card fade-in text-center py-8 px-6",
-                        h3 {
-                            class: "text-forest-dark text-lg md:text-xl leading-relaxed",
+                    if let Some(family_description) = config.family_description {
+                        p {
+                            class: "mt-4 sm:mt-6 mx-auto max-w-2xl text-forest-primary text-base sm:text-lg md:text-xl leading-relaxed",
                             "{family_description}"
                         }
                     }
@@ -79,9 +72,8 @@ pub fn Home() -> Element {
                 // TODO: Achievements
                 // TODO: Remarkable family members
 
-                // Tree section
-                div {
-                    class: "fade-in",
+                section {
+                    class: "fade-in overflow-hidden",
                     Tree {}
                 }
             }

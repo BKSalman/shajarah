@@ -17,6 +17,12 @@ pub mod server;
 pub mod ui;
 pub mod util;
 
+#[used]
+static FONT_AWESOME: Asset = asset!(
+    "/assets/fontawesome",
+    AssetOptions::folder().with_hash_suffix(false)
+);
+
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct ErrorResponse {
     pub error: String,

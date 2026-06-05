@@ -337,27 +337,26 @@ pub fn Admin() -> Element {
     rsx! {
         div {
             dir: "rtl",
-            div {
-                button {
-                    class: "md:hidden! btn btn-primary fixed top-5 right-5 z-20 shadow-md hover:shadow-lg transition-all duration-200",
-                    onclick: move |_| {
-                        show_sidebar.with_mut(|show_sidebar| {
-                            *show_sidebar = !*show_sidebar;
-                        });
-                    },
-                    if show_sidebar() {
-                        "☰"
-                    } else {
-                        "☰"
-                    }
-                }
-                Sidebar { show_sidebar }
+            class: "sticky top-0 right-0 z-10 md:hidden! bg-white/90 p-4",
+            button {
+                class: "btn btn-primary shadow-md hover:shadow-lg transition-all duration-200",
+                onclick: move |_| {
+                    show_sidebar.toggle();
+                },
+                i { class: "fa-solid fa-bars" }
             }
-            div { class: "lg:w-3/4 mx-auto",
+        }
+
+        div {
+            dir: "rtl",
+            class: "flex gap-4 h-full",
+            Sidebar { show_sidebar }
+
+            div { class: "w-full",
                 dir: "rtl",
                 div { class: "text-red-500", "{error}" }
 
-                div { class: "card card-forest fade-in",
+                div { class: "card card-forest fade-in mb-3",
                     div { class: "card-body",
                         div { class: "flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4",
                             div {
@@ -368,23 +367,12 @@ pub fn Admin() -> Element {
                                     "إدارة أفراد العائلة والطلبات"
                                 }
                             }
-                            div { class: "flex flex-col sm:flex-row gap-2",
+                            div { class: "flex sm:flex-row gap-2",
                                 Invite { show_modal }
                                 Link {
                                     class: "btn btn-outline btn-sm",
                                     to: Route::Home,
-                                    svg {
-                                        class: "w-4 h-4",
-                                        fill: "none",
-                                        stroke: "currentColor",
-                                        view_box: "0 0 24 24",
-                                        path {
-                                            d: "M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v0",
-                                            stroke_linecap: "round",
-                                            stroke_linejoin: "round",
-                                            stroke_width: "2",
-                                        }
-                                    }
+                                    i { class: "fa-brands fa-linktree" }
                                     "عرض الشجرة"
                                 }
                                 button {

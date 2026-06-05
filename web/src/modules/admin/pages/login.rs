@@ -133,9 +133,14 @@ pub fn AdminLogin() -> Element {
                                 class: if is_submitting() { "loading" },
                                 placeholder: "ادخل بريدك الإلكتروني",
                                 autocomplete: "email",
-                                dir: "rtl",
+                                dir: if login_data.email().is_some() { "ltr" } else { "rtl" },
                                 oninput: move |evt| {
-                                    login_data.email().set(Some(evt.value()));
+                                    let value = evt.value();
+                                    if value.is_empty() {
+                                        login_data.email().set(None);
+                                    } else {
+                                        login_data.email().set(Some(evt.value()));
+                                    }
                                     clear_field_error("email");
                                 },
                             }
@@ -161,26 +166,32 @@ pub fn AdminLogin() -> Element {
                                 }
                                 "كلمة المرور"
                             }
-                            div { class: "relative",
+                            div { class: "flex border-1 border-solid border-gray-300 rounded-md",
+                                class: "hover:shadow-md hover:border-(--color-primary)",
+                                class: if has_field_error("password") { "border-red-300! focus:border-red-500!" },
                                 input {
                                     id: "password",
                                     r#type: if *show_password.read() { "text" } else { "password" },
                                     required: true,
                                     disabled: is_submitting(),
-                                    class: "input w-full pr-10",
-                                    class: if has_field_error("password") { "border-red-300 focus:border-red-500" },
+                                    class: "h-full w-full py-2 px-3 outline-none",
                                     class: if is_submitting() { "loading" },
                                     placeholder: "ادخل كلمة المرور",
                                     autocomplete: "current-password",
-                                    dir: "rtl",
+                                    dir: if login_data.password().is_some() { "ltr" } else { "rtl" },
                                     oninput: move |evt| {
-                                        login_data.password().set(Some(evt.value()));
+                                        let value = evt.value();
+                                        if value.is_empty() {
+                                            login_data.password().set(None);
+                                        } else {
+                                            login_data.password().set(Some(evt.value()));
+                                        }
                                         clear_field_error("password");
                                     },
                                 }
                                 button {
                                     r#type: "button",
-                                    class: "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600",
+                                    class: "text-gray-400 hover:text-gray-600 px-4",
                                     tabindex: "-1",
                                     onclick: move |_| show_password.set(!show_password()),
 
