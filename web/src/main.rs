@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::server::get_config;
 
+pub mod components;
 pub mod config;
 pub mod i18n;
 #[cfg(feature = "server")]

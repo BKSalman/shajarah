@@ -235,6 +235,7 @@ impl LayoutTree {
             self.initialize_x(root);
             self.ensure_positive_x(root);
             self.finalize_x(root);
+            log::debug!("layed out the tree");
         }
     }
     pub fn get(&self, id: i32) -> Option<&LayoutNode> {

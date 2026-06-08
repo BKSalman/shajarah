@@ -25,6 +25,14 @@ mod server_only {
 
     #[derive(Clone, FromRef)]
     pub struct AppState(pub Arc<InnerAppState>);
+
+    impl std::ops::Deref for AppState {
+        type Target = Arc<InnerAppState>;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
 }
 
 #[cfg(feature = "server")]

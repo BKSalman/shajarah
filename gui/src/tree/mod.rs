@@ -1,7 +1,7 @@
 use crate::Gender;
 use chrono::{DateTime, Utc};
-use eframe::egui;
-use egui::{include_image, Vec2};
+use eframe::egui::{self, Rect};
+use egui::{Vec2, include_image};
 use indexmap::IndexMap;
 use layout::LayoutTree;
 use serde::{Deserialize, Serialize};
@@ -17,6 +17,7 @@ pub struct TreeUi {
     scale: f32,
     pub root: Option<Node>,
     pub layout_tree: LayoutTree,
+    pub viewport: Rect,
 }
 
 impl TreeUi {
@@ -29,6 +30,7 @@ impl TreeUi {
             scale: 1.,
             layout_tree: tree,
             root,
+            viewport: Rect::ZERO,
         }
     }
 
@@ -47,6 +49,33 @@ impl TreeUi {
 
     fn pan(&mut self, delta: Vec2) {
         self.offset += delta;
+    }
+
+    pub fn focus_node(&mut self, id: i32) {
+        fn uncollapse_ancestors(node: &mut Node, id: i32) -> bool {
+            if node.id == id {
+                return true; // found it, start uncollapsing on the way up
+            }
+            for child in node.children.iter_mut() {
+                if uncollapse_ancestors(child, id) {
+                    node.collapsed = false; // uncollapse this ancestor
+                    return true;
+                }
+            }
+            false
+        }
+
+        if let Some(root) = self.root.as_mut() {
+            uncollapse_ancestors(root, id);
+            self.root = Some(root.clone());
+            self.layout_tree.set_root(self.root.clone());
+            self.layout();
+
+            if let Some(node) = self.layout_tree.get(id) {
+                let center = self.viewport.center().to_vec2();
+                self.offset = Vec2::new(-node.x + center.x, -node.y + center.y);
+            }
+        }
     }
 
     pub fn request_recenter(&mut self) {

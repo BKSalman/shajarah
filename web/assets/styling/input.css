@@ -26,7 +26,7 @@
 .input:hover:not(:disabled),
 .input:focus-visible {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
 }
 

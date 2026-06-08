@@ -3,7 +3,7 @@ mod app;
 mod tree;
 mod zoom;
 pub use app::App;
-use eframe::egui;
+pub use eframe::egui;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, mpsc::Sender};
 use tree::Node;
@@ -23,14 +23,17 @@ enum Message {
 const FONT: &[u8] = include_bytes!("../fonts/arial.ttf");
 
 #[cfg(target_arch = "wasm32")]
-pub fn run_eframe() {
+pub fn run_eframe(
+    commands_rx: futures::channel::mpsc::Receiver<shared::EguiCommand>,
+    mut ctx_sender: futures::channel::mpsc::Sender<egui::Context>,
+) {
     use eframe::wasm_bindgen::JsCast as _;
 
     eframe::WebLogger::init(log::LevelFilter::Debug).ok();
 
     let web_options = eframe::WebOptions::default();
 
-    wasm_bindgen_futures::spawn_local(async {
+    wasm_bindgen_futures::spawn_local(async move {
         let document = web_sys::window()
             .expect("No window")
             .document()
@@ -46,7 +49,16 @@ pub fn run_eframe() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::new(crate::App::new(cc)))),
+                Box::new(|cc| {
+                    let ctx = cc.egui_ctx.clone();
+                    futures::executor::block_on(async move {
+                        use futures::SinkExt;
+                        if let Err(e) = ctx_sender.send(cc.egui_ctx.clone()).await {
+                            log::error!("Failed to send context: {e}");
+                        }
+                    });
+                    Ok(Box::new(crate::App::new(cc, commands_rx)))
+                }),
             )
             .await;
 

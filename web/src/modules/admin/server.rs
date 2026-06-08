@@ -22,7 +22,7 @@ pub async fn get_admin() -> Result<UserResponseBrief> {
     Ok(admin.or_unauthorized("Unauthorized")?.current_user)
 }
 
-#[post("/api/v1/user/", state: Extension<AppState>)]
+#[post("/api/v1/user/", Extension(state): Extension<AppState>)]
 pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
     use argon2::{
         Argon2,
@@ -31,8 +31,6 @@ pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
     use chrono::Utc;
     use uuid::Uuid;
 
-    let Extension(state) = state;
-
     if sqlx::query!(
         r#"
         SELECT id, role as "role: UserRole" FROM users
@@ -40,7 +38,7 @@ pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
                 "#,
         UserRole::Admin as _,
     )
-    .fetch_optional(&state.0.db_pool)
+    .fetch_optional(&state.db_pool)
     .await?
     .is_some()
     {
@@ -82,20 +80,18 @@ pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
         UserRole::Admin as _,
         Utc::now(),
     )
-    .execute(&state.0.db_pool)
+    .execute(&state.db_pool)
     .await?;
 
     Ok(())
 }
 
-#[post("/api/v1/user/login", state: Extension<AppState>, cookies: tower_cookies::Cookies)]
+#[post("/api/v1/user/login", Extension(state): Extension<AppState>, cookies: tower_cookies::Cookies)]
 pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
     use crate::middleware::sessions::{SESSION_COOKIE_NAME, types::CreateSession};
     use argon2::{Argon2, PasswordVerifier, password_hash::PasswordHash};
     use chrono::Utc;
     use uuid::Uuid;
-
-    let Extension(state) = state;
 
     login_data.validate()?;
 
@@ -107,10 +103,10 @@ pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
         return Err(anyhow::anyhow!("Something went wrong"));
     };
 
-    let mut tx = state.0.db_pool.begin().await?;
+    let mut tx = state.db_pool.begin().await?;
 
     if let Some(session_id) = cookies
-        .private(&state.0.config.cookies_secret)
+        .private(&state.config.cookies_secret)
         .get(SESSION_COOKIE_NAME)
     {
         if sqlx::query!(
@@ -204,24 +200,22 @@ pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
 
     let cookie = cookie.build();
 
-    cookies.private(&state.0.config.cookies_secret).add(cookie);
+    cookies.private(&state.config.cookies_secret).add(cookie);
 
     tx.commit().await?;
 
     Ok(())
 }
 
-#[post("/api/v1/user/logout", state: Extension<AppState>, cookies: tower_cookies::Cookies)]
+#[post("/api/v1/user/logout", Extension(state): Extension<AppState>, cookies: tower_cookies::Cookies)]
 pub async fn logout_admin() -> anyhow::Result<()> {
     use crate::middleware::sessions::SESSION_COOKIE_NAME;
     use uuid::Uuid;
 
-    let Extension(state) = state;
-
-    let mut tx = state.0.db_pool.begin().await?;
+    let mut tx = state.db_pool.begin().await?;
 
     if let Some(session_id) = cookies
-        .private(&state.0.config.cookies_secret)
+        .private(&state.config.cookies_secret)
         .get(SESSION_COOKIE_NAME)
     {
         sqlx::query!(
@@ -239,9 +233,7 @@ pub async fn logout_admin() -> anyhow::Result<()> {
             .http_only(true)
             .build();
 
-        cookies
-            .private(&state.0.config.cookies_secret)
-            .remove(cookie);
+        cookies.private(&state.config.cookies_secret).remove(cookie);
     }
 
     Ok(())

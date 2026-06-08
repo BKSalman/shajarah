@@ -22,9 +22,8 @@ mod server_imports {
 #[cfg(feature = "server")]
 use server_imports::*;
 
-#[post("/api/v1/members/request", state: Extension<AppState>)]
+#[post("/api/v1/members/request", Extension(state): Extension<AppState>)]
 pub async fn add_request(request_data: RequestData) -> Result<(), anyhow::Error> {
-    let Extension(state) = state;
     request_data.validate()?;
 
     let RequestData {
@@ -54,16 +53,14 @@ pub async fn add_request(request_data: RequestData) -> Result<(), anyhow::Error>
         uuid::Uuid::new_v4(), name, gender as _, birthday, last_name, father_id, mother_id,
         image, image_type, info, Utc::now(),
     )
-    .execute(&state.0.db_pool)
+    .execute(&state.db_pool)
     .await?;
 
     Ok(())
 }
 
-#[get("/api/v1/members/request", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
+#[get("/api/v1/members/request", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, Extension(state): Extension<AppState>)]
 pub async fn member_requests() -> Result<Vec<RequestedMember>, anyhow::Error> {
-    let Extension(state) = state;
-
     let recs: Vec<RequestedMemberRowWithParents> = sqlx::query_as(
         r#"
         SELECT
@@ -97,7 +94,7 @@ pub async fn member_requests() -> Result<Vec<RequestedMember>, anyhow::Error> {
             m.name ASC
             "#,
     )
-    .fetch_all(&state.0.db_pool)
+    .fetch_all(&state.db_pool)
     .await?;
 
     let requested_members: Vec<RequestedMember> = recs
@@ -129,12 +126,11 @@ pub async fn member_requests() -> Result<Vec<RequestedMember>, anyhow::Error> {
     Ok(requested_members)
 }
 
-#[put("/api/v1/members/request/approve", admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
+#[put("/api/v1/members/request/approve", admin: AuthExtractor<{ UserRole::Admin as u8 }>, Extension(state): Extension<AppState>)]
 pub async fn approve_request(request_id: Uuid) -> Result<(), anyhow::Error> {
     use sqlx::types::Json;
-    let Extension(state) = state;
 
-    let mut tx = state.0.db_pool.begin().await?;
+    let mut tx = state.db_pool.begin().await?;
 
     let requested_member_info = sqlx::query_as!(
         RequestedMemberBrief,
@@ -174,11 +170,9 @@ pub async fn approve_request(request_id: Uuid) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-#[put("/api/v1/members/request/disapprove", admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]
+#[put("/api/v1/members/request/disapprove", admin: AuthExtractor<{ UserRole::Admin as u8 }>, Extension(state): Extension<AppState>)]
 pub async fn disapprove_request(request_id: Uuid) -> Result<(), anyhow::Error> {
-    let Extension(state) = state;
-
-    let mut tx = state.0.db_pool.begin().await?;
+    let mut tx = state.db_pool.begin().await?;
 
     sqlx::query!(
         r#"

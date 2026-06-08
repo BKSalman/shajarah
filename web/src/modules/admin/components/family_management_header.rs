@@ -95,6 +95,7 @@ fn AddMemberButton(props: AddMemberButtonProps) -> Element {
 struct CsvUploadButtonProps {
     on_upload: EventHandler<Event<FormData>>,
 }
+
 #[component]
 fn CsvUploadButton(props: CsvUploadButtonProps) -> Element {
     rsx! {
@@ -121,6 +122,7 @@ fn CsvUploadButton(props: CsvUploadButtonProps) -> Element {
         }
     }
 }
+
 #[component]
 pub fn ExportButton() -> Element {
     rsx! {

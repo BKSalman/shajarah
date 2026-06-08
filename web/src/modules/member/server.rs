@@ -16,10 +16,8 @@ use super::types::{ChildMember, Gender, MemberResponse, MemberResponseFlat};
 #[cfg(feature = "server")]
 use server_imports::*;
 
-#[get("/api/v1/members", state: Extension<AppState>)]
+#[get("/api/v1/members", Extension(state): Extension<AppState>)]
 pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
-    let Extension(state) = state;
-
     let recs = sqlx::query_as!(
         MemberRowWithParents,
         r#"
@@ -51,7 +49,7 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
                 members father ON m.father_id = father.id;
         "#,
     )
-    .fetch_all(&state.0.db_pool)
+    .fetch_all(&state.db_pool)
     .await?;
 
     if recs.is_empty() {
@@ -127,7 +125,7 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
             m.id, m.name ASC
             "#,
     )
-    .fetch_all(&state.0.db_pool)
+    .fetch_all(&state.db_pool)
     .await?;
     let all_children: Vec<ChildMember> = sqlx::query_as(
         r#"
@@ -145,7 +143,7 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
         ORDER BY name ASC
         "#,
     )
-    .fetch_all(&state.0.db_pool)
+    .fetch_all(&state.db_pool)
     .await?;
 
     let members: Vec<MemberResponseFlat> = recs
@@ -210,7 +208,7 @@ pub async fn add_member(
         gender as _,
         birthday,
     )
-    .execute(&state.0.db_pool)
+    .execute(&state.db_pool)
     .await?;
 
     Ok(())
@@ -264,16 +262,14 @@ pub async fn edit_member(
 
         query.push(" WHERE id = ").push_bind(id);
 
-        query.build().execute(&state.0.db_pool).await?;
+        query.build().execute(&state.db_pool).await?;
     }
 
     Ok(())
 }
 
-#[delete("/api/v1/members/{id}", state: Extension<AppState>)]
+#[delete("/api/v1/members/{id}", Extension(state): Extension<AppState>)]
 pub async fn delete_member(id: i64) -> anyhow::Result<()> {
-    let Extension(state) = state;
-
     sqlx::query!(
         r#"
             DELETE FROM members
@@ -281,15 +277,13 @@ pub async fn delete_member(id: i64) -> anyhow::Result<()> {
         "#,
         id,
     )
-    .execute(&state.0.db_pool)
+    .execute(&state.db_pool)
     .await?;
     Ok(())
 }
 
-#[post("/api/v1/members/csv", state: Extension<AppState>)]
+#[post("/api/v1/members/csv", Extension(state): Extension<AppState>)]
 pub async fn upload_members_csv(csv_str: String) -> anyhow::Result<()> {
-    let Extension(state) = state;
-
     let mut csv_reader = csv::ReaderBuilder::new()
         .delimiter(b',')
         .from_reader(csv_str.as_bytes());
@@ -303,7 +297,7 @@ pub async fn upload_members_csv(csv_str: String) -> anyhow::Result<()> {
         })
         .collect::<anyhow::Result<Vec<MemberRow>>>()?;
 
-    let mut tx = state.0.db_pool.begin().await?;
+    let mut tx = state.db_pool.begin().await?;
 
     let mut query = sqlx::QueryBuilder::new(
         "INSERT INTO members (id, name, last_name, gender, birthday, mother_id, father_id)",

@@ -1,0 +1,52 @@
+use dioxus::prelude::*;
+
+use super::types::MemberSearch;
+
+#[cfg(feature = "server")]
+mod server_imports {
+    pub use crate::modules::member::types::Gender;
+    pub use crate::server::AppState;
+    pub use axum::Extension;
+}
+
+#[cfg(feature = "server")]
+use server_imports::*;
+
+#[get("/api/v1/member/search?q", Extension(state): Extension<AppState>)]
+pub async fn search_member(q: String) -> anyhow::Result<Vec<MemberSearch>> {
+    Ok(sqlx::query_as!(
+        MemberSearch,
+        r#"
+            SELECT
+            p1.id,
+            p1.name,
+            CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name) AS full_name,
+            p1.last_name,
+            p1.gender as "gender: Gender",
+            p1.birthday,
+            p2.name AS "father: Option<String>",
+            p3.name AS "grandfather: Option<String>",
+            p4.name AS "great_grandfather: Option<String>"
+            FROM members p1
+            LEFT JOIN members p2 ON p1.father_id = p2.id
+            LEFT JOIN members p3 ON p2.father_id = p3.id
+            LEFT JOIN members p4 ON p3.father_id = p4.id
+            WHERE
+            p1.name % $1
+            OR p2.name % $1
+            OR p3.name % $1
+            OR p4.name % $1
+            ORDER BY
+            GREATEST(
+                similarity(p1.name, $1),
+                similarity(COALESCE(p2.name, ''), $1),
+                similarity(COALESCE(p3.name, ''), $1),
+                similarity(COALESCE(p4.name, ''), $1)
+            ) DESC
+            LIMIT 20;
+        "#,
+        q
+    )
+    .fetch_all(&state.db_pool)
+    .await?)
+}

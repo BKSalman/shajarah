@@ -66,7 +66,7 @@ impl FromRequestParts<AppState> for UserSession {
                     SessionError::SomethingWentWrong
                 })?;
         if let Some(session_id) = cookies
-            .private(&state.0.config.cookies_secret)
+            .private(&state.config.cookies_secret)
             .get(SESSION_COOKIE_NAME)
         {
             Ok(Self {

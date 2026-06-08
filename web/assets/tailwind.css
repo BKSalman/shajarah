@@ -396,6 +396,9 @@
   .h-full {
     height: 100%;
   }
+  .max-h-60 {
+    max-height: calc(var(--spacing) * 60);
+  }
   .max-h-screen {
     max-height: 100vh;
   }
@@ -1030,10 +1033,10 @@
       }
     }
   }
-  .hover\:border-\(--color-primary\) {
+  .hover\:border-\(--primary-color\) {
     &:hover {
       @media (hover: hover) {
-        border-color: var(--color-primary);
+        border-color: var(--primary-color);
       }
     }
   }
@@ -1048,6 +1051,13 @@
     &:hover {
       @media (hover: hover) {
         border-color: var(--color-red-700);
+      }
+    }
+  }
+  .hover\:bg-gray-50 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-gray-50);
       }
     }
   }
@@ -1337,11 +1347,6 @@
   .lg\:items-center {
     @media (width >= 64rem) {
       align-items: center;
-    }
-  }
-  .lg\:p-4 {
-    @media (width >= 64rem) {
-      padding: calc(var(--spacing) * 4);
     }
   }
   .lg\:p-8 {

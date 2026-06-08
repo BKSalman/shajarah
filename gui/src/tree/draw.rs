@@ -23,6 +23,7 @@ impl TreeUi {
         ui.style_mut().zoom(self.scale);
         let bg_resp = ui.allocate_rect(ui.max_rect(), Sense::click_and_drag());
         let viewport = bg_resp.rect;
+        self.viewport = viewport;
         ui.set_clip_rect(viewport);
         if bg_resp.dragged() {
             self.pan(bg_resp.drag_delta());

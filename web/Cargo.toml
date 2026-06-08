@@ -7,9 +7,11 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dioxus = { version = "0.7.8", features = ["router", "fullstack"] }
+shared = { path = "../shared" }
+
+dioxus = { version = "0.7.9", features = ["router", "fullstack"] }
 # https://github.com/DioxusLabs/dioxus/issues/4765
-dioxus-html = { version = "0.7.8", features = ["serialize"] }
+dioxus-html = { version = "0.7.9", features = ["serialize"] }
 axum = { version = "0.8.4", features = ["macros", "multipart"], optional = true }
 tokio = { version = "1", features = [ "fs", "io-std", "io-util", "macros", "net", "parking_lot", "process", "rt", "rt-multi-thread", "signal" ], optional = true }
 tower-http = { version = "0.6.6", features = ["cors", "limit", "fs"], optional = true }
@@ -17,7 +19,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true }
 indexmap = { workspace = true }
-sqlx = { version = "0.8.6", features = [ "runtime-tokio", "tls-rustls", "postgres", "chrono", "uuid" ], optional = true }
+sqlx = { version = "0.9", features = [ "runtime-tokio", "tls-rustls", "postgres", "chrono", "uuid" ], optional = true }
 garde = { version = "0.23.0", features = ["derive", "email"] }
 uuid = { version = "1.18.0", features = ["serde", "v4"] }
 thiserror = "2.0.14"
@@ -34,6 +36,10 @@ csv = { version = "1.3.1", optional = true }
 tower = "0.5.2"
 anyhow = { workspace = true }
 http = "1.4.0"
+gloo-timers = { version = "0.4.0", features = ["futures"] }
+futures = "0.3.32"
+dioxus-primitives = { git = "https://github.com/DioxusLabs/components", version = "0.0.1", default-features = false }
+dioxus-icons = { version = "0.1.0", default-features = false }
 
 [target.wasm32-unknown-unknown.dependencies]
 uuid = { version = "1.18.0", features = ["serde", "v4", "js"] }

@@ -1,5 +1,6 @@
-use crate::{load_family_data, setup_fonts, tree::TreeUi, Message};
-use eframe::egui;
+use crate::{Message, load_family_data, setup_fonts, tree::TreeUi};
+use eframe::egui::{self, Vec2};
+use shared::EguiCommand;
 use std::sync::mpsc::{self, Receiver, Sender};
 
 pub struct App {
@@ -7,10 +8,14 @@ pub struct App {
     message_receiver: Receiver<Message>,
     message_sender: Sender<Message>,
     backend_address: String,
+    commands_rx: futures::channel::mpsc::Receiver<EguiCommand>,
 }
 
 impl App {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(
+        cc: &eframe::CreationContext<'_>,
+        commands_rx: futures::channel::mpsc::Receiver<EguiCommand>,
+    ) -> Self {
         setup_fonts(&cc.egui_ctx);
         egui_extras::install_image_loaders(&cc.egui_ctx);
         let (sender, receiver) = mpsc::channel();
@@ -24,6 +29,7 @@ impl App {
             message_sender: sender.clone(),
             message_receiver: receiver,
             backend_address: address.to_string(),
+            commands_rx,
         }
     }
 }
@@ -32,6 +38,18 @@ impl eframe::App for App {
     fn save(&mut self, _storage: &mut dyn eframe::Storage) {}
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        while let Ok(command) = self.commands_rx.try_recv() {
+            match command {
+                EguiCommand::Ping => {
+                    log::info!("ping");
+                }
+                EguiCommand::HighlightMember(member_id) => {
+                    log::info!("{member_id}");
+                    self.tree.focus_node(member_id);
+                }
+            }
+        }
+
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 let is_web = cfg!(target_arch = "wasm32");

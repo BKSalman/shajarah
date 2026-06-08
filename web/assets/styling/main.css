@@ -15,11 +15,11 @@
   /* Forest dark - like deep woods shadow */
 
   /* Mapped to semantic color system */
-  --color-primary: var(--color-forest-primary);
-  --color-primary-dark: var(--color-forest-dark);
-  --color-primary-light: var(--color-forest-medium);
-  --color-primary-lighter: var(--color-forest-light);
-  --color-primary-lightest: var(--color-forest-background);
+  --primary-color: var(--color-forest-primary);
+  --primary-color-dark: var(--color-forest-dark);
+  --primary-color-light: var(--color-forest-medium);
+  --primary-color-lighter: var(--color-forest-light);
+  --primary-color-lightest: var(--color-forest-background);
 
   /* Secondary colors (keeping blue for contrast) */
   --color-secondary: #3b82f6;
@@ -104,7 +104,6 @@ html {
 body {
   padding: 0;
   margin: 0;
-  background-color: var(--primary-color);
   color: var(--secondary-color-4);
   font-family: var(--font-family-arabic);
   font-optical-sizing: auto;

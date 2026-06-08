@@ -166,3 +166,17 @@ pub struct MemberRow {
     pub mother_id: Option<i64>,
     pub father_id: Option<i64>,
 }
+
+#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MemberSearch {
+    pub id: i64,
+    pub name: String,
+    pub last_name: String,
+    pub full_name: Option<String>,
+    pub gender: Gender,
+    pub birthday: Option<chrono::DateTime<chrono::Utc>>,
+    pub father: Option<String>,
+    pub grandfather: Option<String>,
+    pub great_grandfather: Option<String>,
+}
