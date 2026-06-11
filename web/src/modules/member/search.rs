@@ -20,7 +20,7 @@ pub async fn search_member(q: String) -> anyhow::Result<Vec<MemberSearch>> {
             SELECT
             p1.id,
             p1.name,
-            CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name) AS full_name,
+            CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name) AS full_name,
             p1.last_name,
             p1.gender as "gender: Gender",
             p1.birthday,
@@ -33,16 +33,17 @@ pub async fn search_member(q: String) -> anyhow::Result<Vec<MemberSearch>> {
             LEFT JOIN members p4 ON p3.father_id = p4.id
             WHERE
             p1.name % $1
+            OR p1.last_name % $1
             OR p2.name % $1
             OR p3.name % $1
             OR p4.name % $1
-            ORDER BY
-            GREATEST(
-                similarity(p1.name, $1),
-                similarity(COALESCE(p2.name, ''), $1),
-                similarity(COALESCE(p3.name, ''), $1),
-                similarity(COALESCE(p4.name, ''), $1)
-            ) DESC
+            ORDER BY (
+                similarity(CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name), $1) * 0.7
+                    - ABS(
+                        LENGTH(CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name)) - LENGTH($1)
+                    )::float / GREATEST(LENGTH(CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name)), LENGTH($1)) * 0.3
+            )
+            DESC
             LIMIT 20;
         "#,
         q
