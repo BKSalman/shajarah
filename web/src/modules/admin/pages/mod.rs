@@ -118,6 +118,23 @@ pub fn Admin() -> Element {
     let mut tab = use_signal(|| Tab::Members);
     let mut show_modal = use_signal(|| None::<ShowModal>);
 
+    let mut csv_upload = use_action(move |e: Event<FormData>| async move {
+        if let Some(file_data) = e.files().iter().next()
+            && let Ok(data) = file_data.read_string().await
+        {
+            return upload_members_csv(data).await;
+        }
+
+        Err(anyhow::anyhow!(""))
+    });
+
+    use_effect(move || {
+        tracing::info!("lmao");
+        if csv_upload.value().is_some_and(|r| r.is_ok()) {
+            members_resource.restart();
+        }
+    });
+
     let members_count = (&*members_resource.read())
         .as_ref()
         .and_then(|e| e.as_ref().map(|e| e.len()).ok())
@@ -549,14 +566,6 @@ pub fn Admin() -> Element {
                 }
                 match &*tab.read() {
                     Tab::Members => {
-                        let mut csv_upload = use_action(move |e: Event<FormData>| async move {
-                            if let Some(file_data) = e.files().iter().next() &&
-                                let Ok(data) = file_data.read_string().await {
-                                    return upload_members_csv(data).await;
-                            }
-
-                            Err(anyhow::anyhow!(""))
-                        });
 
                         rsx! {
                             FamilyManagementHeader {
@@ -564,7 +573,10 @@ pub fn Admin() -> Element {
                                 on_add_member: move |_| {
                                     show_modal.set(Some(ShowModal::AddMember));
                                 },
-                                on_csv_upload: move |e| csv_upload.call(e),
+                                on_csv_upload: move |e| {
+                                    csv_upload.call(e);
+                                    tracing::info!("{:?}", csv_upload.value());
+                                },
                             }
                             {members_grid}
                         }
