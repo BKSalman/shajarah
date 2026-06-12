@@ -84,7 +84,7 @@
         });
       in with pkgs; {
         devShells.default = mkShell.override {
-            stdenv = pkgs.stdenvAdapters.useMoldLinker pkgs.clangStdenv;
+            stdenv = pkgs.useWildLinker pkgs.stdenv;
           } rec {
           packages = [
             # Rust
