@@ -40,6 +40,7 @@ gloo-timers = { version = "0.4.0", features = ["futures"] }
 futures = "0.3.32"
 dioxus-primitives = { git = "https://github.com/DioxusLabs/components", version = "0.0.1", default-features = false }
 dioxus-icons = { version = "0.1.0", default-features = false }
+web-sys.workspace = true
 
 [target.wasm32-unknown-unknown.dependencies]
 uuid = { version = "1.18.0", features = ["serde", "v4", "js"] }

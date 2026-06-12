@@ -8455,6 +8455,7 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
+ "web-sys",
 ]
 
 [[package]]

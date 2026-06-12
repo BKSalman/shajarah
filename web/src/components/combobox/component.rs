@@ -79,6 +79,22 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
         }
     };
 
+    use_effect(move || {
+        if let Some(idx) = highlighted() {
+            let id = format!("combobox-option-{idx}");
+            if let Some(el) = web_sys::window()
+                .and_then(|w| w.document())
+                .and_then(|d| d.get_element_by_id(&id))
+            {
+                let options = web_sys::ScrollIntoViewOptions::new();
+                options.set_behavior(web_sys::ScrollBehavior::Instant);
+                options.set_block(web_sys::ScrollLogicalPosition::Nearest);
+                options.set_inline(web_sys::ScrollLogicalPosition::Nearest);
+                el.scroll_into_view_with_scroll_into_view_options(&options);
+            }
+        }
+    });
+
     rsx! {
         div {
             class: "relative w-full",
@@ -115,6 +131,7 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
                             rsx! {
                                 li {
                                     key: "{opt.index}",
+                                    id: "combobox-option-{idx}",
                                     class: if is_highlighted {
                                         "px-4 py-2 cursor-pointer bg-gray-100 text-gray-900"
                                     } else {
