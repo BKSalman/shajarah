@@ -89,6 +89,7 @@ pub fn Tree() -> Element {
                 on_select: move |option: ComboboxOption<i64>| {
                     tracing::info!("select: {option:?}");
                     on_select.call(option.value);
+                    on_input.call(option.label);
                 },
                 options: members_search_list.iter().enumerate().map(|(i, member)|  {
                     ComboboxOption {
