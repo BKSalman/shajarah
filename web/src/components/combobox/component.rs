@@ -18,6 +18,8 @@ pub struct ComboboxProps<T: core::fmt::Debug + Clone + PartialEq + 'static> {
     pub options: Vec<ComboboxOption<T>>,
     #[props(default = "Search...".to_string())]
     pub placeholder: String,
+    #[props(default = None)]
+    pub on_mount: Option<EventHandler<Event<MountedData>>>,
 }
 
 #[component]
@@ -98,7 +100,6 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
     rsx! {
         div {
             class: "relative w-full",
-
             input {
                 class: "input w-full",
                 value: "{query}",
@@ -115,6 +116,11 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
                 onfocus: move |_| {
                     if !query.read().is_empty() {
                         open.set(true);
+                    }
+                },
+                onmounted: move |element| {
+                    if let Some(on_mount) = props.on_mount {
+                        on_mount(element);
                     }
                 },
             }
