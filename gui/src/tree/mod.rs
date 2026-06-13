@@ -75,7 +75,10 @@ impl TreeUi {
 
             if let Some(node) = self.layout_tree.get(id) {
                 let center = self.viewport.center().to_vec2();
-                self.offset = Vec2::new(-node.x + center.x, -node.y + center.y);
+                self.offset = Vec2::new(
+                    -node.x * self.scale + center.x,
+                    -node.y * self.scale + center.y,
+                );
             }
         }
     }
