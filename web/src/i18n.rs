@@ -6,7 +6,7 @@ pub struct Arabic;
 
 impl garde::I18n for Arabic {
     fn length_lower_than(&self, min: usize) -> Cow<'static, str> {
-        Cow::Borrowed("يجب أن يكون ُ{min} على الأقل")
+        Cow::Owned(format!("يجب أن يكون ُ{min} على الأقل"))
     }
 
     fn length_greater_than(&self, max: usize) -> Cow<'static, str> {

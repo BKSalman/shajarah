@@ -329,22 +329,12 @@ pub mod server {
 pub mod client {
     use serde::{Deserialize, Serialize};
 
-    #[derive(Clone, PartialEq, Serialize, Deserialize)]
+    #[derive(Default, Clone, PartialEq, Serialize, Deserialize)]
     pub struct Config {
         #[serde(default)]
         pub family_name: Option<String>,
         #[serde(default)]
         pub family_description: Option<String>,
         pub public: bool,
-    }
-
-    impl Default for Config {
-        fn default() -> Self {
-            Self {
-                family_name: None,
-                family_description: None,
-                public: false,
-            }
-        }
     }
 }
