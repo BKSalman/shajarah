@@ -86,7 +86,7 @@ impl Node {
         background_clicked: bool,
     ) {
         let stroke = ui.visuals().widgets.noninteractive.fg_stroke;
-        let coords = {
+        let node_coords = {
             let layout_node = layout_tree
                 .get(self.id)
                 .expect("probably didn't update the layout tree");
@@ -95,12 +95,19 @@ impl Node {
                 offset.y + layout_node.y * scale,
             )
         };
+
         let image_rect = Rect::from_center_size(
-            coords,
+            node_coords,
             (Vec2::splat(NODE_RADIUS as f32 * 2.) * scale) + Vec2::splat(1.0),
         );
-        let response = ui.allocate_rect(image_rect, Sense::click());
-        if response.clicked() {
+        let image_res = ui.allocate_rect(image_rect, Sense::click());
+
+        let indicator_rect = Rect::from_min_size(
+            image_rect.min - Vec2::new(EXPAND_INDICATOR_SIZE * 2., 0.),
+            Vec2::new(EXPAND_INDICATOR_SIZE * 2., image_rect.height()),
+        );
+        let indicator_res = ui.allocate_rect(indicator_rect, Sense::click());
+        if !self.children.is_empty() && indicator_res.clicked() {
             self.collapsed = !self.collapsed;
             layout_tree
                 .get_mut(self.id)
@@ -115,10 +122,10 @@ impl Node {
                 .get(self.id)
                 .expect("node should exist in layout tree");
             offset.x -= (new_node.x - prev_x) * scale;
-        }
-        if response.secondary_clicked() {
+        } else if image_res.clicked() {
             self.window_is_open = !self.window_is_open;
         }
+
         let text_style = FontId::new(24.0 * scale, FontFamily::Monospace);
         let painter = ui.painter();
         let mut job = LayoutJob::default();
@@ -135,11 +142,12 @@ impl Node {
         #[cfg(feature = "debug-ui")]
         let galley_c = galley.clone();
         let text_coords = Pos2::new(
-            coords.x - galley.size().x / 2.,
-            coords.y + NODE_RADIUS as f32 * scale,
+            node_coords.x - galley.size().x / 2.,
+            node_coords.y + NODE_RADIUS as f32 * scale,
         );
         let text_size = galley.size();
         painter.galley(text_coords, galley, Color32::WHITE);
+
         if !self.collapsed {
             for child in self.children.iter() {
                 let child_coords = layout_tree
@@ -149,7 +157,7 @@ impl Node {
                     offset.x + child_coords.x * scale,
                     offset.y + child_coords.y * scale,
                 );
-                if child_coords.x == coords.x {
+                if child_coords.x == node_coords.x {
                     painter.line_segment(
                         [
                             child_coords,
@@ -182,8 +190,9 @@ impl Node {
                 }
             }
         }
+
         let window_pos =
-            coords + Vec2::new(NODE_RADIUS as f32 * 1.2, -(NODE_RADIUS as f32 / 2.)) * scale;
+            node_coords + Vec2::new(NODE_RADIUS as f32 * 1.2, -(NODE_RADIUS as f32 / 2.)) * scale;
         if background_clicked && self.window_is_open {
             self.window_is_open = false;
         }
@@ -263,46 +272,40 @@ impl Node {
             }
         }
         let painter = ui.painter();
-        painter.circle_filled(coords, NODE_RADIUS as f32 * scale, Color32::LIGHT_BLUE);
+        painter.circle_filled(node_coords, NODE_RADIUS as f32 * scale, Color32::LIGHT_BLUE);
+
         if !self.children.is_empty() {
+            let coords = Pos2::new(image_rect.min.x, image_rect.max.y)
+                - Vec2::new(EXPAND_INDICATOR_SIZE, EXPAND_INDICATOR_SIZE) * scale;
             if self.collapsed {
                 let mut shape = Shape::convex_polygon(
                     vec![
-                        coords + Vec2::new(-(NODE_RADIUS as f32), NODE_RADIUS as f32) * scale,
+                        coords,
                         coords
-                            + Vec2::new(-(NODE_RADIUS as f32), NODE_RADIUS as f32) * scale
                             + Vec2::new(-EXPAND_INDICATOR_SIZE / 2., -EXPAND_INDICATOR_SIZE / 2.)
                                 * scale,
                         coords
-                            + Vec2::new(-(NODE_RADIUS as f32), NODE_RADIUS as f32) * scale
                             + Vec2::new(EXPAND_INDICATOR_SIZE / 2., -EXPAND_INDICATOR_SIZE / 2.)
                                 * scale,
                     ],
                     stroke.color,
                     PathStroke::NONE,
                 );
-                shape.translate(Vec2::new(-1., 5.));
                 painter.add(shape);
             } else {
                 let mut shape = Shape::convex_polygon(
                     vec![
-                        coords
-                            + Vec2::new(-(NODE_RADIUS as f32), NODE_RADIUS as f32) * scale
-                            + Vec2::new(0., -EXPAND_INDICATOR_SIZE / 1.8) * scale,
-                        coords
-                            + Vec2::new(-(NODE_RADIUS as f32), NODE_RADIUS as f32) * scale
-                            + Vec2::new(-EXPAND_INDICATOR_SIZE / 1.8, 0.) * scale,
-                        coords
-                            + Vec2::new(-(NODE_RADIUS as f32), NODE_RADIUS as f32) * scale
-                            + Vec2::new(EXPAND_INDICATOR_SIZE / 1.8, 0.) * scale,
+                        coords + Vec2::new(0., -EXPAND_INDICATOR_SIZE / 1.8) * scale,
+                        coords + Vec2::new(-EXPAND_INDICATOR_SIZE / 1.8, 0.) * scale,
+                        coords + Vec2::new(EXPAND_INDICATOR_SIZE / 1.8, 0.) * scale,
                     ],
                     stroke.color,
                     PathStroke::NONE,
                 );
-                shape.translate(Vec2::new(-1., 5.));
                 painter.add(shape);
             }
         }
+
         #[cfg(feature = "debug-ui")]
         painter.rect_stroke(
             image_rect,
@@ -323,9 +326,9 @@ impl Node {
             .maintain_aspect_ratio(true)
             .show_loading_spinner(true)
             .paint_at(ui, image_rect);
-        if response.hovered() {
+        if image_res.hovered() {
             let painter = ui.painter();
-            painter.circle_stroke(coords, NODE_RADIUS as f32 * scale, stroke);
+            painter.circle_stroke(node_coords, NODE_RADIUS as f32 * scale, stroke);
         }
         #[cfg(feature = "debug-ui")]
         painter.rect_stroke(
