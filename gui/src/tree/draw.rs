@@ -140,7 +140,11 @@ impl Node {
                 .expect("node should exist in layout tree");
             offset.x -= (new_node.x - prev_x) * scale;
         } else if image_res.clicked() {
-            *selected_node = Some(self.clone());
+            if selected_node.as_ref().is_some_and(|sn| sn.id == self.id) {
+                selected_node.take();
+            } else {
+                *selected_node = Some(self.clone());
+            }
         }
 
         let text_style = FontId::new(24.0 * scale, FontFamily::Monospace);
