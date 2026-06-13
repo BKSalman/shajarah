@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
+use indexmap::IndexMap;
 
 #[cfg(feature = "server")]
 mod server_imports {
@@ -8,7 +9,6 @@ mod server_imports {
     pub use crate::modules::user::types::UserRole;
     pub use crate::server::AppState;
     pub use axum::extract::Extension;
-    pub use indexmap::IndexMap;
 }
 use crate::modules::member::types::MemberRow;
 
@@ -232,6 +232,7 @@ pub async fn edit_member(
     mother_id: Option<i64>,
     gender: Option<Gender>,
     birthday: Option<DateTime<Utc>>,
+    personal_info: Option<IndexMap<String, String>>,
 ) -> anyhow::Result<()> {
     let Extension(state) = state;
 
@@ -241,6 +242,7 @@ pub async fn edit_member(
         || mother_id.is_some()
         || gender.is_some()
         || birthday.is_some()
+        || personal_info.is_some()
     {
         let mut query = sqlx::QueryBuilder::new("UPDATE members SET ");
         let mut sep = query.separated(", ");
@@ -267,6 +269,11 @@ pub async fn edit_member(
 
         if let Some(mother_id) = mother_id {
             sep.push_unseparated("mother_id = ").push_bind(mother_id);
+        }
+
+        if let Some(personal_info) = personal_info {
+            sep.push_unseparated("personal_info = ")
+                .push_bind(sqlx::types::Json::from(personal_info));
         }
 
         query.push(" WHERE id = ").push_bind(id);

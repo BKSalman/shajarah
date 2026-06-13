@@ -152,6 +152,26 @@ pub fn Admin() -> Element {
         })
         .unwrap_or(0);
 
+    let mut on_member_edit = use_action(move |data: EditMemberFormData| async move {
+        edit_member(
+            data.id,
+            data.name,
+            data.last_name,
+            data.father_id,
+            data.mother_id,
+            data.gender,
+            data.birthday,
+            data.personal_info,
+        )
+        .await?;
+
+        members_resource.restart();
+
+        show_modal.set(None);
+
+        anyhow::Ok(())
+    });
+
     let members_grid = match &*members_resource.read() {
         Some(Ok(members)) => {
             rsx! {
@@ -197,21 +217,7 @@ pub fn Admin() -> Element {
                                 on_close: move |_| {
                                     show_modal.set(None);
                                 },
-                                on_submit: move |data: EditMemberFormData| async move {
-                                    let _ = edit_member(
-                                        data.id,
-                                        data.name,
-                                        data.last_name,
-                                        data.father_id,
-                                        data.mother_id,
-                                        data.gender,
-                                        data.birthday
-                                    ).await;
-
-                                    members_resource.restart();
-
-                                    show_modal.set(None);
-                                },
+                                on_submit: move |data: EditMemberFormData| on_member_edit.call(data),
                             }
                             Modal {
                                 show: show_modal().is_some_and(|m| m == ShowModal::DeleteMember(member.id)),
