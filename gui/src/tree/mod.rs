@@ -18,6 +18,7 @@ pub struct TreeUi {
     pub root: Option<Node>,
     pub layout_tree: LayoutTree,
     pub viewport: Rect,
+    selected_node: Option<Node>,
 }
 
 impl TreeUi {
@@ -31,6 +32,7 @@ impl TreeUi {
             layout_tree: tree,
             root,
             viewport: Rect::ZERO,
+            selected_node: None,
         }
     }
 
@@ -81,6 +83,14 @@ impl TreeUi {
     pub fn request_recenter(&mut self) {
         self.centered = false;
     }
+
+    pub fn selected_node(&self) -> Option<&Node> {
+        self.selected_node.as_ref()
+    }
+
+    pub fn reset_node_selection(&mut self) {
+        self.selected_node.take();
+    }
 }
 
 fn yes() -> bool {
@@ -91,6 +101,7 @@ fn yes() -> bool {
 pub struct Node {
     pub id: i32,
     name: String,
+    full_name: String,
     gender: Gender,
     birthday: Option<DateTime<Utc>>,
     last_name: String,
@@ -106,7 +117,29 @@ pub struct Node {
     collapsed: bool,
 }
 
-impl Node {}
+impl Node {
+    pub fn image<'a>(&'a self) -> egui::ImageSource<'a> {
+        self.image
+            .as_ref()
+            .map(|i| egui::ImageSource::Bytes {
+                uri: format!("{}-{}", self.id, self.name).into(),
+                bytes: egui::load::Bytes::from(i.clone()),
+            })
+            .unwrap_or(DEFAULT_IMAGE)
+    }
+
+    pub fn name<'a>(&'a self) -> &'a str {
+        &self.name
+    }
+
+    pub fn full_name<'a>(&'a self) -> &'a str {
+        &self.full_name
+    }
+
+    pub fn personal_info<'a>(&'a self) -> Option<&'a IndexMap<String, String>> {
+        self.personal_info.as_ref()
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimpleNode {

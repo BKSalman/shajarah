@@ -129,7 +129,6 @@ pub fn Admin() -> Element {
     });
 
     use_effect(move || {
-        tracing::info!("lmao");
         if csv_upload.value().is_some_and(|r| r.is_ok()) {
             members_resource.restart();
         }

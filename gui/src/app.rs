@@ -1,5 +1,8 @@
-use crate::{Message, load_family_data, setup_fonts, tree::TreeUi};
-use eframe::egui::{self, Vec2};
+use crate::{
+    Message, load_family_data, setup_fonts,
+    tree::{TreeUi, draw::shape_text},
+};
+use eframe::egui::{self, Align, Widget as _};
 use shared::EguiCommand;
 use std::sync::mpsc::{self, Receiver, Sender};
 
@@ -38,6 +41,18 @@ impl eframe::App for App {
     fn save(&mut self, _storage: &mut dyn eframe::Storage) {}
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        while let Ok(message) = self.message_receiver.try_recv() {
+            log::debug!("got {message:?}");
+            match message {
+                Message::LoadedFamilyData(root_node) => {
+                    self.tree.set_root(Some(root_node));
+                    log::debug!("set the root");
+                    self.tree.layout();
+                    log::debug!("laid out the tree");
+                }
+            }
+        }
+
         while let Ok(command) = self.commands_rx.try_recv() {
             match command {
                 EguiCommand::Ping => {
@@ -45,6 +60,7 @@ impl eframe::App for App {
                 }
                 EguiCommand::HighlightMember(member_id) => {
                     log::info!("{member_id}");
+                    self.tree.reset_node_selection();
                     self.tree.focus_node(member_id);
                 }
             }
@@ -81,22 +97,49 @@ impl eframe::App for App {
                 }
             });
         });
+
+        if let Some(node) = self.tree.selected_node() {
+            egui::TopBottomPanel::bottom("member")
+                .min_height(200.)
+                .show(ctx, |ui| {
+                    ui.with_layout(egui::Layout::right_to_left(Align::TOP), |ui| {
+                        let image = node.image();
+                        egui::Image::new(image)
+                            .maintain_aspect_ratio(true)
+                            .show_loading_spinner(true)
+                            .ui(ui);
+                        #[cfg(feature = "debug-ui")]
+                        {
+                            let layout_node = layout_tree
+                                .get(self.id)
+                                .expect("probably didn't update the layout tree");
+                            ui.label(format!("{{ x: {}, y: {} }}", layout_node.x, layout_node.y));
+                            ui.label(layout_node.depth.to_string());
+                        }
+                        ui.with_layout(egui::Layout::top_down(Align::RIGHT), |ui| {
+                            ui.heading(node.id.to_string());
+                            ui.heading(shape_text(node.full_name()));
+                            if let Some(personal_info) = node.personal_info() {
+                                if !personal_info.is_empty() {
+                                    ui.add_space(10.);
+                                    ui.heading(shape_text("المعلومات الشخصية:"));
+                                    for (key, value) in personal_info {
+                                        ui.heading(shape_text(&format!("{key}: {value}")));
+                                    }
+                                }
+                            }
+                        })
+                    });
+                });
+        };
+
+        let tree_rect = ctx.available_rect();
+
         egui::CentralPanel::default().show(ctx, |ui| {
             if ui.input(|i| i.key_pressed(egui::Key::F5)) {
                 load_family_data(&self.backend_address, self.message_sender.clone(), ctx);
             }
-            self.tree.draw(ui);
+            self.tree.draw(ui, tree_rect);
         });
-        if let Ok(message) = self.message_receiver.try_recv() {
-            log::debug!("got {message:?}");
-            match message {
-                Message::LoadedFamilyData(root_node) => {
-                    self.tree.set_root(Some(root_node));
-                    log::debug!("set the root");
-                    self.tree.layout();
-                    log::debug!("laid out the tree");
-                }
-            }
-        }
     }
 }

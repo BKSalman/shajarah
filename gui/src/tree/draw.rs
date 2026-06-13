@@ -1,16 +1,18 @@
-use super::{DEFAULT_IMAGE, NODE_RADIUS, Node, SimpleNode, TreeUi, layout::LayoutTree};
-use crate::zoom::Zoom;
 use ar_reshaper::{ArabicReshaper, ReshaperConfig, config::LigaturesFlags};
-use eframe::egui;
+use eframe::egui::{self, UiBuilder};
 use egui::Stroke;
 #[cfg(feature = "debug-ui")]
 use egui::StrokeKind;
 use egui::epaint::PathStroke;
 use egui::{
-    Align, Color32, CornerRadius, FontFamily, FontId, PointerButton, Pos2, Rect, Sense, Shape,
-    TextFormat, Vec2, Vec2b, Widget, epaint::CubicBezierShape, text::LayoutJob,
+    Color32, CornerRadius, FontFamily, FontId, PointerButton, Pos2, Rect, Sense, Shape, TextFormat,
+    Vec2, epaint::CubicBezierShape, text::LayoutJob,
 };
 use unicode_bidi::BidiInfo;
+
+use super::{DEFAULT_IMAGE, NODE_RADIUS, Node, TreeUi, layout::LayoutTree};
+use crate::zoom::Zoom;
+
 const MAX_SCALE: f32 = 5.0;
 const MIN_SCALE: f32 = 0.2;
 const RESHAPER: ArabicReshaper = ArabicReshaper::new(ReshaperConfig::new(
@@ -18,63 +20,78 @@ const RESHAPER: ArabicReshaper = ArabicReshaper::new(ReshaperConfig::new(
     LigaturesFlags::default(),
 ));
 const EXPAND_INDICATOR_SIZE: f32 = 20.;
+
 impl TreeUi {
-    pub fn draw(&mut self, ui: &mut egui::Ui) {
-        ui.style_mut().zoom(self.scale);
-        let bg_resp = ui.allocate_rect(ui.max_rect(), Sense::click_and_drag());
-        let viewport = bg_resp.rect;
-        self.viewport = viewport;
-        ui.set_clip_rect(viewport);
-        if bg_resp.dragged() {
-            self.pan(bg_resp.drag_delta());
-            #[cfg(feature = "debug-ui")]
-            log::debug!("new offset: {:?}", self.offset);
-        }
-        let background_clicked = bg_resp.clicked_by(PointerButton::Primary);
+    pub fn draw(&mut self, ui: &mut egui::Ui, rect: Rect) {
+        ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
+            ui.style_mut().zoom(self.scale);
+            let bg_resp = ui.allocate_rect(ui.max_rect(), Sense::click_and_drag());
+            let viewport = bg_resp.rect;
+            self.viewport = viewport;
 
-        if bg_resp.double_clicked_by(PointerButton::Primary) {
-            self.request_recenter();
-        }
+            ui.set_clip_rect(self.viewport);
 
-        if let Some(hover_pos) = ui.ctx().input(|i| i.pointer.hover_pos()) {
-            if bg_resp.hovered() {
-                let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
-                let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
-                if zoom_delta != 1. {
-                    let prev_scale = self.scale;
-                    let new_scale = (prev_scale * zoom_delta).clamp(MIN_SCALE, MAX_SCALE);
-                    self.scale(new_scale);
-                    let scale_factor = self.scale / prev_scale;
-                    let pos = self.offset - hover_pos.to_vec2();
-                    self.offset = (pos * scale_factor) + hover_pos.to_vec2();
-                    #[cfg(feature = "debug-ui")]
-                    log::debug!("new offset: {:?}", self.offset);
-                }
-                self.pan(pan_delta);
+            if bg_resp.dragged() {
+                self.pan(bg_resp.drag_delta());
+                #[cfg(feature = "debug-ui")]
+                log::debug!("new offset: {:?}", self.offset);
             }
-        }
-        if let Some(root) = &mut self.root {
-            if !self.centered {
-                if let Some(layout_root) = self.layout_tree.root() {
-                    let root_coords = &self.layout_tree[layout_root];
-                    let center = viewport.center().to_vec2();
-                    self.offset = Vec2::new(-root_coords.x + center.x, center.y);
-                    #[cfg(feature = "debug-ui")]
-                    log::debug!("offset: {:?}", self.offset);
-                }
-                self.centered = true;
+            let background_clicked = bg_resp.clicked_by(PointerButton::Primary);
+
+            if bg_resp.double_clicked_by(PointerButton::Primary) {
+                self.request_recenter();
             }
-            root.draw(
-                ui,
-                &mut self.offset,
-                self.scale,
-                &mut self.layout_tree,
-                vec![],
-                background_clicked,
-            );
-        }
+
+            if let Some(hover_pos) = ui.ctx().input(|i| i.pointer.hover_pos()) {
+                if bg_resp.hovered() {
+                    let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
+                    let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
+                    if zoom_delta != 1. {
+                        let prev_scale = self.scale;
+                        let new_scale = (prev_scale * zoom_delta).clamp(MIN_SCALE, MAX_SCALE);
+                        self.scale(new_scale);
+                        let scale_factor = self.scale / prev_scale;
+                        let pos = self.offset - hover_pos.to_vec2();
+                        self.offset = (pos * scale_factor) + hover_pos.to_vec2();
+                        #[cfg(feature = "debug-ui")]
+                        log::debug!("new offset: {:?}", self.offset);
+                    }
+                    self.pan(pan_delta);
+                }
+            }
+            if let Some(root) = &mut self.root {
+                if !self.centered {
+                    if let Some(layout_root) = self.layout_tree.root() {
+                        let root_coords = &self.layout_tree[layout_root];
+                        let center = viewport.center().to_vec2();
+                        self.offset = Vec2::new(-root_coords.x + center.x, center.y);
+                        #[cfg(feature = "debug-ui")]
+                        log::debug!("offset: {:?}", self.offset);
+                    }
+                    self.centered = true;
+                }
+
+                let prev_id = self.selected_node.as_ref().map(|n| n.id);
+
+                root.draw(
+                    ui,
+                    &mut self.offset,
+                    self.scale,
+                    &mut self.layout_tree,
+                    &mut self.selected_node,
+                    background_clicked,
+                );
+
+                if let Some(node) = &self.selected_node {
+                    if prev_id != Some(node.id) {
+                        self.focus_node(node.id);
+                    }
+                }
+            }
+        });
     }
 }
+
 impl Node {
     pub fn draw(
         &mut self,
@@ -82,7 +99,7 @@ impl Node {
         offset: &mut Vec2,
         scale: f32,
         layout_tree: &mut LayoutTree,
-        mut lineage: Vec<SimpleNode>,
+        selected_node: &mut Option<Node>,
         background_clicked: bool,
     ) {
         let stroke = ui.visuals().widgets.noninteractive.fg_stroke;
@@ -123,7 +140,7 @@ impl Node {
                 .expect("node should exist in layout tree");
             offset.x -= (new_node.x - prev_x) * scale;
         } else if image_res.clicked() {
-            self.window_is_open = !self.window_is_open;
+            *selected_node = Some(self.clone());
         }
 
         let text_style = FontId::new(24.0 * scale, FontFamily::Monospace);
@@ -191,74 +208,9 @@ impl Node {
             }
         }
 
-        let window_pos =
-            node_coords + Vec2::new(NODE_RADIUS as f32 * 1.2, -(NODE_RADIUS as f32 / 2.)) * scale;
-        if background_clicked && self.window_is_open {
-            self.window_is_open = false;
+        if background_clicked {
+            selected_node.take();
         }
-        egui::Window::new(self.id.to_string())
-            .id(egui::Id::new(self.id))
-            .max_width(180.)
-            .auto_sized()
-            .resizable(false)
-            .constrain(false)
-            .default_pos(window_pos)
-            .collapsible(false)
-            .title_bar(false)
-            .scroll(Vec2b::TRUE)
-            .enabled(true)
-            .open(&mut self.window_is_open)
-            .current_pos(window_pos)
-            .show(ui.ctx(), |ui| {
-                ui.with_layout(egui::Layout::top_down(Align::RIGHT), |ui| {
-                    let image = self
-                        .image
-                        .as_ref()
-                        .map(|i| egui::ImageSource::Bytes {
-                            uri: format!("{}-{}", self.id, self.name).into(),
-                            bytes: egui::load::Bytes::from(i.clone()),
-                        })
-                        .unwrap_or(DEFAULT_IMAGE);
-                    egui::Image::new(image)
-                        .maintain_aspect_ratio(true)
-                        .show_loading_spinner(true)
-                        .ui(ui);
-                    #[cfg(feature = "debug-ui")]
-                    {
-                        let layout_node = layout_tree
-                            .get(self.id)
-                            .expect("probably didn't update the layout tree");
-                        ui.label(format!("{{ x: {}, y: {} }}", layout_node.x, layout_node.y));
-                        ui.label(layout_node.depth.to_string());
-                    }
-                    ui.label(self.id.to_string());
-                    let lineage = lineage
-                        .iter()
-                        .rev()
-                        .map(|l| format!("{} ", l.name.clone()))
-                        .take(2)
-                        .collect::<String>();
-                    ui.heading(shape_text(&format!(
-                        "{} {}{}",
-                        self.name, lineage, self.last_name
-                    )));
-                    if let Some(personal_info) = self.personal_info.as_ref() {
-                        if !personal_info.is_empty() {
-                            ui.add_space(10.);
-                            ui.label(shape_text("المعلومات الشخصية:"));
-                            for (key, value) in personal_info {
-                                let key = shape_text(&format!("{key}: "));
-                                let value = shape_text(value);
-                                ui.horizontal(|ui| {
-                                    ui.label(key);
-                                    ui.label(value);
-                                });
-                            }
-                        }
-                    }
-                });
-            });
-        lineage.push(self.clone().into());
         if !self.collapsed {
             for child in self.children.iter_mut() {
                 child.draw(
@@ -266,7 +218,7 @@ impl Node {
                     offset,
                     scale,
                     layout_tree,
-                    lineage.clone(),
+                    selected_node,
                     background_clicked,
                 );
             }
@@ -278,7 +230,7 @@ impl Node {
             let coords = Pos2::new(image_rect.min.x, image_rect.max.y)
                 - Vec2::new(EXPAND_INDICATOR_SIZE, EXPAND_INDICATOR_SIZE) * scale;
             if self.collapsed {
-                let mut shape = Shape::convex_polygon(
+                let shape = Shape::convex_polygon(
                     vec![
                         coords,
                         coords
@@ -293,7 +245,7 @@ impl Node {
                 );
                 painter.add(shape);
             } else {
-                let mut shape = Shape::convex_polygon(
+                let shape = Shape::convex_polygon(
                     vec![
                         coords + Vec2::new(0., -EXPAND_INDICATOR_SIZE / 1.8) * scale,
                         coords + Vec2::new(-EXPAND_INDICATOR_SIZE / 1.8, 0.) * scale,
@@ -345,7 +297,8 @@ impl Node {
         );
     }
 }
-fn shape_text(input: &str) -> String {
+
+pub fn shape_text(input: &str) -> String {
     let mut output = String::new();
     if input.is_empty() {
         return output;

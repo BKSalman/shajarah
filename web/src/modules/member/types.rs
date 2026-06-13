@@ -54,6 +54,7 @@ impl FromStr for Gender {
 pub struct MemberResponse {
     pub id: i64,
     pub name: String,
+    pub full_name: String,
     pub gender: Gender,
     pub birthday: Option<DateTime<Utc>>,
     pub last_name: String,
@@ -76,6 +77,7 @@ impl MemberResponse {
             .map(|m| MemberResponse {
                 id: m.id,
                 name: m.name.clone(),
+                full_name: m.full_name.clone().unwrap_or_else(|| m.name.clone()),
                 gender: m.gender,
                 birthday: m.birthday,
                 last_name: m.last_name.clone(),
@@ -130,6 +132,7 @@ pub struct MemberResponseFlat {
 pub struct MemberRowWithParents {
     pub id: i64,
     pub name: String,
+    pub full_name: Option<String>,
     pub gender: Gender,
     pub birthday: Option<chrono::DateTime<chrono::Utc>>,
     pub email: Option<String>,

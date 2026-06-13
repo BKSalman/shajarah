@@ -24,6 +24,7 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
             SELECT
                 m.id,
                 m.name,
+                CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name,
                 m.gender as "gender: Gender",
                 m.birthday,
                 m.last_name,
@@ -46,7 +47,10 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
             LEFT JOIN
                 members mother ON m.mother_id = mother.id
             LEFT JOIN
-                members father ON m.father_id = father.id;
+                members father ON m.father_id = father.id
+            LEFT JOIN members p2 ON m.father_id = p2.id
+            LEFT JOIN members p3 ON p2.father_id = p3.id
+            LEFT JOIN members p4 ON p3.father_id = p4.id;
         "#,
     )
     .fetch_all(&state.db_pool)
@@ -66,6 +70,7 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
     let mut root = MemberResponse {
         id: root.id,
         name: root.name.clone(),
+        full_name: root.full_name.clone().unwrap_or_else(|| root.name.clone()),
         gender: root.gender,
         birthday: root.birthday,
         last_name: root.last_name.clone(),
@@ -95,35 +100,39 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
 
     let recs: Vec<MemberRowWithParents> = sqlx::query_as(
         r#"
-        SELECT
-            m.id,
-            m.name,
-            m.gender,
-            m.birthday,
-            m.email,
-            m.last_name,
-            m.image,
-            m.image_type,
-            m.personal_info,
-            mother.id as mother_id,
-            mother.name AS mother_name,
-            mother.gender AS mother_gender,
-            mother.birthday AS mother_birthday,
-            mother.last_name AS mother_last_name,
-            father.id as father_id,
-            father.name AS father_name,
-            father.gender AS father_gender,
-            father.birthday AS father_birthday,
-            father.last_name AS father_last_name
-        FROM
-            members m
-        LEFT JOIN
-            members mother ON m.mother_id = mother.id
-        LEFT JOIN
-            members father ON m.father_id = father.id
-        ORDER BY
+            SELECT
+                m.id,
+                m.name,
+                CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name,
+                m.gender,
+                m.birthday,
+                m.email,
+                m.last_name,
+                m.image,
+                m.image_type,
+                m.personal_info,
+                mother.id as mother_id,
+                mother.name AS mother_name,
+                mother.gender AS mother_gender,
+                mother.birthday AS mother_birthday,
+                mother.last_name AS mother_last_name,
+                father.id as father_id,
+                father.name AS father_name,
+                father.gender AS father_gender,
+                father.birthday AS father_birthday,
+                father.last_name AS father_last_name
+            FROM
+                members m
+            LEFT JOIN
+                members mother ON m.mother_id = mother.id
+            LEFT JOIN
+                members father ON m.father_id = father.id
+            LEFT JOIN members p2 ON m.father_id = p2.id
+            LEFT JOIN members p3 ON p2.father_id = p3.id
+            LEFT JOIN members p4 ON p3.father_id = p4.id
+            ORDER BY
             m.id, m.name ASC
-            "#,
+        "#,
     )
     .fetch_all(&state.db_pool)
     .await?;
