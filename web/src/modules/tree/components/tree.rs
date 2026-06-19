@@ -141,7 +141,7 @@ pub fn Tree() -> Element {
                 dir: "rtl",
                 class: "flex flex-col w-full",
                 class: if fullscreen_tree() {
-                           "h-full absolute top-0 left-0 z-100 bg-white"
+                           "h-dvh fixed top-0 left-0 w-full z-100 bg-white"
                        } else {
                            "h-150 lg:h-200"
                        },
