@@ -1,13 +1,14 @@
 use dioxus::{logger::tracing::Level, prelude::*};
 
+use serde::{Deserialize, Serialize};
+
+use components::loading::FullPageLoading;
 use modules::add_request::AddMember;
 use modules::admin::pages::{
     Admin, login::AdminLogin, register::AdminRegister, settings::AdminSettings,
 };
 use pages::Home;
-use serde::{Deserialize, Serialize};
-
-use crate::server::get_config;
+use server::get_config;
 
 pub mod components;
 pub mod config;
@@ -66,24 +67,22 @@ pub fn PrivateTreeGuard() -> Element {
     let nav = navigator();
     let is_authed =
         use_resource(|| async move { crate::modules::admin::server::get_admin().await });
-
     let config = use_loader(move || async move { get_config().await })?;
 
+    use_effect(move || {
+        if !config().public && matches!(is_authed(), Some(Err(_))) {
+            nav.replace(Route::Unauthorized {});
+        }
+    });
+
     if config().public {
-        return rsx! {};
+        return rsx! { Outlet::<Route> {} };
     }
 
     match is_authed() {
-        None => return rsx! { div { "Loading..." } }, // still fetching
-        Some(Err(_)) => {
-            nav.replace(Route::Unauthorized {});
-            return rsx! {};
-        }
-        Some(Ok(_)) => {} // fall through to render outlet
-    }
-
-    rsx! {
-        Outlet::<Route> {}
+        None => rsx! { FullPageLoading {} },
+        Some(Err(_)) => rsx! {}, // effect handles the redirect
+        Some(Ok(_)) => rsx! { Outlet::<Route> {} },
     }
 }
 
@@ -181,6 +180,7 @@ fn app() -> Element {
         }
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/form.css") }
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/card.css") }
+        document::Link { rel: "stylesheet", href: asset!("/assets/styling/loading.css") }
         document::Link { rel: "stylesheet", href: format!("{FONT_AWESOME}/css/all.css") }
 
         Router::<Route> {}

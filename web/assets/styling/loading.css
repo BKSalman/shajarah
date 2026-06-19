@@ -1,0 +1,33 @@
+/* Loading spinner */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid var(--color-forest-light);
+  border-top-color: var(--color-forest-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* Full-page centered loader */
+.loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--color-forest-background);
+}
+
+.loading-overlay .spinner {
+  width: 3rem;
+  height: 3rem;
+}

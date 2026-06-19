@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::{
     Route,
+    components::loading::FullPageLoading,
     modules::{
         add_request::{
             server::{approve_request, disapprove_request, member_requests},
@@ -278,7 +279,7 @@ pub fn Admin() -> Element {
         }
         None => {
             return rsx! {
-                p { "جاري التحميل..." }
+                FullPageLoading {}
             };
         }
     };
@@ -358,7 +359,7 @@ pub fn Admin() -> Element {
         }
         None => {
             return rsx! {
-                p { "جاري التحميل..." }
+                FullPageLoading {}
             };
         }
     };
