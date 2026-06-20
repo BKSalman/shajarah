@@ -18,7 +18,11 @@ web-sys = { version = "0.3.77", features = [
 ] }
 
 [profile.release]
-opt-level = 2 # fast and small wasm
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
 
 # Optimize all dependencies even in debug builds:
 [profile.dev.package."*"]

@@ -14,7 +14,7 @@ dioxus = { version = "0.7.9", features = ["router", "fullstack"] }
 dioxus-html = { version = "0.7.9", features = ["serialize"] }
 axum = { version = "0.8.4", features = ["macros", "multipart"], optional = true }
 tokio = { version = "1", features = [ "fs", "io-std", "io-util", "macros", "net", "parking_lot", "process", "rt", "rt-multi-thread", "signal" ], optional = true }
-tower-http = { version = "0.6.6", features = ["cors", "limit", "fs"], optional = true }
+tower-http = { version = "0.6.6", features = ["cors", "limit", "fs", "compression-br", "compression-gzip"], optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true }

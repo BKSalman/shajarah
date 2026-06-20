@@ -19,3 +19,14 @@ script = []
 # Javascript code file
 # serve: [dev-server] only
 script = []
+
+[web.wasm_opt]
+level = "z"
+debug = false
+keep_names = false
+memory_packing = true
+extra_features = ["--converge"]
+
+# [web]
+# pre_compress = true
+# resource_strategy = "aggressive"

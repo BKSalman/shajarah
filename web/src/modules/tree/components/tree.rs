@@ -20,23 +20,20 @@ pub fn Tree() -> Element {
             _ => None::<()>
         }
     });
-    let commands = use_signal(move || {
-        cfg_select! {
-            target_arch = "wasm32" => {
-                let (send, recv) = futures::channel::mpsc::channel(10);
-                let (ctx_send, mut ctx_recv) = futures::channel::mpsc::channel(1);
+    let mut commands = use_signal(move || None::<futures::channel::mpsc::Sender<EguiCommand>>);
 
-                spawn(async move {
-                    gui::run_eframe(recv, ctx_send);
-                });
+    use_future(move || async move {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let (send, recv) = futures::channel::mpsc::channel(10);
+            let (ctx_send, mut ctx_recv) = futures::channel::mpsc::channel(1);
 
-                spawn(async move {
-                    ctx.set(Some(ctx_recv.recv().await.unwrap()));
-                });
+            gui::run_eframe(recv, ctx_send);
 
-                Some(send)
+            if let Ok(egui_ctx) = ctx_recv.recv().await {
+                ctx.set(Some(egui_ctx));
+                commands.set(Some(send));
             }
-            _ => None::<EguiCommand>
         }
     });
 
@@ -77,8 +74,7 @@ pub fn Tree() -> Element {
             return anyhow::Ok(());
         }
 
-        let members = search_member(query).await;
-        if let Ok(members) = members {
+        if let Ok(members) = search_member(query).await {
             members_search_list.set(members);
         }
 
@@ -119,9 +115,9 @@ pub fn Tree() -> Element {
                     on_mount: move |element: Event<MountedData>| {
                         search_bar_ref.set(Some(element.data()));
                     },
-                    on_search: move |query| {
-                        member_query.set(query);
-                        search.call(member_query());
+                    on_search: move |query: String| {
+                        member_query.set(query.clone());
+                        search.call(query);
                     },
                     on_select: move |option: ComboboxOption<i64>| {
                         member_query.set(option.label.clone());

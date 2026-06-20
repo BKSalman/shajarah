@@ -1,2 +1,5 @@
 [language-server.rust-analyzer.config.cargo]
 features = ["server"]
+
+[language-server.rust-analyzer.config.check]
+targets = ["wasm32-unknown-unknown", "host-tuple"]

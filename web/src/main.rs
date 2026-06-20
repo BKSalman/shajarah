@@ -67,15 +67,15 @@ pub fn PrivateTreeGuard() -> Element {
     let nav = navigator();
     let is_authed =
         use_resource(|| async move { crate::modules::admin::server::get_admin().await });
-    let config = use_loader(move || async move { get_config().await })?;
+    let config = use_context::<config::client::Config>();
 
     use_effect(move || {
-        if !config().public && matches!(is_authed(), Some(Err(_))) {
+        if !config.public && matches!(is_authed(), Some(Err(_))) {
             nav.replace(Route::Unauthorized {});
         }
     });
 
-    if config().public {
+    if config.public {
         return rsx! { Outlet::<Route> {} };
     }
 
@@ -96,7 +96,9 @@ async fn launch_server() -> Result<axum::Router, anyhow::Error> {
     use server::{AppState, InnerAppState};
     use sqlx::PgPool;
     use tower_cookies::CookieManagerLayer;
-    use tower_http::{limit::RequestBodyLimitLayer, services::ServeDir};
+    use tower_http::{
+        compression::CompressionLayer, limit::RequestBodyLimitLayer, services::ServeDir,
+    };
 
     use crate::middleware::private_tree::block_non_invited;
 
@@ -130,6 +132,7 @@ async fn launch_server() -> Result<axum::Router, anyhow::Error> {
         .layer(CookieManagerLayer::new())
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(25 * 1024 * 1024 /* 25mb */))
+        .layer(CompressionLayer::new())
         .layer(Extension(app_state.clone()));
 
     // if let Ok(dist) = std::env::var("SHAJARAH_DIST") {
@@ -181,7 +184,7 @@ fn app() -> Element {
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/form.css") }
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/card.css") }
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/loading.css") }
-        document::Link { rel: "stylesheet", href: format!("{FONT_AWESOME}/css/all.css") }
+        document::Link { rel: "stylesheet", href: format!("{FONT_AWESOME}/css/all.min.css") }
 
         Router::<Route> {}
     }
