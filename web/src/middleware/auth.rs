@@ -87,8 +87,6 @@ impl<S: Sync + Send, const USER_ROLE: u8> FromRequestParts<S> for AuthExtractor<
             role: UserRole,
         }
 
-        let AppState(state) = state;
-
         match role {
             UserRole::Admin => {
                 let Some(rec) = sqlx::query_as!(
@@ -103,10 +101,6 @@ impl<S: Sync + Send, const USER_ROLE: u8> FromRequestParts<S> for AuthExtractor<
                 )
                     .fetch_optional(&state.db_pool)
                     .await? else {
-                    sqlx::query!(r#"DELETE FROM sessions WHERE id = $1"#, session_id)
-                        .execute(&state.db_pool)
-                        .await
-                        .ok();
                     return Err(AuthError::InvalidCredentials);
                 };
 

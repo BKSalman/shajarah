@@ -1,3 +1,2 @@
-pub mod pages;
 pub mod server;
 pub mod types;

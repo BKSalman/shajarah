@@ -1,45 +1,61 @@
 use dioxus::prelude::*;
-use garde::Validate;
-
-use crate::modules::user::types::{LoginData, RegisterData, UserResponseBrief, UserRole};
+use uuid::Uuid;
 
 #[cfg(feature = "server")]
 mod server_imports {
     pub use crate::middleware::auth::{AuthError, AuthExtractor};
+    pub use crate::middleware::sessions::SESSION_COOKIE_NAME;
     pub use crate::server::AppState;
-    pub use axum::extract::Extension;
+    pub use argon2::{
+        Argon2,
+        password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
+    };
+    pub use axum::Extension;
+    pub use chrono::Utc;
+    pub use garde::Validate as _;
+    pub use sha2::Digest as _;
+    pub use sha2::Sha256;
 }
 
 #[cfg(feature = "server")]
 use server_imports::*;
 
-#[get("/api/v1/admin", admin: Result<AuthExtractor<{ UserRole::Admin as u8 }>, AuthError>)]
-pub async fn get_admin() -> Result<UserResponseBrief> {
-    Ok(admin.or_unauthorized("Unauthorized")?.current_user)
+use crate::modules::user::types::{LoginData, UserResponseBrief};
+
+use super::types::{RegisterData, UserRole};
+
+#[get("/api/v1/user", user: Result<AuthExtractor<{ UserRole::User as u8 }>, AuthError>)]
+pub async fn get_user() -> Result<UserResponseBrief> {
+    Ok(user.or_unauthorized("unauthorized")?.current_user)
 }
 
-#[post("/api/v1/admin", Extension(state): Extension<AppState>)]
-pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
-    use argon2::{
-        Argon2,
-        password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
-    };
-    use chrono::Utc;
-    use uuid::Uuid;
+#[post("/api/v1/user", Extension(state): Extension<AppState>)]
+pub async fn register_user(invite_token: Uuid, register_data: RegisterData) -> anyhow::Result<()> {
+    use crate::modules::invite::types::InviteRow;
 
-    if sqlx::query!(
+    let mut hasher = Sha256::default();
+    hasher.update(invite_token.to_string().as_bytes());
+    let token_hash = hex::encode(hasher.finalize());
+
+    let mut tx = state.db_pool.begin().await?;
+
+    tracing::info!("{invite_token}");
+
+    if sqlx::query_as!(
+        InviteRow,
         r#"
-        SELECT id, role as "role: UserRole" FROM users
-        WHERE role = $1
-                "#,
-        UserRole::Admin as _,
+            SELECT * FROM user_invites
+            WHERE token_hash = $1 AND expires_at > $2 AND used_at IS NULL
+        "#,
+        token_hash,
+        Utc::now()
     )
-    .fetch_optional(&state.db_pool)
+    .fetch_optional(&mut *tx)
     .await?
-    .is_some()
+    .is_none()
     {
-        return Err(anyhow::anyhow!("Bad Request"));
-    }
+        return Err(anyhow::anyhow!("Invalid invite"));
+    };
 
     register_data.validate()?;
 
@@ -62,28 +78,72 @@ pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
         .map_err(|e| anyhow::anyhow!("Something went wrong"))?
         .to_string();
 
-    sqlx::query_as!(
-        UserResponse,
+    let user = sqlx::query!(
         r#"
             INSERT INTO users (id, first_name, last_name, email, password, role, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7);
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id;
         "#,
         Uuid::new_v4(),
         first_name,
         last_name,
         email,
         hashed_password,
-        UserRole::Admin as _,
+        UserRole::User as _,
         Utc::now(),
     )
-    .execute(&state.db_pool)
+    .fetch_one(&mut *tx)
     .await?;
+
+    sqlx::query_as!(
+        InviteRow,
+        r#"
+            UPDATE user_invites
+            SET used_at = $1, accepted_by = $2
+            WHERE token_hash = $3 AND expires_at > $4 AND used_at = NULL
+        "#,
+        Utc::now(),
+        user.id,
+        token_hash,
+        Utc::now()
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
 
     Ok(())
 }
 
-#[post("/api/v1/admin/login", Extension(state): Extension<AppState>, cookies: tower_cookies::Cookies)]
-pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
+#[post("/api/v1/user/logout", Extension(state): Extension<AppState>, cookies: tower_cookies::Cookies)]
+pub async fn logout_user() -> anyhow::Result<()> {
+    if let Some(session_id) = cookies
+        .private(&state.config.cookies_secret)
+        .get(SESSION_COOKIE_NAME)
+    {
+        sqlx::query!(
+            r#"
+                DELETE from sessions
+                WHERE sessions.id = $1
+            "#,
+            Uuid::parse_str(session_id.value()).map_err(|e| { anyhow::anyhow!("Bad Request") })?
+        )
+        .execute(&state.db_pool)
+        .await?;
+
+        let cookie = tower_cookies::Cookie::build(SESSION_COOKIE_NAME)
+            .path("/")
+            .http_only(true)
+            .build();
+
+        cookies.private(&state.config.cookies_secret).remove(cookie);
+    }
+
+    Ok(())
+}
+
+#[post("/api/v1/user/login", Extension(state): Extension<AppState>, cookies: tower_cookies::Cookies)]
+pub async fn login_user(login_data: LoginData) -> anyhow::Result<()> {
     use crate::middleware::sessions::{SESSION_COOKIE_NAME, types::CreateSession};
     use argon2::{Argon2, PasswordVerifier, password_hash::PasswordHash};
     use chrono::Utc;
@@ -116,7 +176,6 @@ pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
         .await?
         .is_some()
         {
-            tracing::error!("existing session");
             return Err(anyhow::anyhow!("Bad Request"));
         }
     }
@@ -133,14 +192,13 @@ pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
         UserRow,
         r#"
             SELECT users.id, users.password FROM users
-            WHERE users.email = $1 AND users.role = 'admin'
+            WHERE users.email = $1
         "#,
         email
     )
     .fetch_optional(&mut *tx)
     .await?
     else {
-        tracing::error!("admin user not found");
         return Err(anyhow::anyhow!("Bad Request"));
     };
 

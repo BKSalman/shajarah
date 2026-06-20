@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::config;
+use crate::config::client::Config;
 
 #[cfg(feature = "server")]
 mod server_only {
@@ -38,10 +38,10 @@ mod server_only {
 #[cfg(feature = "server")]
 pub use server_only::*;
 
-#[get("/api/v1/config", state: Extension<AppState>)]
-pub async fn get_config() -> anyhow::Result<config::client::Config> {
-    let Extension(AppState(state)) = state;
-    let config = config::client::Config {
+#[get("/api/v1/config", Extension(state): Extension<AppState>)]
+pub async fn get_config() -> anyhow::Result<Config> {
+    let config = Config {
+        base_url: state.config.base_url.clone(),
         family_name: state.config.family_name.clone(),
         family_description: state.config.family_description.clone(),
         public: state.config.public,

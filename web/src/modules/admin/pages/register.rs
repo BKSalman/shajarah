@@ -1,13 +1,7 @@
 use std::collections::HashMap;
 
-use crate::{
-    Route,
-    i18n::Arabic,
-    modules::admin::{
-        server::register_admin,
-        types::{RegisterData, RegisterDataStoreExt},
-    },
-};
+use crate::modules::user::types::{RegisterData, RegisterDataStoreExt};
+use crate::{Route, i18n::Arabic, modules::admin::server::register_admin};
 use dioxus::prelude::*;
 use garde::Validate as _;
 

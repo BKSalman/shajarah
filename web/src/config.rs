@@ -329,8 +329,9 @@ pub mod server {
 pub mod client {
     use serde::{Deserialize, Serialize};
 
-    #[derive(Default, Clone, PartialEq, Serialize, Deserialize)]
+    #[derive(Clone, PartialEq, Serialize, Deserialize)]
     pub struct Config {
+        pub base_url: url::Url,
         #[serde(default)]
         pub family_name: Option<String>,
         #[serde(default)]

@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use crate::{
     Route,
     i18n::Arabic,
-    modules::admin::{
-        server::login_admin,
-        types::{LoginData, LoginDataStoreExt},
+    modules::{
+        admin::server::login_admin,
+        user::types::{LoginData, LoginDataStoreExt},
     },
 };
 use dioxus::prelude::*;
