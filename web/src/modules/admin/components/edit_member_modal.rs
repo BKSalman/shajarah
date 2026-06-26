@@ -53,10 +53,10 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                             name: (member.name != data.name).then_some(data.name),
                             last_name: (member.last_name != data.last_name).then_some(data.last_name),
                             gender: (data.gender.and_then(|gender| (gender != member.gender).then_some(gender))),
-                            birthday: (data.birthday != member.birthday).then_some(data.birthday).unwrap_or(None),
-                            mother_id: (data.mother_id != member.mother_id).then_some(data.mother_id).unwrap_or(None),
-                            father_id: (data.father_id != member.father_id).then_some(data.father_id).unwrap_or(None),
-                            personal_info: (data.personal_info != member.personal_info).then_some(data.personal_info).unwrap_or(None)
+                            birthday: if data.birthday != member.birthday { data.birthday } else { None },
+                            mother_id: if data.mother_id != member.mother_id { data.mother_id } else { None },
+                            father_id: if data.father_id != member.father_id { data.father_id } else { None },
+                            personal_info: if data.personal_info != member.personal_info { data.personal_info } else { None }
                         };
 
                         tracing::info!("{submission_data:?}");

@@ -39,7 +39,6 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                             class: "input w-full",
                             oninput: {
                                 let pairs = pairs.clone();
-                                let on_pairs_change = on_pairs_change;
                                 move |evt| {
                                     let mut new_pairs = pairs.clone();
                                     new_pairs[index].key = evt.value();
@@ -56,7 +55,6 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                             class: "input w-full",
                             oninput: {
                                 let pairs = pairs.clone();
-                                let on_pairs_change = on_pairs_change;
                                 move |evt| {
                                     let mut new_pairs = pairs.clone();
                                     new_pairs[index].value = evt.value();
@@ -71,7 +69,6 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                         class: "btn btn-danger btn-sm",
                         onclick: {
                             let pairs = pairs.clone();
-                            let on_pairs_change = on_pairs_change;
                             move |_| {
                                 let mut new_pairs = pairs.clone();
                                 new_pairs.remove(index);
@@ -88,7 +85,6 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                 class: "btn btn-outline btn-sm",
                 onclick: {
                     let pairs = pairs.clone();
-                    let on_pairs_change = on_pairs_change;
                     move |_| {
                         let mut new_pairs = pairs.clone();
                         new_pairs

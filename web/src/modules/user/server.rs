@@ -5,6 +5,7 @@ use uuid::Uuid;
 mod server_imports {
     pub use crate::middleware::auth::{AuthError, AuthExtractor};
     pub use crate::middleware::sessions::SESSION_COOKIE_NAME;
+    pub use crate::modules::user::types::UserRole;
     pub use crate::server::AppState;
     pub use argon2::{
         Argon2,
@@ -22,7 +23,7 @@ use server_imports::*;
 
 use crate::modules::user::types::{LoginData, UserResponseBrief};
 
-use super::types::{RegisterData, UserRole};
+use super::types::RegisterData;
 
 #[get("/api/v1/user", user: Result<AuthExtractor<{ UserRole::User as u8 }>, AuthError>)]
 pub async fn get_user() -> Result<UserResponseBrief> {
@@ -164,8 +165,7 @@ pub async fn login_user(login_data: LoginData) -> anyhow::Result<()> {
     if let Some(session_id) = cookies
         .private(&state.config.cookies_secret)
         .get(SESSION_COOKIE_NAME)
-    {
-        if sqlx::query!(
+        && sqlx::query!(
             r#"
                 SELECT id from sessions
                 WHERE sessions.id = $1
@@ -175,9 +175,8 @@ pub async fn login_user(login_data: LoginData) -> anyhow::Result<()> {
         .fetch_optional(&mut *tx)
         .await?
         .is_some()
-        {
-            return Err(anyhow::anyhow!("Bad Request"));
-        }
+    {
+        return Err(anyhow::anyhow!("Bad Request"));
     }
 
     let argon2 = Argon2::default();
@@ -207,7 +206,7 @@ pub async fn login_user(login_data: LoginData) -> anyhow::Result<()> {
     };
 
     let parsed_password =
-        PasswordHash::new(&user_password).map_err(|e| anyhow::anyhow!("Something went wrong"))?;
+        PasswordHash::new(user_password).map_err(|e| anyhow::anyhow!("Something went wrong"))?;
 
     if argon2
         .verify_password(password.as_bytes(), &parsed_password)

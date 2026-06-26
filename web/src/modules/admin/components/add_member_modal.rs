@@ -21,7 +21,7 @@ pub struct AddMemberModalProps {
 
 #[component]
 pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
-    let mut form_data = use_store(|| MemberFormData::default());
+    let mut form_data = use_store(MemberFormData::default);
 
     rsx! {
         Modal {

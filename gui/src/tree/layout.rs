@@ -145,10 +145,10 @@ impl LayoutTree {
     }
     fn fix_overlaps(&mut self, right: usize) {
         fn max_depth(l: &HashMap<usize, f32>, r: &HashMap<usize, f32>) -> usize {
-            if let Some(l) = l.keys().max() {
-                if let Some(r) = r.keys().max() {
-                    return std::cmp::min(*l, *r);
-                }
+            if let Some(l) = l.keys().max()
+                && let Some(r) = r.keys().max()
+            {
+                return std::cmp::min(*l, *r);
             }
             0
         }

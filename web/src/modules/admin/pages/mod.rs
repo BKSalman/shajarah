@@ -296,12 +296,12 @@ pub fn Admin() -> Element {
     let mut members_resource = use_resource(members_flat);
     let mut add_requests_resource = use_resource(member_requests);
 
-    let mut error = use_signal(|| String::new());
+    let mut error = use_signal(String::new);
     let mut tab = use_signal(|| Tab::Members);
     let mut show_modal = use_context::<Signal<Option<ShowModal>>>();
 
     let mut csv_upload = use_action(move |e: Event<FormData>| async move {
-        if let Some(file_data) = e.files().iter().next()
+        if let Some(file_data) = e.files().first()
             && let Ok(data) = file_data.read_string().await
         {
             return upload_members_csv(data).await;
@@ -316,12 +316,12 @@ pub fn Admin() -> Element {
         }
     });
 
-    let members_count = (&*members_resource.read())
+    let members_count = (*members_resource.read())
         .as_ref()
         .and_then(|e| e.as_ref().map(|e| e.len()).ok())
         .unwrap_or(0);
 
-    let add_requests_count = (&*add_requests_resource.read())
+    let add_requests_count = (*add_requests_resource.read())
         .as_ref()
         .and_then(|e| {
             e.as_ref()
@@ -416,7 +416,7 @@ pub fn Admin() -> Element {
                                     button {
                                         class: "btn btn-danger",
                                         onclick: {
-                                            let member_id = member.id.clone();
+                                            let member_id = member.id;
                                             move |_| async move {
                                                 if delete_member(member_id).await.is_ok() {
                                                     show_modal.set(None);

@@ -13,7 +13,7 @@ pub struct MemberCardProps {
 #[component]
 pub fn MemberCard(props: MemberCardProps) -> Element {
     let mut show_invite_input = use_signal(|| false);
-    let mut email = use_signal(|| String::new());
+    let mut email = use_signal(String::new);
     rsx! {
         div { class: "bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-all duration-200 overflow-hidden",
             div { class: "relative h-32 image-container",

@@ -119,13 +119,13 @@ impl eframe::App for App {
                         ui.with_layout(egui::Layout::top_down(Align::RIGHT), |ui| {
                             ui.heading(node.id.to_string());
                             ui.heading(shape_text(node.full_name()));
-                            if let Some(personal_info) = node.personal_info() {
-                                if !personal_info.is_empty() {
-                                    ui.add_space(10.);
-                                    ui.heading(shape_text("المعلومات الشخصية:"));
-                                    for (key, value) in personal_info {
-                                        ui.heading(shape_text(&format!("{key}: {value}")));
-                                    }
+                            if let Some(personal_info) = node.personal_info()
+                                && !personal_info.is_empty()
+                            {
+                                ui.add_space(10.);
+                                ui.heading(shape_text("المعلومات الشخصية:"));
+                                for (key, value) in personal_info {
+                                    ui.heading(shape_text(&format!("{key}: {value}")));
                                 }
                             }
                         })

@@ -48,7 +48,5 @@ pub async fn block_non_invited(
         // }
     }
 
-    let res = next.run(request).await;
-
-    res
+    next.run(request).await
 }

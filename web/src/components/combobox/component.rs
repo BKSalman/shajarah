@@ -26,14 +26,14 @@ pub struct ComboboxProps<T: core::fmt::Debug + Clone + PartialEq + 'static> {
 pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
     props: ComboboxProps<T>,
 ) -> Element {
-    let mut query = use_signal(|| String::new());
+    let mut query = use_signal(String::new);
     let mut highlighted: Signal<Option<usize>> = use_signal(|| None);
     let mut open = use_signal(|| false);
 
     let is_open = open() && !props.options.is_empty();
 
     let on_input = {
-        let on_search = props.on_search.clone();
+        let on_search = props.on_search;
         move |e: Event<FormData>| {
             let val = e.value();
             query.set(val.clone());
@@ -45,7 +45,7 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
 
     let on_keydown = {
         let options = props.options.clone();
-        let on_select = props.on_select.clone();
+        let on_select = props.on_select;
         move |e: Event<KeyboardData>| {
             let len = options.len();
             if len == 0 {
@@ -132,7 +132,7 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
                         {
                             let opt = opt.clone();
                             let opt_click = opt.clone();
-                            let on_select = props.on_select.clone();
+                            let on_select = props.on_select;
                             let is_highlighted = highlighted().map(|i| i == idx).unwrap_or(false);
                             rsx! {
                                 li {

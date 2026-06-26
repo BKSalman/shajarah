@@ -104,8 +104,7 @@ pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
     if let Some(session_id) = cookies
         .private(&state.config.cookies_secret)
         .get(SESSION_COOKIE_NAME)
-    {
-        if sqlx::query!(
+        && sqlx::query!(
             r#"
                 SELECT id from sessions
                 WHERE sessions.id = $1
@@ -115,10 +114,9 @@ pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
         .fetch_optional(&mut *tx)
         .await?
         .is_some()
-        {
-            tracing::error!("existing session");
-            return Err(anyhow::anyhow!("Bad Request"));
-        }
+    {
+        tracing::error!("existing session");
+        return Err(anyhow::anyhow!("Bad Request"));
     }
 
     let argon2 = Argon2::default();
@@ -149,7 +147,7 @@ pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
     };
 
     let parsed_password =
-        PasswordHash::new(&user_password).map_err(|e| anyhow::anyhow!("Something went wrong"))?;
+        PasswordHash::new(user_password).map_err(|e| anyhow::anyhow!("Something went wrong"))?;
 
     if argon2
         .verify_password(password.as_bytes(), &parsed_password)

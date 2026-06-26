@@ -113,15 +113,12 @@ pub struct Node {
     pub personal_info: Option<IndexMap<String, String>>,
     pub children: Vec<Node>,
     image: Option<Vec<u8>>,
-    /// used for displaying or hiding the member info window
-    #[serde(skip)]
-    window_is_open: bool,
     #[serde(default = "yes")]
     collapsed: bool,
 }
 
 impl Node {
-    pub fn image<'a>(&'a self) -> egui::ImageSource<'a> {
+    pub fn image(&self) -> egui::ImageSource<'_> {
         self.image
             .as_ref()
             .map(|i| egui::ImageSource::Bytes {
@@ -131,48 +128,11 @@ impl Node {
             .unwrap_or(DEFAULT_IMAGE)
     }
 
-    pub fn name<'a>(&'a self) -> &'a str {
-        &self.name
-    }
-
-    pub fn full_name<'a>(&'a self) -> &'a str {
+    pub fn full_name(&self) -> &str {
         &self.full_name
     }
 
-    pub fn personal_info<'a>(&'a self) -> Option<&'a IndexMap<String, String>> {
+    pub fn personal_info(&self) -> Option<&IndexMap<String, String>> {
         self.personal_info.as_ref()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SimpleNode {
-    pub id: i32,
-    name: String,
-    gender: Gender,
-    birthday: Option<DateTime<Utc>>,
-    last_name: String,
-}
-
-impl From<Node> for SimpleNode {
-    fn from(value: Node) -> Self {
-        Self {
-            id: value.id,
-            name: value.name,
-            gender: value.gender,
-            birthday: value.birthday,
-            last_name: value.last_name,
-        }
-    }
-}
-
-impl From<&Node> for SimpleNode {
-    fn from(value: &Node) -> Self {
-        Self {
-            id: value.id,
-            name: value.name.clone(),
-            gender: value.gender,
-            birthday: value.birthday,
-            last_name: value.last_name.clone(),
-        }
     }
 }

@@ -6,13 +6,13 @@ use indexmap::IndexMap;
 mod server_imports {
     pub use crate::middleware::auth::AuthExtractor;
     pub use crate::modules::member::types::MemberRowWithParents;
+    pub use crate::modules::member::types::{ChildMember, MemberRow};
     pub use crate::modules::user::types::UserRole;
     pub use crate::server::AppState;
     pub use axum::extract::Extension;
 }
-use crate::modules::member::types::MemberRow;
 
-use super::types::{ChildMember, Gender, MemberResponse, MemberResponseFlat};
+use super::types::{Gender, MemberResponse, MemberResponseFlat};
 #[cfg(feature = "server")]
 use server_imports::*;
 

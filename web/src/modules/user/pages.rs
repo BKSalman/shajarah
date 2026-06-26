@@ -291,7 +291,7 @@ pub mod login {
         let mut show_password = use_signal(|| false);
         let mut is_submitting = use_signal(|| false);
         let mut error_message = use_signal(|| Option::<String>::None);
-        let mut field_errors = use_signal(|| HashMap::<String, String>::new());
+        let mut field_errors = use_signal(HashMap::<String, String>::new);
 
         let is_form_valid = move || -> bool {
             let login_data = login_data();

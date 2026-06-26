@@ -11,7 +11,7 @@ pub fn Tree() -> Element {
     let mut fullscreen_tree = use_signal(|| false);
 
     let mut member_query = use_signal(String::new);
-    let mut members_search_list = use_signal(|| vec![]);
+    let mut members_search_list = use_signal(Vec::new);
     let mut search_bar_ref = use_signal(|| None::<std::rc::Rc<MountedData>>);
 
     let mut ctx = use_signal(|| {

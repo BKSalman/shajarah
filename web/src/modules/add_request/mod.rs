@@ -31,7 +31,7 @@ pub fn AddMember() -> Element {
         image_type: None,
     });
 
-    let mut field_errors = use_signal(|| HashMap::<String, String>::new());
+    let mut field_errors = use_signal(HashMap::<String, String>::new);
     let mut error_message = use_signal(|| Option::<String>::None);
     let mut is_submitting = use_signal(|| false);
     let mut show_success = use_signal(|| false);
@@ -401,7 +401,7 @@ pub fn AddMember() -> Element {
                                 onchange: move |evt| async move {
                                     #[cfg(feature = "web")]
                                     {
-                                        if let Some(file_data) = evt.files().iter().next() {
+                                        if let Some(file_data) = evt.files().first() {
                                                     let Some(mime_type) = file_data.content_type() else {
                                                         return;
                                                     };

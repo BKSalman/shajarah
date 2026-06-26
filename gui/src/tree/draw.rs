@@ -42,22 +42,22 @@ impl TreeUi {
                 self.request_recenter();
             }
 
-            if let Some(hover_pos) = ui.ctx().input(|i| i.pointer.hover_pos()) {
-                if bg_resp.hovered() {
-                    let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
-                    let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
-                    if zoom_delta != 1. {
-                        let prev_scale = self.scale;
-                        let new_scale = (prev_scale * zoom_delta).clamp(MIN_SCALE, MAX_SCALE);
-                        self.scale(new_scale);
-                        let scale_factor = self.scale / prev_scale;
-                        let pos = self.offset - hover_pos.to_vec2();
-                        self.offset = (pos * scale_factor) + hover_pos.to_vec2();
-                        #[cfg(feature = "debug-ui")]
-                        log::debug!("new offset: {:?}", self.offset);
-                    }
-                    self.pan(pan_delta);
+            if let Some(hover_pos) = ui.ctx().input(|i| i.pointer.hover_pos())
+                && bg_resp.hovered()
+            {
+                let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
+                let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
+                if zoom_delta != 1. {
+                    let prev_scale = self.scale;
+                    let new_scale = (prev_scale * zoom_delta).clamp(MIN_SCALE, MAX_SCALE);
+                    self.scale(new_scale);
+                    let scale_factor = self.scale / prev_scale;
+                    let pos = self.offset - hover_pos.to_vec2();
+                    self.offset = (pos * scale_factor) + hover_pos.to_vec2();
+                    #[cfg(feature = "debug-ui")]
+                    log::debug!("new offset: {:?}", self.offset);
                 }
+                self.pan(pan_delta);
             }
             if let Some(root) = &mut self.root {
                 if !self.centered {
@@ -82,10 +82,10 @@ impl TreeUi {
                     background_clicked,
                 );
 
-                if let Some(node) = &self.selected_node {
-                    if prev_id != Some(node.id) {
-                        self.focus_node(node.id);
-                    }
+                if let Some(node) = &self.selected_node
+                    && prev_id != Some(node.id)
+                {
+                    self.focus_node(node.id);
                 }
             }
         });

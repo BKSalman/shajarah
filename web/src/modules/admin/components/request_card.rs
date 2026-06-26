@@ -17,12 +17,12 @@ pub struct RequestCardProps {
 #[component]
 pub fn RequestCard(props: RequestCardProps) -> Element {
     let mut image_state = use_signal(|| ImageState::Loading);
-    let mut image_src = use_signal(|| String::new());
+    let mut image_src = use_signal(String::new);
 
     // Initialize image loading
     use_effect(move || {
         if let Some(url) = &props.request.image {
-            image_src.set(format!("{}", BASE64_STANDARD.encode(url)));
+            image_src.set(BASE64_STANDARD.encode(url).to_string());
             image_state.set(ImageState::Loading);
         } else {
             image_state.set(ImageState::GeneratedAvatar);
@@ -195,17 +195,17 @@ pub fn RequestCard(props: RequestCardProps) -> Element {
                 div { class: "flex justify-center gap-2",
                     button {
                         class: "btn btn-sm bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700",
-                        onclick: move |_| props.on_approve.call(props.request.id.clone()),
+                        onclick: move |_| props.on_approve.call(props.request.id),
                         "موافقة"
                     }
                     button {
                         class: "btn btn-sm btn-outline",
-                        onclick: move |_| props.on_view.call(props.request.id.clone()),
+                        onclick: move |_| props.on_view.call(props.request.id),
                         "عرض"
                     }
                     button {
                         class: "btn btn-sm bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700",
-                        onclick: move |_| props.on_reject.call(props.request.id.clone()),
+                        onclick: move |_| props.on_reject.call(props.request.id),
                         "رفض"
                     }
                 }

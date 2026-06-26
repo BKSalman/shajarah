@@ -62,7 +62,7 @@ impl garde::I18n for Arabic {
         }
     }
 
-    fn email_invalid(&self, reason: InvalidEmail) -> Cow<'static, str> {
+    fn email_invalid(&self, _reason: InvalidEmail) -> Cow<'static, str> {
         Cow::Borrowed("البريد غير صالح")
     }
 
