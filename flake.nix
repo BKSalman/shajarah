@@ -46,7 +46,8 @@
               };
 
               configFile = lib.mkOption {
-                type = lib.types.path;
+                type = lib.types.nullOr lib.types.path;
+                default = null;
                 description = ''
                   Path to the runtime `config.toml` (family name, base_url, email config, …).
                   Secrets are better supplied via {option}`services.shajarah.environmentFile`.
@@ -84,8 +85,8 @@
 
                 environment = {
                   # The config loader reads `${SHAJARAH_CONFIG_PATH}/${SHAJARAH_CONFIG_FILE}`.
-                  SHAJARAH_CONFIG_PATH = builtins.dirOf cfg.configFile;
-                  SHAJARAH_CONFIG_FILE = builtins.baseNameOf cfg.configFile;
+                  SHAJARAH_CONFIG_PATH = lib.mkIf (cfg.configFile != null) (builtins.dirOf cfg.configFile);
+                  SHAJARAH_CONFIG_FILE = lib.mkIf (cfg.configFile != null) (builtins.baseNameOf cfg.configFile);
                   SHAJARAH_PORT = toString cfg.port;
                   SHAJARAH_LOG_LEVEL = cfg.logLevel;
                   RUST_LOG = cfg.logLevel;
