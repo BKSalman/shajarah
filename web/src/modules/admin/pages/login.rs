@@ -133,7 +133,7 @@ pub fn AdminLogin() -> Element {
                                 class: if is_submitting() { "loading" },
                                 placeholder: "ادخل بريدك الإلكتروني",
                                 autocomplete: "email",
-                                dir: if login_data.email().is_some() { "ltr" } else { "rtl" },
+                                dir: "auto",
                                 oninput: move |evt| {
                                     let value = evt.value();
                                     if value.is_empty() {
@@ -178,7 +178,7 @@ pub fn AdminLogin() -> Element {
                                     class: if is_submitting() { "loading" },
                                     placeholder: "ادخل كلمة المرور",
                                     autocomplete: "current-password",
-                                    dir: if login_data.password().is_some() { "ltr" } else { "rtl" },
+                                    dir: "auto",
                                     oninput: move |evt| {
                                         let value = evt.value();
                                         if value.is_empty() {
