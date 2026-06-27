@@ -232,6 +232,26 @@
               cp -r target/dx-out/* $out/
             '';
           });
+
+          diesel-guard = pkgs.rustPlatform.buildRustPackage rec {
+            pname = "diesel-guard";
+            version = "0.12.0";
+
+            src = pkgs.fetchCrate {
+              inherit pname version;
+              hash = "sha256-sU6qKWlR44m19MeOEO/8L8R8dUJCUq6NbA4D3uJ15bM=";
+            };
+
+            cargoHash = "sha256-ZKJZnvv0EcGCljpjAVor9vt/eeN9ferw67z/RPTCcVU=";
+
+            nativeBuildInputs = [ pkgs.pkg-config pkgs.rustPlatform.bindgenHook ];
+            buildInputs = [ pkgs.postgresql ];   # for libpq / libpg_query's build
+
+            # libpg_query sometimes needs this; add only if the build complains:
+            # nativeBuildInputs = [ pkgs.pkg-config pkgs.cmake ];
+
+            doCheck = false;   # skip if its test suite wants a live database
+          };
         in
         {
           packages.default = shajarah;
@@ -250,6 +270,7 @@
               pkgs.cargo-watch
               pkgs.sqlx-cli
               pkgs.vscode-langservers-extracted
+              diesel-guard
             ];
 
             buildInputs = with pkgs; [

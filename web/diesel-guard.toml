@@ -1,0 +1,65 @@
+# diesel-guard configuration file
+# Copy this file to diesel-guard.toml and customize as needed
+
+# Framework configuration (REQUIRED)
+# Specify which migration framework you're using
+# Valid values: "diesel" or "sqlx"
+# framework = "diesel"
+framework = "sqlx"
+
+# Skip checking migrations created before this timestamp
+# Useful for retrofitting diesel-guard into existing projects
+#
+# Timestamp format depends on your framework:
+#   Diesel: YYYYMMDDHHMMSS, YYYY_MM_DD_HHMMSS, or YYYY-MM-DD-HHMMSS
+#           Examples: 20240101000000, 2024_01_01_000000, 2024-01-01-000000
+#   SQLx:   plain numeric versions, or separator-formatted 14-digit timestamps
+#           Examples: 42, 20240101000000, 2024_01_01_000000, 2024-01-01-000000
+#
+# Works with any format - diesel-guard normalizes timestamps for comparison
+# start_after = "20240101000000"
+
+# Check rollback migrations
+# Default: false (only checks forward migrations)
+#
+# Set to true if you want to ensure rollback migrations are also safe
+# check_down = false
+
+# Disable specific safety checks
+# Valid check names:
+#   - AddColumnCheck          (ADD COLUMN with DEFAULT)
+#   - AddIndexCheck           (CREATE INDEX without CONCURRENTLY)
+#   - AddNotNullCheck         (ALTER COLUMN SET NOT NULL)
+#   - AlterColumnTypeCheck    (ALTER COLUMN TYPE)
+#   - DropColumnCheck         (DROP COLUMN)
+#
+# Example: Disable checking for ADD COLUMN and DROP COLUMN operations
+# disable_checks = ["AddColumnCheck", "DropColumnCheck"]
+#
+# Default: [] (all checks enabled)
+# disable_checks = []
+#
+# To disable a check for one migration only:
+#   Any framework: add `-- diesel-guard:disable AddColumnCheck` to the migration SQL.
+#   Diesel only: add `disable_checks = ["AddColumnCheck"]` to that migration's metadata.toml.
+disable_checks = ["AddIndexCheck"]
+
+# Enable only specific safety checks (whitelist)
+# When set, only the listed checks run — all others are skipped.
+# Cannot be used together with disable_checks.
+#
+# Example: Only check for concurrent index and not-null violations
+# enable_checks = ["AddIndexCheck", "AddNotNullCheck"]
+#
+# Default: [] (all checks enabled, subject to disable_checks)
+# enable_checks = []
+
+# Directory containing custom Rhai check scripts (.rhai files)
+# Each script receives a pg_query AST node and can return violations.
+# Use `diesel-guard dump-ast --sql "..."` to inspect the AST structure.
+# custom_checks_dir = "checks"
+
+# Target Postgres major version
+# When set, checks that are safe for your Postgres version are automatically skipped.
+# Example: setting 11 silences the ADD COLUMN with DEFAULT warning (fixed in PG 11)
+# postgres_version = 16
