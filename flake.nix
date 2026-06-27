@@ -27,6 +27,18 @@
                 description = "The bundled shajarah package (server binary + public assets).";
               };
 
+              user = lib.mkOption {
+                type = lib.types.str;
+                default = "shajarah";
+                description = "User account under which Shajarah runs.";
+              };
+
+              group = lib.mkOption {
+                type = lib.types.str;
+                default = "shajarah";
+                description = "Group under which Shajarah runs.";
+              };
+
               port = lib.mkOption {
                 type = lib.types.port;
                 default = 8080;
@@ -86,13 +98,26 @@
                   EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
                   Restart = "on-failure";
 
+                  User = cfg.user;
+                  Group = cfg.group;
+
                   # Hardening.
-                  DynamicUser = true;
                   ProtectSystem = "strict";
                   ProtectHome = true;
                   PrivateTmp = true;
                   NoNewPrivileges = true;
                 };
+              };
+
+              users.users = lib.mkIf (cfg.user == "shajarah") {
+                shajarah = {
+                  inherit (cfg) group;
+                  isSystemUser = true;
+                };
+              };
+
+              users.groups = lib.mkIf (cfg.group == "shajarah") {
+                shajarah = { };
               };
 
               # NOTE: database migrations are not embedded in the binary. Run them
