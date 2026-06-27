@@ -122,6 +122,8 @@ async fn launch_server(config: config::server::Config) -> Result<axum::Router, a
             .await
             .expect("Failed to connect to DB");
 
+    sqlx::migrate!().run(&pool).await?;
+
     let (email_sender, email_receiver) = tokio::sync::mpsc::channel(10);
 
     let app_state = AppState(Arc::new(InnerAppState {

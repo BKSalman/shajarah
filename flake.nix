@@ -185,6 +185,7 @@
               ./gui/assets
               ./gui/fonts
               ./web/.sqlx
+              ./web/migrations
               ./web/Dioxus.toml
             ];
           };
