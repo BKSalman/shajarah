@@ -99,7 +99,7 @@ pub fn PrivateTreeGuard() -> Element {
 }
 
 #[cfg(feature = "server")]
-async fn launch_server() -> Result<axum::Router, anyhow::Error> {
+async fn launch_server(config: config::server::Config) -> Result<axum::Router, anyhow::Error> {
     use std::sync::Arc;
 
     use axum::{Extension, extract::DefaultBodyLimit, routing::get};
@@ -121,8 +121,6 @@ async fn launch_server() -> Result<axum::Router, anyhow::Error> {
             )
             .await
             .expect("Failed to connect to DB");
-
-    let config = config::server::Config::load_config().unwrap();
 
     let (email_sender, email_receiver) = tokio::sync::mpsc::channel(10);
 
@@ -166,7 +164,15 @@ fn main() {
 
     #[cfg(feature = "server")]
     {
-        dioxus::serve(launch_server);
+        let config = config::server::Config::load_config().unwrap();
+
+        // dioxus uses `PORT` and shajarah uses shajarah uses `SHAJARAH_PORT`
+        // TODO: this is stupid, should be able to set it in code, not env var
+        unsafe {
+            std::env::set_var("PORT", config.port.to_string());
+        }
+
+        dioxus::serve(move || launch_server(config.clone()));
     }
 }
 

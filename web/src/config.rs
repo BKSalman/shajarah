@@ -35,7 +35,7 @@ pub mod server {
         pub credentials: EmailCredentials,
     }
 
-    #[derive(Serialize, PartialEq, Deserialize)]
+    #[derive(Clone, Serialize, PartialEq, Deserialize)]
     pub struct Config {
         #[serde(
             serialize_with = "serialize_cookie_key",
