@@ -189,6 +189,13 @@ pub mod server {
                 tracing::debug!("Using family name from environment: {}", family_name);
                 self.family_name = Some(family_name);
             }
+            if let Ok(family_description) = env::var("SHAJARAH_FAMILY_DESCRIPTION") {
+                tracing::debug!(
+                    "Using family description from environment: {}",
+                    family_description
+                );
+                self.family_description = Some(family_description);
+            }
             self.apply_email_env_overrides()?;
             Ok(())
         }
