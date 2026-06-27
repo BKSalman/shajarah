@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nDELETE FROM members WHERE id = $1",
+  "query": "\n            DELETE FROM user_invites WHERE id = $1\n        ",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "7b8351bff78e5d45d12aa21d21839d779e0fc95f1ef7079f3b85150778cba9ad"
+  "hash": "fb1f78a29054e84e75e0e0d29acf6e94cd88647007db7e324907452deec69cf8"
 }

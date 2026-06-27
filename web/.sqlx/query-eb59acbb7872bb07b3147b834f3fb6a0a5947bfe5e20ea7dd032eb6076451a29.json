@@ -1,12 +1,18 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nSELECT id, role as \"role: UserRole\" FROM users\nWHERE role = $1\n        ",
+  "query": "\n        SELECT id, role as \"role: UserRole\" FROM users\n        WHERE role = $1\n                ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Uuid"
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "id"
+          }
+        }
       },
       {
         "ordinal": 1,
@@ -20,6 +26,12 @@
                 "user"
               ]
             }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "role"
           }
         }
       }
@@ -44,5 +56,5 @@
       false
     ]
   },
-  "hash": "e7a71725273a600912a68e6502d98547de210e452895c15532552036d1c60758"
+  "hash": "eb59acbb7872bb07b3147b834f3fb6a0a5947bfe5e20ea7dd032eb6076451a29"
 }

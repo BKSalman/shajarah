@@ -1,11 +1,12 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nUPDATE members\nSET gender = $2\nWHERE id = $1\n            ",
+  "query": "\n            INSERT INTO members (name, last_name, gender, birthday)\n            VALUES ($1, $2, $3, $4);\n        ",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
-        "Int8",
+        "Text",
+        "Text",
         {
           "Custom": {
             "name": "gender",
@@ -16,10 +17,11 @@
               ]
             }
           }
-        }
+        },
+        "Timestamptz"
       ]
     },
     "nullable": []
   },
-  "hash": "0761344225d54f06b7d0a3c0edc8c1655ee6226b266538c8789d2f08430c16d1"
+  "hash": "e9548206ea082eddfbef052a8e89545ab3e6399bbc84778b4843f43a308f9e9c"
 }

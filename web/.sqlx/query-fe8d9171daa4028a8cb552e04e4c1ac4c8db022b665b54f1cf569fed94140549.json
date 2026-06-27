@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE member_add_requests request\n            SET reviewed_at = $1, reviewed_by = $2, status = 'disapproved'\n            WHERE request.id = $3;\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fe8d9171daa4028a8cb552e04e4c1ac4c8db022b665b54f1cf569fed94140549"
+}

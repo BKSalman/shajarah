@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT * from user_invites\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "user_invites",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "token_hash",
+        "type_info": "Varchar",
+        "origin": {
+          "Table": {
+            "table": "user_invites",
+            "name": "token_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "user_invites",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "user_invites",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "used_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "user_invites",
+            "name": "used_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "accepted_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "user_invites",
+            "name": "accepted_by"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "user_invites",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "8d912ab5bce3a072b0a74a954b532e625e00fdf29d9a2cc93b3fac45fd710382"
+}

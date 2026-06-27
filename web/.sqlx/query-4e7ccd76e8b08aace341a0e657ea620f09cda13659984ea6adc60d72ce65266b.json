@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n    INSERT INTO users (id, first_name, last_name, email, totp_secret, role, created_at)\n    VALUES ($1, $2, $3, $4, $5, $6, $7)\n            ",
+  "query": "\n            INSERT INTO users (id, first_name, last_name, email, password, role, created_at)\n            VALUES ($1, $2, $3, $4, $5, $6, $7);\n        ",
   "describe": {
     "columns": [],
     "parameters": {
@@ -9,7 +9,7 @@
         "Text",
         "Text",
         "Text",
-        "Bytea",
+        "Text",
         {
           "Custom": {
             "name": "userrole",
@@ -26,5 +26,5 @@
     },
     "nullable": []
   },
-  "hash": "7fd3b6e4b64419d7ef946c308a8dc4d83f8031b7b7095c9fa7b4b0326bf114c0"
+  "hash": "4e7ccd76e8b08aace341a0e657ea620f09cda13659984ea6adc60d72ce65266b"
 }

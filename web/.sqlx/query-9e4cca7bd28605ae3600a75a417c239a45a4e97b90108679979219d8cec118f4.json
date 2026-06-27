@@ -1,0 +1,279 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                m.id,\n                m.name,\n                CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name,\n                m.gender as \"gender: Gender\",\n                m.birthday,\n                m.last_name,\n                m.image,\n                m.image_type,\n                m.personal_info,\n                m.email,\n                mother.id AS mother_id,\n                mother.name AS mother_name,\n                mother.gender AS \"mother_gender: Gender\",\n                mother.birthday AS mother_birthday,\n                mother.last_name AS mother_last_name,\n                father.id AS father_id,\n                father.name AS father_name,\n                father.gender AS \"father_gender: Gender\",\n                father.birthday AS father_birthday,\n                father.last_name AS father_last_name\n            FROM\n                members m\n            LEFT JOIN\n                members mother ON m.mother_id = mother.id\n            LEFT JOIN\n                members father ON m.father_id = father.id\n            LEFT JOIN members p2 ON m.father_id = p2.id\n            LEFT JOIN members p3 ON p2.father_id = p3.id\n            LEFT JOIN members p4 ON p3.father_id = p4.id;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "full_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "gender: Gender",
+        "type_info": {
+          "Custom": {
+            "name": "gender",
+            "kind": {
+              "Enum": [
+                "male",
+                "female"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "gender"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "birthday",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "birthday"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "last_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "last_name"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "image",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "image"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "image_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "image_type"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "personal_info",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "personal_info"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "mother_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "mother_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "mother_gender: Gender",
+        "type_info": {
+          "Custom": {
+            "name": "gender",
+            "kind": {
+              "Enum": [
+                "male",
+                "female"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "gender"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "mother_birthday",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "birthday"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "mother_last_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "last_name"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "father_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "father_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "father_gender: Gender",
+        "type_info": {
+          "Custom": {
+            "name": "gender",
+            "kind": {
+              "Enum": [
+                "male",
+                "female"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "gender"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "father_birthday",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "birthday"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "father_last_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "last_name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "9e4cca7bd28605ae3600a75a417c239a45a4e97b90108679979219d8cec118f4"
+}

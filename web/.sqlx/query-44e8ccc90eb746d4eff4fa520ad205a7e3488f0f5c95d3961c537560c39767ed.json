@@ -1,0 +1,129 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n            p1.id,\n            p1.name,\n            CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name) AS full_name,\n            p1.last_name,\n            p1.gender as \"gender: Gender\",\n            p1.birthday,\n            p2.name AS \"father: Option<String>\",\n            p3.name AS \"grandfather: Option<String>\",\n            p4.name AS \"great_grandfather: Option<String>\"\n            FROM members p1\n            LEFT JOIN members p2 ON p1.father_id = p2.id\n            LEFT JOIN members p3 ON p2.father_id = p3.id\n            LEFT JOIN members p4 ON p3.father_id = p4.id\n            WHERE\n            p1.name % $1\n            OR p1.last_name % $1\n            OR p2.name % $1\n            OR p3.name % $1\n            OR p4.name % $1\n            ORDER BY (\n                similarity(CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name), $1) * 0.7\n                    - ABS(\n                        LENGTH(CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name)) - LENGTH($1)\n                    )::float / GREATEST(LENGTH(CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name)), LENGTH($1)) * 0.3\n            )\n            DESC\n            LIMIT 20;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "full_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "last_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "last_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "gender: Gender",
+        "type_info": {
+          "Custom": {
+            "name": "gender",
+            "kind": {
+              "Enum": [
+                "male",
+                "female"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "gender"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "birthday",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "birthday"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "father: Option<String>",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "grandfather: Option<String>",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "great_grandfather: Option<String>",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "44e8ccc90eb746d4eff4fa520ad205a7e3488f0f5c95d3961c537560c39767ed"
+}
