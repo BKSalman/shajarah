@@ -327,8 +327,6 @@
                     -p 1025:1025 -p 8025:8025 \
                     -d mailhog/mailhog:v1.0.1 &> /dev/null
                 fi
-
-                ${pkgs.sqlx-cli}/bin/sqlx migrate run || ${pkgs.sqlx-cli}/bin/sqlx migrate run --source web/migrations
               }
 
               export DATABASE_URL=postgres://postgres:shajarah-dev-db@localhost:5445/postgres
