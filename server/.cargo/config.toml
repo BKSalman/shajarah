@@ -1,3 +1,0 @@
-[env]
-SHAJARAH_DIST = "../dist"
-RUST_LOG = "debug"
