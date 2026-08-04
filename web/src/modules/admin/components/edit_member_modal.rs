@@ -1,7 +1,7 @@
 use crate::{
     modules::{
-        admin::types::{EditMemberFormData, MemberFormData, MemberFormDataStoreExt},
-        member::types::{Gender, MemberResponseFlat},
+        member::types::{EditMember, EditMemberStoreExt, Gender, MemberResponseFlat},
+        types::EditField,
     },
     ui::{
         form::FormSection,
@@ -9,59 +9,43 @@ use crate::{
         modal::Modal,
     },
 };
-use dioxus::prelude::*;
+use dioxus::{fullstack::FileStream, prelude::*};
+
+use super::member_picker::MemberPicker;
 
 #[derive(Props, Clone, PartialEq)]
 pub struct EditMemberModalProps {
     pub show: bool,
     pub member: MemberResponseFlat,
+    pub members: Vec<MemberResponseFlat>,
     pub on_close: EventHandler<()>,
-    pub on_submit: EventHandler<EditMemberFormData>,
+    pub on_submit: EventHandler<(i64, EditMember, Option<FileStream>)>,
 }
 
 #[component]
 pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
-    let form_data = use_store(|| MemberFormData {
-        name: props.member.name.clone(),
-        last_name: props.member.last_name.clone(),
-        gender: Some(props.member.gender),
-        birthday: props.member.birthday.clone(),
-        mother_id: props.member.mother_id,
-        father_id: props.member.father_id,
-        personal_info: props.member.personal_info.clone(),
-    });
+    let mut form_data = use_store(EditMember::default);
+    let mut image = use_signal(|| None::<FileStream>);
 
     rsx! {
         Modal {
             show: props.show,
             title: "تحرير العضو".to_string(),
             max_width: Some("4xl".to_string()),
-            on_close: move |_| props.on_close.call(()),
+            on_close: move |_| {
+                props.on_close.call(());
+                form_data.set(EditMember::default());
+            },
             form {
                 id: "add-member-form",
                 class: "space-y-6",
                 autocomplete: "off",
-                onsubmit: {
-                    let member = props.member.clone();
-                    move |evt| {
-                        evt.prevent_default();
-                        let data = form_data();
+                onsubmit: move |evt| {
+                    evt.prevent_default();
 
-                        let submission_data = EditMemberFormData {
-                            id: member.id,
-                            name: (member.name != data.name).then_some(data.name),
-                            last_name: (member.last_name != data.last_name).then_some(data.last_name),
-                            gender: (data.gender.and_then(|gender| (gender != member.gender).then_some(gender))),
-                            birthday: if data.birthday != member.birthday { data.birthday } else { None },
-                            mother_id: if data.mother_id != member.mother_id { data.mother_id } else { None },
-                            father_id: if data.father_id != member.father_id { data.father_id } else { None },
-                            personal_info: if data.personal_info != member.personal_info { data.personal_info } else { None }
-                        };
-
-                        tracing::info!("{submission_data:?}");
-
-                        props.on_submit.call(submission_data);
-                    }
+                    tracing::info!("{:?}", form_data());
+                    props.on_submit.call((props.member.id, form_data().clone(), image.take()));
+                    form_data.set(EditMember::default());
                 },
                 FormSection {
                     title: "المعلومات الأساسية".to_string(),
@@ -80,9 +64,13 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                                 required: true,
                                 class: "input",
                                 placeholder: "ادخل الاسم الأول",
-                                value: "{form_data().name}",
-                                oninput: move |evt| {
-                                    form_data.name().set(evt.value());
+                                value: if let Some(name) = (&*form_data.name())() { name } else { props.member.name.clone() },
+                                oninput: move |evt: Event<FormData>| {
+                                    if evt.value() != props.member.name {
+                                        form_data.name().set(Some(evt.value()));
+                                    } else {
+                                        form_data.name().set(None);
+                                    }
                                 },
                             }
                         }
@@ -98,9 +86,13 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                                 required: true,
                                 class: "input",
                                 placeholder: "ادخل الاسم الأخير",
-                                value: "{form_data().last_name}",
-                                oninput: move |evt| {
-                                    form_data.last_name().set(evt.value());
+                                value: if let Some(last_name) = (&*form_data.last_name())() { last_name } else { props.member.last_name.clone() },
+                                oninput: move |evt: Event<FormData>| {
+                                    if evt.value() != props.member.last_name {
+                                        form_data.last_name().set(Some(evt.value()));
+                                    } else {
+                                        form_data.last_name().set(None);
+                                    }
                                 },
                             }
                         }
@@ -113,7 +105,7 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                                 name: "gender",
                                 required: true,
                                 class: "dropdown",
-                                value: "{form_data().gender.map(|g| g.to_string()).unwrap_or(String::new())}",
+                                value: if let Some(gender) = (&*form_data.gender())() { gender } else { props.member.gender },
                                 onchange: move |evt| {
                                     let mut gender = form_data.gender();
 
@@ -141,14 +133,24 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                                 r#type: "date",
                                 required: true,
                                 class: "input",
-                                value: r#"{form_data().birthday.as_ref().map(|d| d.date().to_string()).unwrap_or(String::new())}"#,
-                                oninput: move |evt| {
-                                    let date = evt
-                                        .value()
-                                        .parse::<jiff::civil::Date>()
-                                        .ok()
-                                        .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok());
-                                    form_data.birthday().set(date);
+                                value: if let EditField::Changed(birthday) = (&*form_data.birthday())() { birthday.date().to_string() } else { props.member.birthday.clone().map(|b| b.date().to_string()).unwrap_or(String::from("")) },
+                                oninput: move |evt: Event<FormData>| {
+                                    if evt.value().is_empty() {
+                                        form_data.birthday().set(EditField::Delete);
+                                    } else {
+                                        let date = evt
+                                            .value()
+                                            .parse::<jiff::civil::Date>()
+                                            .ok()
+                                            .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok());
+                                        if props.member.birthday != date {
+                                            if let Some(date) = date {
+                                                form_data.birthday().set(EditField::Changed(date));
+                                            }
+                                        } else {
+                                            form_data.birthday().set(EditField::Unchanged);
+                                        }
+                                    }
                                 },
                             }
                         }
@@ -162,34 +164,40 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                     div { class: "grid grid-cols-1 md:grid-cols-2 gap-4",
                         div { class: "form-group",
                             label { class: "form-label", "الوالدة" }
-                            input {
-                                name: "mother_id",
-                                r#type: "number",
-                                class: "input",
-                                placeholder: "ادخل معرف الوالدة (رقم)",
-                                value: "{form_data().mother_id.map(|id| id.to_string()).unwrap_or_default()}",
-                                oninput: move |evt| {
-                                    form_data.mother_id().set(evt.value().parse().ok());
+                            MemberPicker {
+                                members: props.members.clone(),
+                                exclude_id: Some(props.member.id),
+                                required_gender: Some(Gender::Female),
+                                initial_label: props.members.iter().find(|m| props.member.mother_id == Some(m.id)).map(|m| format!("{} {}", m.name, m.last_name)).unwrap_or_default(),
+                                placeholder: "ابحث عن الوالدة بالاسم...".to_string(),
+                                on_select: move |id: Option<i64>| {
+                                    match id {
+                                        None => form_data.mother_id().set(EditField::Delete),
+                                        Some(mother_id) if Some(mother_id) != props.member.mother_id => {
+                                            form_data.mother_id().set(EditField::Changed(mother_id));
+                                        }
+                                        Some(_) => form_data.mother_id().set(EditField::Unchanged),
+                                    }
                                 },
-                            }
-                            p { class: "text-xs text-gray-500 mt-1",
-                                "يمكنك البحث عن الأعضاء في القائمة أعلاه لمعرفة الأرقام"
                             }
                         }
                         div { class: "form-group",
                             label { class: "form-label", "الوالد" }
-                            input {
-                                name: "father_id",
-                                r#type: "number",
-                                class: "input",
-                                placeholder: "ادخل معرف الوالد (رقم)",
-                                value: "{form_data().father_id.map(|id| id.to_string()).unwrap_or_default()}",
-                                oninput: move |evt| {
-                                    form_data.father_id().set(evt.value().parse().ok());
+                            MemberPicker {
+                                members: props.members.clone(),
+                                exclude_id: Some(props.member.id),
+                                required_gender: Some(Gender::Male),
+                                initial_label: props.members.iter().find(|m| props.member.father_id == Some(m.id)).map(|m| format!("{} {}", m.name, m.last_name)).unwrap_or_default(),
+                                placeholder: "ابحث عن الوالد بالاسم...".to_string(),
+                                on_select: move |id: Option<i64>| {
+                                    match id {
+                                        None => form_data.father_id().set(EditField::Delete),
+                                        Some(father_id) if Some(father_id) != props.member.father_id => {
+                                            form_data.father_id().set(EditField::Changed(father_id));
+                                        }
+                                        Some(_) => form_data.father_id().set(EditField::Unchanged),
+                                    }
                                 },
-                            }
-                            p { class: "text-xs text-gray-500 mt-1",
-                                "يمكنك البحث عن الأعضاء في القائمة أعلاه لمعرفة الأرقام"
                             }
                         }
                     }
@@ -200,16 +208,28 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                         .to_string(),
                     icon_color: Some("blue-600".to_string()),
                     KeyValueInput {
-                        pairs: (form_data
-                            .personal_info())()
-                            .map(|pi| {
+                        pairs: match &*form_data.personal_info().read() {
+                            EditField::Changed(pi) => {
                                 pi.iter()
-                                .map(|(key, value)| KeyValuePair {
-                                    key: key.clone(),
-                                    value: value.clone(),
-                                })
-                                .collect()
-                            }).unwrap_or_default(),
+                                    .map(|(key, value)| KeyValuePair {
+                                        key: key.clone(),
+                                        value: value.clone(),
+                                    })
+                                    .collect()
+                            }
+                            _ => {
+                                if let Some(pi) = props.member.personal_info {
+                                    pi.iter()
+                                        .map(|(key, value)| KeyValuePair {
+                                            key: key.clone(),
+                                            value: value.clone(),
+                                        })
+                                        .collect()
+                                } else {
+                                    Vec::new()
+                                }
+                            }
+                        },
                         key_placeholder: Some("المفتاح (مثل: المهنة)".to_string()),
                         value_placeholder: Some("القيمة (مثل: مهندس)".to_string()),
                         on_pairs_change: move |new_pairs: Vec<KeyValuePair>| {
@@ -217,7 +237,7 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                                 .iter()
                                 .map(|pair| (pair.key.clone(), pair.value.clone()))
                                 .collect();
-                            form_data.personal_info().set(Some(new_pairs))
+                            form_data.personal_info().set(EditField::Changed(new_pairs))
                         },
                     }
                 }
@@ -234,6 +254,11 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                             name: "image",
                             accept: "image/*",
                             class: "input",
+                            oninput: move |evt| {
+                                if let Some(file) = evt.files().into_iter().next() {
+                                    image.set(Some(file.into()));
+                                }
+                            },
                         }
                         p { class: "text-xs text-gray-500 mt-1",
                             "الحد الأقصى: 25 ميجابايت"
@@ -244,7 +269,10 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                     button {
                         r#type: "button",
                         class: "btn btn-outline",
-                        onclick: move |_| props.on_close.call(()),
+                        onclick: move |_| {
+                            props.on_close.call(());
+                            form_data.set(EditMember::default());
+                        },
                         "إلغاء"
                     }
                     button { r#type: "submit", class: "btn btn-primary btn-lg",

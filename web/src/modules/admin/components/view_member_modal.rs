@@ -185,9 +185,7 @@ fn BasicInformationSection(props: BasicInformationSectionProps) -> Element {
                 }
                 div {
                     label { class: "text-sm font-medium text-gray-500", "العمر" }
-                    p { class: "text-gray-900",
-                        "{age_years(birthday)} سنة"
-                    }
+                    p { class: "text-gray-900", "{age_years(birthday)} سنة" }
                 }
             }
         }
@@ -245,7 +243,7 @@ fn PersonalInformationSection(props: PersonalInformationSectionProps) -> Element
                 "المعلومات الشخصية"
             }
             div { class: "grid grid-cols-1 md:grid-cols-2 gap-4",
-                for (key , value) in props.personal_info.iter() {
+                for (key, value) in props.personal_info.iter() {
                     div {
                         label { class: "text-sm font-medium text-gray-500", "{key}" }
                         p { class: "text-gray-900", "{value}" }
@@ -271,7 +269,6 @@ fn QuickActionsSection(props: QuickActionsSectionProps) -> Element {
                 class: "btn btn-secondary",
                 onclick: move |_| {
                     props.on_edit.call(props.member_id);
-                    props.on_close.call(());
                 },
                 svg {
                     class: "w-4 h-4",

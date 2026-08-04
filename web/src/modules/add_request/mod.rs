@@ -47,7 +47,8 @@ pub fn AddMember() -> Element {
     };
 
     rsx! {
-        div { class: "min-h-screen flex items-center justify-center bg-tree-texture p-6",
+        div {
+            class: "min-h-screen flex items-center justify-center bg-tree-texture p-6",
             dir: "rtl",
 
             div { class: "card card-forest w-3/4 max-w-2xl fade-in hover:shadow-forest",
@@ -275,7 +276,8 @@ pub fn AddMember() -> Element {
                                     request_data
                                         .birthday()
                                         .set(
-                                            evt.value()
+                                            evt
+                                                .value()
                                                 .parse::<jiff::civil::Date>()
                                                 .ok()
                                                 .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok()),
@@ -399,47 +401,47 @@ pub fn AddMember() -> Element {
                                     #[cfg(feature = "web")]
                                     {
                                         if let Some(file_data) = evt.files().first() {
-                                                    let Some(mime_type) = file_data.content_type() else {
-                                                        return;
-                                                    };
-                                                    let max_size = 25 * 1024 * 1024; // 25MB
-                                                    let allowed_types = ["image/jpeg", "image/png", "image/gif"];
+                                            let Some(mime_type) = file_data.content_type() else {
+                                                return;
+                                            };
+                                            let max_size = 25 * 1024 * 1024; // 25MB
+                                            let allowed_types = ["image/jpeg", "image/png", "image/gif"];
 
-                                                    if file_data.size() as usize > max_size {
-                                                        field_errors
+                                            if file_data.size() as usize > max_size {
+                                                field_errors
 
-                                                            .with_mut(|errors| {
-                                                                errors
+                                                    .with_mut(|errors| {
+                                                        errors
 
-                                                                    .insert(
-                                                                        "image".to_string(),
-                                                                        "حجم الصورة يجب أن يكون أقل من 25MB"
-                                                                            .to_string(),
-                                                                    );
-                                                            });
-                                                        return;
-                                                    }
-                                                    if !allowed_types.contains(&mime_type.as_str()) {
-                                                        field_errors
-                                                            .with_mut(|errors| {
-                                                                errors
-                                                                    .insert(
-                                                                        "image".to_string(),
-                                                                        "نوع الصورة غير مدعوم. يرجى استخدام JPG أو PNG أو GIF"
-                                                                            .to_string(),
-                                                                    );
-                                                            });
-                                                        return;
-                                                    }
-                                                    if let Ok(file_data) = file_data.read_bytes().await
-                                                    {
-                                                        request_data.image().set(Some(file_data.to_vec()));
-                                                        request_data.image_type().set(Some(mime_type));
-                                                        field_errors
-                                                            .with_mut(|errors| {
-                                                                errors.remove("image");
-                                                            });
-                                                    }
+                                                            .insert(
+                                                                "image".to_string(),
+                                                                "حجم الصورة يجب أن يكون أقل من 25MB"
+                                                                    .to_string(),
+                                                            );
+                                                    });
+                                                return;
+                                            }
+                                            if !allowed_types.contains(&mime_type.as_str()) {
+                                                field_errors
+                                                    .with_mut(|errors| {
+                                                        errors
+                                                            .insert(
+                                                                "image".to_string(),
+                                                                "نوع الصورة غير مدعوم. يرجى استخدام JPG أو PNG أو GIF"
+                                                                    .to_string(),
+                                                            );
+                                                    });
+                                                return;
+                                            }
+                                            if let Ok(file_data) = file_data.read_bytes().await
+                                            {
+                                                request_data.image().set(Some(file_data.to_vec()));
+                                                request_data.image_type().set(Some(mime_type));
+                                                field_errors
+                                                    .with_mut(|errors| {
+                                                        errors.remove("image");
+                                                    });
+                                            }
                                         }
                                     }
                                 },
@@ -485,10 +487,8 @@ pub fn AddMember() -> Element {
                         }
 
                         if show_success() {
-                            div {
-                                class: "alert alert-success",
-                                div {
-                                    class: "flex items-center",
+                            div { class: "alert alert-success",
+                                div { class: "flex items-center",
                                     svg {
                                         class: "w-5 h-5 ml-2",
                                         fill: "none",
@@ -498,13 +498,15 @@ pub fn AddMember() -> Element {
                                             stroke_linecap: "round",
                                             stroke_linejoin: "round",
                                             stroke_width: "2",
-                                            d: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                            d: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
                                         }
                                     }
-                                    p { class: "text-green-500",
-                                        "تم الإرسال بنجاح!" }
+                                    p { class: "text-green-500", "تم الإرسال بنجاح!" }
                                 }
-                                p { "تم إرسال معلومات العضو للمراجعة. شكراً لمساهمتك!" }
+                                p {
+
+                                    "تم إرسال معلومات العضو للمراجعة. شكراً لمساهمتك!"
+                                }
                             }
                         }
 

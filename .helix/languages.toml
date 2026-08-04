@@ -1,3 +1,7 @@
+# [[language]]
+# name = "rust"
+# formatter = { command = "bash", args = ["-c", "rustfmt | dx fmt -f -"] }
+
 [language-server.rust-analyzer.config.cargo]
 features = ["server"]
 

@@ -166,7 +166,8 @@ pub fn AdminLogin() -> Element {
                                 }
                                 "كلمة المرور"
                             }
-                            div { class: "flex border-1 border-solid border-gray-300 rounded-md",
+                            div {
+                                class: "flex border-1 border-solid border-gray-300 rounded-md",
                                 class: "hover:shadow-md hover:border-(--primary-color)",
                                 class: if has_field_error("password") { "border-red-300! focus:border-red-500!" },
                                 input {

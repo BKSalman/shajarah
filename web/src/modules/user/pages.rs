@@ -50,7 +50,9 @@ pub mod register {
 
                         // Header
                         div { class: "text-center mb-6",
-                            h1 { class: "text-3xl font-bold text-forest-dark mb-2", "شجرة" }
+                            h1 { class: "text-3xl font-bold text-forest-dark mb-2",
+                                "شجرة"
+                            }
                             h2 { class: "text-xl font-semibold text-forest-primary",
                                 "تسجيل حساب جديد"
                             }
@@ -96,7 +98,9 @@ pub mod register {
                             // First and Last Name
                             div { class: "grid grid-cols-1 sm:grid-cols-2 gap-4",
                                 div { class: "form-group min-w-0",
-                                    label { r#for: "first_name", class: "form-label",
+                                    label {
+                                        r#for: "first_name",
+                                        class: "form-label",
                                         "الاسم الأول"
                                     }
                                     input {
@@ -113,7 +117,9 @@ pub mod register {
                                     }
                                 }
                                 div { class: "form-group min-w-0",
-                                    label { r#for: "last_name", class: "form-label",
+                                    label {
+                                        r#for: "last_name",
+                                        class: "form-label",
                                         "الاسم الأخير"
                                     }
                                     input {
@@ -322,7 +328,9 @@ pub mod login {
 
                         // Header
                         div { class: "text-center mb-6",
-                            h1 { class: "text-3xl font-bold text-forest-dark mb-2", "شجرة" }
+                            h1 { class: "text-3xl font-bold text-forest-dark mb-2",
+                                "شجرة"
+                            }
                             h2 { class: "text-xl font-semibold text-forest-primary",
                                 "تسجيل الدخول"
                             }
@@ -437,7 +445,8 @@ pub mod login {
                                     }
                                     "كلمة المرور"
                                 }
-                                div { class: "flex border-1 border-solid border-gray-300 rounded-md",
+                                div {
+                                    class: "flex border-1 border-solid border-gray-300 rounded-md",
                                     class: "hover:shadow-md hover:border-(--primary-color)",
                                     class: if has_field_error("password") { "border-red-300! focus:border-red-500!" },
                                     input {

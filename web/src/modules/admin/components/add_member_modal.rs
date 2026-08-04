@@ -1,7 +1,7 @@
 use crate::{
     modules::{
         admin::types::{MemberFormData, MemberFormDataStoreExt},
-        member::types::Gender,
+        member::types::{Gender, MemberResponseFlat},
     },
     ui::{
         form::FormSection,
@@ -9,18 +9,22 @@ use crate::{
         modal::Modal,
     },
 };
-use dioxus::prelude::*;
+use dioxus::{fullstack::FileStream, prelude::*};
+
+use super::member_picker::MemberPicker;
 
 #[derive(Props, Clone, PartialEq)]
 pub struct AddMemberModalProps {
     pub show: bool,
+    pub members: Vec<MemberResponseFlat>,
     pub on_close: EventHandler<()>,
-    pub on_submit: EventHandler<MemberFormData>,
+    pub on_submit: EventHandler<(MemberFormData, Option<FileStream>)>,
 }
 
 #[component]
 pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
     let mut form_data = use_store(MemberFormData::default);
+    let mut image = use_signal(|| None::<FileStream>);
 
     rsx! {
         Modal {
@@ -34,7 +38,7 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                 autocomplete: "off",
                 onsubmit: move |evt| {
                     evt.prevent_default();
-                    props.on_submit.call(form_data());
+                    props.on_submit.call((form_data(), image.take()));
                     form_data.set(MemberFormData::default());
                 },
                 FormSection {
@@ -132,32 +136,20 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                     div { class: "grid grid-cols-1 md:grid-cols-2 gap-4",
                         div { class: "form-group",
                             label { class: "form-label", "الوالدة" }
-                            input {
-                                name: "mother_id",
-                                r#type: "number",
-                                class: "input",
-                                placeholder: "ادخل معرف الوالدة (رقم)",
-                                oninput: move |evt| {
-                                    form_data.mother_id().set(evt.value().parse().ok());
-                                },
-                            }
-                            p { class: "text-xs text-gray-500 mt-1",
-                                "يمكنك البحث عن الأعضاء في القائمة أعلاه لمعرفة الأرقام"
+                            MemberPicker {
+                                members: props.members.clone(),
+                                required_gender: Some(Gender::Female),
+                                placeholder: "ابحث عن الوالدة بالاسم...".to_string(),
+                                on_select: move |id| form_data.mother_id().set(id),
                             }
                         }
                         div { class: "form-group",
                             label { class: "form-label", "الوالد" }
-                            input {
-                                name: "father_id",
-                                r#type: "number",
-                                class: "input",
-                                placeholder: "ادخل معرف الوالد (رقم)",
-                                oninput: move |evt| {
-                                    form_data.father_id().set(evt.value().parse().ok());
-                                },
-                            }
-                            p { class: "text-xs text-gray-500 mt-1",
-                                "يمكنك البحث عن الأعضاء في القائمة أعلاه لمعرفة الأرقام"
+                            MemberPicker {
+                                members: props.members.clone(),
+                                required_gender: Some(Gender::Male),
+                                placeholder: "ابحث عن الوالد بالاسم...".to_string(),
+                                on_select: move |id| form_data.father_id().set(id),
                             }
                         }
                     }
@@ -169,15 +161,16 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                     icon_color: Some("blue-600".to_string()),
                     KeyValueInput {
                         pairs: (form_data
-                            .personal_info())()
+                                                                                                                                                                                                                            .personal_info())()
                             .map(|pi| {
                                 pi.iter()
-                                .map(|(key, value)| KeyValuePair {
-                                    key: key.clone(),
-                                    value: value.clone(),
-                                })
-                                .collect()
-                            }).unwrap_or_default(),
+                                    .map(|(key, value)| KeyValuePair {
+                                        key: key.clone(),
+                                        value: value.clone(),
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
                         key_placeholder: Some("المفتاح (مثل: المهنة)".to_string()),
                         value_placeholder: Some("القيمة (مثل: مهندس)".to_string()),
                         on_pairs_change: move |new_pairs: Vec<KeyValuePair>| {
@@ -202,6 +195,11 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                             name: "image",
                             accept: "image/*",
                             class: "input",
+                            oninput: move |evt| {
+                                if let Some(file) = evt.files().into_iter().next() {
+                                    image.set(Some(file.into()));
+                                }
+                            },
                         }
                         p { class: "text-xs text-gray-500 mt-1",
                             "الحد الأقصى: 25 ميجابايت"

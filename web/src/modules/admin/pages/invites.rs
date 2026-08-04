@@ -42,18 +42,22 @@ pub fn AdminInvites() -> Element {
                     div { class: "overflow-x-auto",
                         table { class: "w-full text-sm text-right border-collapse",
                             thead {
+
                                 tr { class: "border-b border-gray-200 text-gray-600",
                                     th { class: "px-3 py-2 font-medium", "#" }
                                     th { class: "px-3 py-2 font-medium", "الحالة" }
                                     th { class: "px-3 py-2 font-medium", "تاريخ الإنشاء" }
                                     th { class: "px-3 py-2 font-medium", "تاريخ الانتهاء" }
-                                    th { class: "px-3 py-2 font-medium", "تاريخ الاستخدام" }
+                                    th { class: "px-3 py-2 font-medium",
+                                        "تاريخ الاستخدام"
+                                    }
                                     th { class: "px-3 py-2 font-medium", "المُستخدِم" }
                                     th { class: "px-3 py-2 font-medium", "أنشأها" }
                                     th { class: "px-3 py-2 font-medium", "الرمز" }
                                 }
                             }
                             tbody {
+
                                 for invite in invites {
                                     {
                                         let (status_label, status_class) = if invite.used_at.is_some() {
@@ -69,8 +73,7 @@ pub fn AdminInvites() -> Element {
                                                 class: "border-b border-gray-100 hover:bg-gray-50 transition-colors",
                                                 td { class: "px-3 py-2 text-gray-500", "{invite.id}" }
                                                 td { class: "px-3 py-2",
-                                                    span {
-                                                        class: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium arabic-text {status_class}",
+                                                    span { class: "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium arabic-text {status_class}",
                                                         "{status_label}"
                                                     }
                                                 }
@@ -125,7 +128,9 @@ pub fn AdminInvites() -> Element {
         }
         None => {
             rsx! {
-                div { class: "text-center text-gray-500 py-12 arabic-text", "جارٍ التحميل..." }
+                div { class: "text-center text-gray-500 py-12 arabic-text",
+                    "جارٍ التحميل..."
+                }
             }
         }
     };

@@ -29,7 +29,7 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
 
     rsx! {
         div { class: "space-y-3",
-            for (index , pair) in pairs.iter().enumerate() {
+            for (index, pair) in pairs.iter().enumerate() {
                 div { class: "flex gap-3 items-center",
                     div { class: "flex-1",
                         input {

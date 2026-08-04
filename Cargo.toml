@@ -8,7 +8,7 @@ resolver = "3"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 indexmap = { version = "2.3.0", features = ["serde"] }
-jiff = { version = "0.2.35", features = ["serde"] }
+jiff = { version = "0.2.35", features = ["serde", "js"] }
 anyhow = "1"
 web-sys = { version = "0.3.77", features = [
     "Element",

@@ -39,8 +39,7 @@ pub fn ViewRequestModal(props: ViewRequestModalProps) -> Element {
             title: "تفاصيل الطلب".to_string(),
             max_width: Some("2xl".to_string()),
             on_close: move |_| props.on_close.call(()),
-            div { class: "space-y-6",
-                dir: "rtl",
+            div { class: "space-y-6", dir: "rtl",
                 RequestHeader {
                     request: props.request.clone(),
                     image_state: image_state(),
@@ -186,9 +185,7 @@ fn BasicInformationSection(props: BasicInformationSectionProps) -> Element {
                 }
                 div {
                     label { class: "text-sm font-medium text-gray-500", "العمر" }
-                    p { class: "text-gray-900",
-                        "{age_years(birthday)} سنة"
-                    }
+                    p { class: "text-gray-900", "{age_years(birthday)} سنة" }
                 }
             }
         }
@@ -246,7 +243,7 @@ fn PersonalInformationSection(props: PersonalInformationSectionProps) -> Element
                 "المعلومات الشخصية"
             }
             div { class: "grid grid-cols-1 md:grid-cols-2 gap-4",
-                for (key , value) in props.personal_info.iter() {
+                for (key, value) in props.personal_info.iter() {
                     div {
                         label { class: "text-sm font-medium text-gray-500", "{key}" }
                         p { class: "text-gray-900", "{value}" }

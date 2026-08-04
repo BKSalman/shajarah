@@ -103,8 +103,7 @@ pub fn Tree() -> Element {
             class: "card flex flex-col items-center sm:border sm:border-gray-300 py-2 lg:p-8 gap-2",
             dir: "rtl",
             h3 { "شجرة العائلة" }
-            div {
-                class: "flex w-full gap-2",
+            div { class: "flex w-full gap-2",
 
                 button {
                     class: "btn btn-primary",
@@ -124,29 +123,33 @@ pub fn Tree() -> Element {
                         on_select.call(option.value);
                         search.call(option.label);
                     },
-                    options: members_search_list.iter().enumerate().map(|(i, member)|  {
-                        ComboboxOption {
-                            index: i,
-                            value: member.id,
-                            label: member.full_name.clone().unwrap_or_else(|| member.name.clone()),
-                        }
-                    }).collect(),
+                    options: members_search_list
+                        .iter()
+                        .enumerate()
+                        .map(|(i, member)| {
+                            ComboboxOption {
+                                index: i,
+                                value: member.id,
+                                label: member.full_name.clone().unwrap_or_else(|| member.name.clone()),
+                            }
+                        })
+                        .collect(),
                 }
             }
             div {
                 dir: "rtl",
                 class: "flex flex-col w-full",
-                class: if fullscreen_tree() {
-                           "h-dvh fixed top-0 left-0 w-full z-100 bg-white"
-                       } else {
-                           "h-150 lg:h-200"
-                       },
+                class: if fullscreen_tree() { "h-dvh fixed top-0 left-0 w-full z-100 bg-white" } else { "h-150 lg:h-200" },
                 button {
                     class: "btn-rect btn-primary rounded-t-sm",
                     onclick: move |_| {
                         fullscreen_tree.toggle();
                     },
-                    if fullscreen_tree() { "صغر الشجرة" } else { "كبر الشجرة" }
+                    if fullscreen_tree() {
+                        "صغر الشجرة"
+                    } else {
+                        "كبر الشجرة"
+                    }
                 }
                 canvas {
                     id: "canvas",

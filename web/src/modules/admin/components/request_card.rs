@@ -163,6 +163,7 @@ pub fn RequestCard(props: RequestCardProps) -> Element {
                         }
                         if let Some(mother_name) = &props.request.mother_name {
                             div {
+
                                 span { class: "font-medium", "الوالدة: " }
                                 span { "{mother_name}" }
                             }
@@ -174,7 +175,7 @@ pub fn RequestCard(props: RequestCardProps) -> Element {
                 if let Some(personal_info) = &props.request.personal_info {
                     if !personal_info.is_empty() {
                         div { class: "text-xs text-gray-600 mb-3",
-                            for (key , value) in personal_info.iter() {
+                            for (key, value) in personal_info.iter() {
                                 div { key: "{key}", class: "mb-1",
                                     span { class: "font-medium", "{key}: " }
                                     span { "{value}" }

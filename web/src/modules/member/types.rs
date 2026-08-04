@@ -8,6 +8,8 @@ use dioxus::{
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
+use crate::modules::types::EditField;
+
 #[cfg_attr(feature = "server", derive(sqlx::Type))]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -183,4 +185,16 @@ pub struct MemberSearch {
     pub father: Option<String>,
     pub grandfather: Option<String>,
     pub great_grandfather: Option<String>,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize, Store)]
+#[serde(default)]
+pub struct EditMember {
+    pub name: Option<String>,
+    pub last_name: Option<String>,
+    pub father_id: EditField<i64>,
+    pub mother_id: EditField<i64>,
+    pub gender: Option<Gender>,
+    pub birthday: EditField<Zoned>,
+    pub personal_info: EditField<IndexMap<String, String>>,
 }

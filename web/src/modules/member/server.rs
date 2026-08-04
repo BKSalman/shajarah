@@ -1,6 +1,9 @@
-use jiff::Zoned;
-use dioxus::prelude::*;
+use dioxus::{
+    fullstack::{FileStream, MultipartFormData},
+    prelude::*,
+};
 use indexmap::IndexMap;
+use jiff::Zoned;
 
 #[cfg(feature = "server")]
 mod server_imports {
@@ -13,6 +16,8 @@ mod server_imports {
     pub use jiff::tz::TimeZone;
     pub use jiff_sqlx::ToSqlx;
 }
+
+use crate::modules::member::types::EditMember;
 
 use super::types::{Gender, MemberResponse, MemberResponseFlat};
 #[cfg(feature = "server")]
@@ -200,17 +205,18 @@ pub async fn add_member(
     mother_id: Option<i64>,
     gender: Gender,
     birthday: Option<Zoned>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<i64> {
     if first_name.is_empty() || last_name.is_empty() {
         return Err(anyhow::anyhow!(""));
     }
 
     let Extension(state) = state;
 
-    sqlx::query!(
+    let rec = sqlx::query!(
         r#"
             INSERT INTO members (name, last_name, father_id, mother_id, gender, birthday)
-            VALUES ($1, $2, $3, $4, $5, $6::text::timestamptz);
+            VALUES ($1, $2, $3, $4, $5, $6::text::timestamptz)
+            RETURNING id;
         "#,
         first_name,
         last_name,
@@ -219,71 +225,129 @@ pub async fn add_member(
         gender as _,
         birthday.map(|z| z.timestamp().to_string()),
     )
+    .fetch_one(&state.db_pool)
+    .await?;
+
+    Ok(rec.id)
+}
+
+#[put("/api/v1/members/{id}", Extension(state): Extension<AppState>)]
+pub async fn edit_member(id: i64, edit: EditMember) -> anyhow::Result<()> {
+    use crate::modules::types::EditField;
+
+    let mut query = sqlx::QueryBuilder::new("UPDATE members SET ");
+    let mut sep = query.separated(", ");
+    let mut any = false;
+
+    if let Some(first_name) = edit.name {
+        sep.push_unseparated("name = ").push_bind(first_name);
+
+        any = true;
+    }
+
+    if let Some(last_name) = edit.last_name {
+        sep.push_unseparated("last_name = ").push_bind(last_name);
+
+        any = true;
+    }
+
+    if let Some(gender) = edit.gender {
+        sep.push_unseparated("gender = ").push_bind(gender);
+
+        any = true;
+    }
+
+    match edit.birthday {
+        EditField::Changed(birthday) => {
+            sep.push_unseparated("birthday = ")
+                .push_bind(birthday.timestamp().to_sqlx());
+
+            any = true;
+        }
+        EditField::Delete => {
+            sep.push_unseparated("birthday = NULL");
+
+            any = true;
+        }
+        EditField::Unchanged => {}
+    }
+
+    match edit.father_id {
+        EditField::Changed(father_id) => {
+            sep.push_unseparated("father_id = ").push_bind(father_id);
+
+            any = true;
+        }
+        EditField::Delete => {
+            sep.push_unseparated("father_id = NULL");
+
+            any = true;
+        }
+        EditField::Unchanged => {}
+    }
+
+    match edit.mother_id {
+        EditField::Changed(mother_id) => {
+            sep.push_unseparated("mother_id = ").push_bind(mother_id);
+
+            any = true;
+        }
+        EditField::Delete => {
+            sep.push_unseparated("mother_id = NULL");
+
+            any = true;
+        }
+        EditField::Unchanged => {}
+    }
+
+    match &edit.personal_info {
+        EditField::Changed(personal_info) => {
+            sep.push_unseparated("personal_info = ")
+                .push_bind(sqlx::types::Json::from(personal_info));
+
+            any = true;
+        }
+        EditField::Delete => {
+            sep.push_unseparated("personal_info = NULL");
+
+            any = true;
+        }
+        EditField::Unchanged => {}
+    }
+
+    if any {
+        query.push(" WHERE id = ").push_bind(id);
+
+        query.build().execute(&state.db_pool).await?;
+    }
+
+    Ok(())
+}
+
+#[put("/api/v1/members/{id}/image", Extension(state): Extension<AppState>)]
+pub async fn edit_member_image(id: i64, mut image: FileStream) -> anyhow::Result<()> {
+    use futures::StreamExt;
+    let mut image_bytes = Vec::with_capacity(image.size().unwrap_or_default() as usize);
+    while let Some(Ok(chunk)) = image.next().await {
+        image_bytes.extend(chunk.as_ref());
+    }
+    sqlx::query!(
+        r#"
+            UPDATE members
+            SET image = $1
+            WHERE id = $2;
+        "#,
+        image_bytes,
+        id,
+    )
     .execute(&state.db_pool)
     .await?;
 
     Ok(())
 }
 
-#[put("/api/v1/members/{id}", state: Extension<AppState>)]
-pub async fn edit_member(
-    id: i64,
-    first_name: Option<String>,
-    last_name: Option<String>,
-    father_id: Option<i64>,
-    mother_id: Option<i64>,
-    gender: Option<Gender>,
-    birthday: Option<Zoned>,
-    personal_info: Option<IndexMap<String, String>>,
-) -> anyhow::Result<()> {
-    let Extension(state) = state;
-
-    if first_name.is_some()
-        || last_name.is_some()
-        || father_id.is_some()
-        || mother_id.is_some()
-        || gender.is_some()
-        || birthday.is_some()
-        || personal_info.is_some()
-    {
-        let mut query = sqlx::QueryBuilder::new("UPDATE members SET ");
-        let mut sep = query.separated(", ");
-
-        if let Some(first_name) = first_name {
-            sep.push_unseparated("name = ").push_bind(first_name);
-        }
-
-        if let Some(last_name) = last_name {
-            sep.push_unseparated("last_name = ").push_bind(last_name);
-        }
-
-        if let Some(gender) = gender {
-            sep.push_unseparated("gender = ").push_bind(gender);
-        }
-
-        if let Some(birthday) = birthday {
-            sep.push_unseparated("birthday = ")
-                .push_bind(birthday.timestamp().to_sqlx());
-        }
-
-        if let Some(father_id) = father_id {
-            sep.push_unseparated("father_id = ").push_bind(father_id);
-        }
-
-        if let Some(mother_id) = mother_id {
-            sep.push_unseparated("mother_id = ").push_bind(mother_id);
-        }
-
-        if let Some(personal_info) = personal_info {
-            sep.push_unseparated("personal_info = ")
-                .push_bind(sqlx::types::Json::from(personal_info));
-        }
-
-        query.push(" WHERE id = ").push_bind(id);
-
-        query.build().execute(&state.db_pool).await?;
-    }
-
+#[delete("/api/v1/members/{id}/image", Extension(state): Extension<AppState>)]
+pub async fn delete_member_image(id: i64) -> anyhow::Result<()> {
     Ok(())
 }
 

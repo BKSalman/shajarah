@@ -27,6 +27,7 @@ struct HeaderTitleProps {
 fn HeaderTitle(props: HeaderTitleProps) -> Element {
     rsx! {
         div {
+
             h2 { class: "text-xl font-bold text-gray-900 flex items-center",
                 svg {
                     class: "w-5 h-5 ml-2",
@@ -60,7 +61,8 @@ fn ActionButtons(props: ActionButtonsProps) -> Element {
     rsx! {
         div { class: "flex gap-2",
             AddMemberButton { on_click: props.on_add_member }
-            ExportButton {}
+            ExportButton {
+            }
             CsvUploadButton { on_upload: props.on_csv_upload }
         }
     }

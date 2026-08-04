@@ -1,5 +1,5 @@
+use dioxus::{fullstack::FileStream, prelude::*};
 use jiff::{ToSpan, tz::TimeZone};
-use dioxus::prelude::*;
 use uuid::Uuid;
 
 use crate::{
@@ -19,11 +19,15 @@ use crate::{
                 view_request_modal::ViewRequestModal,
             },
             server::get_admin,
-            types::{EditMemberFormData, MemberFormData},
+            types::MemberFormData,
         },
         invite::server::create_invite,
-        member::server::{
-            add_member, delete_member, edit_member, members_flat, upload_members_csv,
+        member::{
+            server::{
+                add_member, delete_member, edit_member, edit_member_image, members_flat,
+                upload_members_csv,
+            },
+            types::EditMember,
         },
         user::server::logout_user,
     },
@@ -54,11 +58,7 @@ enum ShowModal {
 fn Sidebar(show_sidebar: Signal<bool>) -> Element {
     rsx! {
         div {
-            class: if !show_sidebar() {
-                "md:translate-x-0 translate-x-full"
-            } else {
-                "md:translate-x-0 translate-x-0"
-            },
+            class: if !show_sidebar() { "md:translate-x-0 translate-x-full" } else { "md:translate-x-0 translate-x-0" },
             class: "h-full w-full md:w-auto md:flex lg:flex flex-col max-sm:fixed right-0 z-10 bg-white px-10 md:px-8 py-10 md:py-5 space-y-4 shadow-lg rounded-l-lg text-nowrap transition-transform duration-150 ease-in-out",
 
             Link {
@@ -102,18 +102,16 @@ pub fn AdminLayout() -> Element {
                 i { class: "fa-solid fa-bars" }
             }
         }
-        div {
-            dir: "rtl",
-            class: "flex gap-4 h-full",
+        div { dir: "rtl", class: "flex gap-4 h-full",
 
             Sidebar { show_sidebar }
-            div {
-                class: "w-full",
+            div { class: "w-full",
 
                 div { class: "card card-forest fade-in mb-3",
                     div { class: "card-body",
                         div { class: "flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4",
                             div {
+
                                 h1 { class: "text-center md:text-start text-2xl lg:text-3xl font-bold text-forest-dark arabic-heading",
                                     "مرحبا، {admin.first_name}!"
                                 }
@@ -154,7 +152,8 @@ pub fn AdminLayout() -> Element {
                     }
                 }
 
-                Outlet::<Route> {}
+                Outlet::<Route> {
+                }
             }
         }
     }
@@ -164,9 +163,8 @@ pub fn AdminLayout() -> Element {
 fn Invite(show_modal: Signal<Option<ShowModal>>) -> Element {
     let mut date = use_signal(|| None::<jiff::civil::Date>);
 
-    let mut create = use_action(
-        move |date: Option<jiff::Zoned>| async move { create_invite(date).await },
-    );
+    let mut create =
+        use_action(move |date: Option<jiff::Zoned>| async move { create_invite(date).await });
 
     let config = use_context::<Config>();
 
@@ -186,8 +184,8 @@ fn Invite(show_modal: Signal<Option<ShowModal>>) -> Element {
             on_close: move |_| show_modal.set(None),
             div { class: "space-y-6",
                 div {
-                    div {
-                        class: "flex flex-col mb-3",
+
+                    div { class: "flex flex-col mb-3",
                         span { "تنتهي بعد:" }
                         input {
                             class: "input",
@@ -200,8 +198,7 @@ fn Invite(show_modal: Signal<Option<ShowModal>>) -> Element {
                             },
                         }
                     }
-                    div {
-                        class: "flex gap-2",
+                    div { class: "flex gap-2",
                         button {
                             class: "btn btn-sm btn-primary",
                             onclick: move |_| {
@@ -226,7 +223,9 @@ fn Invite(show_modal: Signal<Option<ShowModal>>) -> Element {
                         button {
                             class: "btn btn-sm btn-primary",
                             onclick: move |_| {
-                                date.set(Some(jiff::Timestamp::now().to_zoned(TimeZone::UTC).date() + 1.month()));
+                                date.set(
+                                    Some(jiff::Timestamp::now().to_zoned(TimeZone::UTC).date() + 1.month()),
+                                );
                             },
                             "بعد شهر"
                         }
@@ -279,7 +278,11 @@ fn Invite(show_modal: Signal<Option<ShowModal>>) -> Element {
 
                             create.call(date);
                         },
-                        if create.pending() { "جارٍ الإنشاء..." } else { "إنشاء دعوة" }
+                        if create.pending() {
+                            "جارٍ الإنشاء..."
+                        } else {
+                            "إنشاء دعوة"
+                        }
                     }
                 }
             }
@@ -312,10 +315,13 @@ pub fn Admin() -> Element {
         }
     });
 
-    let members_count = (*members_resource.read())
+    let members_list = (*members_resource.read())
         .as_ref()
-        .and_then(|e| e.as_ref().map(|e| e.len()).ok())
-        .unwrap_or(0);
+        .and_then(|e| e.as_ref().ok())
+        .cloned()
+        .unwrap_or_default();
+
+    let members_count = members_list.len();
 
     let add_requests_count = (*add_requests_resource.read())
         .as_ref()
@@ -330,25 +336,45 @@ pub fn Admin() -> Element {
         })
         .unwrap_or(0);
 
-    let mut on_member_edit = use_action(move |data: EditMemberFormData| async move {
-        edit_member(
-            data.id,
-            data.name,
-            data.last_name,
-            data.father_id,
-            data.mother_id,
-            data.gender,
-            data.birthday,
-            data.personal_info,
-        )
-        .await?;
+    let mut on_member_add = use_action(
+        move |(data, image): (MemberFormData, Option<FileStream>)| async move {
+            let Some(gender) = data.gender else {
+                anyhow::bail!("Gender must be set");
+            };
 
-        members_resource.restart();
+            let id = add_member(
+                data.name,
+                data.last_name,
+                data.father_id,
+                data.mother_id,
+                gender,
+                data.birthday,
+            )
+            .await?;
+            if let Some(image) = image {
+                edit_member_image(id, image).await?;
+            }
+            members_resource.restart();
+            show_modal.set(None);
 
-        show_modal.set(None);
+            Ok(())
+        },
+    );
 
-        anyhow::Ok(())
-    });
+    let mut on_member_edit = use_action(
+        move |id: i64, data: EditMember, image: Option<FileStream>| async move {
+            edit_member(id, data).await?;
+            if let Some(image) = image {
+                edit_member_image(id, image).await?;
+            }
+
+            members_resource.restart();
+
+            show_modal.set(None);
+
+            anyhow::Ok(())
+        },
+    );
 
     let members_grid = match &*members_resource.read() {
         Some(Ok(members)) => {
@@ -380,22 +406,23 @@ pub fn Admin() -> Element {
                         id: "members-grid",
                         for member in members {
                             ViewMemberModal {
+                                member: member.clone(),
                                 on_edit: move |id| {
                                     show_modal.set(Some(ShowModal::EditMember(id)));
                                 },
                                 show: show_modal().is_some_and(|m| m == ShowModal::ViewMember(member.id)),
-                                member: member.clone(),
                                 on_close: move |_| {
                                     show_modal.set(None);
                                 },
                             }
                             EditMemberModal {
-                                show: show_modal().is_some_and(|m| m == ShowModal::EditMember(member.id)),
                                 member: member.clone(),
+                                members: members.clone(),
+                                show: show_modal().is_some_and(|m| m == ShowModal::EditMember(member.id)),
                                 on_close: move |_| {
                                     show_modal.set(None);
                                 },
-                                on_submit: move |data: EditMemberFormData| on_member_edit.call(data),
+                                on_submit: move |(id, data, image): (i64, EditMember, Option<FileStream>)| on_member_edit.call(id, data, image),
                             }
                             Modal {
                                 show: show_modal().is_some_and(|m| m == ShowModal::DeleteMember(member.id)),
@@ -403,12 +430,9 @@ pub fn Admin() -> Element {
                                 on_close: move |_| show_modal.set(None),
                                 max_width: Some(String::from("xl")),
 
-                                span {
-                                    "هل أنت متأكد من حذف {member.name}؟"
-                                }
+                                span { "هل أنت متأكد من حذف {member.name}؟" }
 
-                                div {
-                                    class: "flex justify-center gap-4",
+                                div { class: "flex justify-center gap-4",
                                     button {
                                         class: "btn btn-danger",
                                         onclick: {
@@ -456,7 +480,8 @@ pub fn Admin() -> Element {
         }
         None => {
             return rsx! {
-                FullPageLoading {}
+                FullPageLoading {
+                }
             };
         }
     };
@@ -507,7 +532,7 @@ pub fn Admin() -> Element {
                                             Ok(_) => {
                                                 add_requests_resource.restart();
                                                 members_resource.restart();
-                                            },
+                                            }
                                             Err(e) => {}
                                         }
                                     },
@@ -515,7 +540,7 @@ pub fn Admin() -> Element {
                                         match disapprove_request(id).await {
                                             Ok(_) => {
                                                 add_requests_resource.restart();
-                                            },
+                                            }
                                             Err(e) => {}
                                         }
                                     },
@@ -536,14 +561,14 @@ pub fn Admin() -> Element {
         }
         None => {
             return rsx! {
-                FullPageLoading {}
+                FullPageLoading {
+                }
             };
         }
     };
 
     rsx! {
-        div { class: "w-full",
-            dir: "rtl",
+        div { class: "w-full", dir: "rtl",
             div { class: "text-red-500", "{error}" }
 
             div { class: "flex flex-col md:flex-row gap-4 slide-in",
@@ -671,20 +696,11 @@ pub fn Admin() -> Element {
 
             AddMemberModal {
                 show: show_modal().is_some_and(|m| matches!(m, ShowModal::AddMember)),
+                members: members_list.clone(),
                 on_close: move |_| {
                     show_modal.set(None);
                 },
-                on_submit: move |data: MemberFormData| async move {
-                    let Some(gender) = data.gender else {
-                        return;
-                    };
-
-                    let _ = add_member(data.name, data.last_name, data.father_id, data.mother_id, gender, data.birthday).await;
-
-                    members_resource.restart();
-
-                    show_modal.set(None);
-                },
+                on_submit: move |(data, image): (MemberFormData, Option<FileStream>)| on_member_add.call((data, image)),
             }
             match &*tab.read() {
                 Tab::Members => {
@@ -702,7 +718,7 @@ pub fn Admin() -> Element {
                         }
                         {members_grid}
                     }
-                },
+                }
                 Tab::Requests => rsx! {
                     {add_requests_grid}
                 },

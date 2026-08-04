@@ -88,13 +88,22 @@ pub fn PrivateTreeGuard() -> Element {
     });
 
     if config.public {
-        return rsx! { Outlet::<Route> {} };
+        return rsx! {
+            Outlet::<Route> {
+            }
+        };
     }
 
     match is_authed() {
-        None => rsx! { FullPageLoading {} },
+        None => rsx! {
+            FullPageLoading {
+            }
+        },
         Some(Err(_)) => rsx! {}, // effect handles the redirect
-        Some(Ok(_)) => rsx! { Outlet::<Route> {} },
+        Some(Ok(_)) => rsx! {
+            Outlet::<Route> {
+            }
+        },
     }
 }
 
@@ -159,7 +168,7 @@ async fn launch_server(config: config::server::Config) -> Result<axum::Router, a
 }
 
 fn main() {
-    dioxus::logger::init(Level::INFO).ok();
+    dioxus::logger::init(Level::DEBUG).ok();
 
     #[cfg(feature = "web")]
     dioxus::launch(app);
@@ -198,8 +207,12 @@ fn app() -> Element {
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/form.css") }
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/card.css") }
         document::Link { rel: "stylesheet", href: asset!("/assets/styling/loading.css") }
-        document::Link { rel: "stylesheet", href: format!("{FONT_AWESOME}/css/all.min.css") }
+        document::Link {
+            rel: "stylesheet",
+            href: format!("{FONT_AWESOME}/css/all.min.css"),
+        }
 
-        Router::<Route> {}
+        Router::<Route> {
+        }
     }
 }

@@ -20,13 +20,16 @@ pub struct ComboboxProps<T: core::fmt::Debug + Clone + PartialEq + 'static> {
     pub placeholder: String,
     #[props(default = None)]
     pub on_mount: Option<EventHandler<Event<MountedData>>>,
+    /// Pre-fills the search input, e.g. to show the currently selected value
+    #[props(default = String::new())]
+    pub default_value: String,
 }
 
 #[component]
 pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
     props: ComboboxProps<T>,
 ) -> Element {
-    let mut query = use_signal(String::new);
+    let mut query = use_signal(|| props.default_value.clone());
     let mut highlighted: Signal<Option<usize>> = use_signal(|| None);
     let mut open = use_signal(|| false);
 
@@ -65,6 +68,8 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
                 }
                 Key::Enter => {
                     if let Some(idx) = highlighted() {
+                        e.prevent_default();
+
                         let opt = options[idx].clone();
                         query.set(opt.label.clone());
                         on_select.call(opt);
@@ -98,20 +103,15 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
     });
 
     rsx! {
-        div {
-            class: "relative w-full",
+        div { class: "combobox relative w-full",
             input {
                 class: "input w-full",
-                value: "{query}",
+                value: query(),
                 placeholder: "{props.placeholder}",
                 oninput: on_input,
                 onkeydown: on_keydown,
-                // close on blur, slight delay so onclick on option fires first
                 onblur: move |_| {
-                    spawn(async move {
-                        gloo_timers::future::TimeoutFuture::new(150).await;
-                        open.set(false);
-                    });
+                    open.set(false);
                 },
                 onfocus: move |_| {
                     if !query.read().is_empty() {
@@ -126,8 +126,7 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
             }
 
             if is_open {
-                ul {
-                    class: "absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto",
+                ul { class: "absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto",
                     for (idx, opt) in props.options.iter().enumerate() {
                         {
                             let opt = opt.clone();
@@ -138,12 +137,11 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
                                 li {
                                     key: "{opt.index}",
                                     id: "combobox-option-{idx}",
-                                    class: if is_highlighted {
-                                        "px-4 py-2 cursor-pointer bg-gray-100 text-gray-900"
-                                    } else {
-                                        "px-4 py-2 cursor-pointer hover:bg-gray-50 text-gray-700"
-                                    },
+                                    class: if is_highlighted { "px-4 py-2 cursor-pointer bg-gray-100 text-gray-900" } else { "px-4 py-2 cursor-pointer hover:bg-gray-50 text-gray-700" },
                                     onmouseenter: move |_| highlighted.set(Some(idx)),
+                                    // prevent the input from blurring on click, so onblur
+                                    // doesn't race with (and beat) this onclick handler
+                                    onmousedown: move |e| e.prevent_default(),
                                     onclick: move |_| {
                                         query.set(opt_click.label.clone());
                                         on_select.call(opt_click.clone());

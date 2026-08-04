@@ -14,15 +14,3 @@ pub struct MemberFormData {
     pub father_id: Option<i64>,
     pub personal_info: Option<IndexMap<String, String>>,
 }
-
-#[derive(Debug, Default, Clone, Store, PartialEq)]
-pub struct EditMemberFormData {
-    pub id: i64,
-    pub name: Option<String>,
-    pub last_name: Option<String>,
-    pub gender: Option<Gender>,
-    pub birthday: Option<Zoned>,
-    pub mother_id: Option<i64>,
-    pub father_id: Option<i64>,
-    pub personal_info: Option<IndexMap<String, String>>,
-}
