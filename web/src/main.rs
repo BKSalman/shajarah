@@ -114,13 +114,13 @@ async fn launch_server(config: config::server::Config) -> Result<axum::Router, a
 
     use crate::middleware::private_tree::block_non_invited;
 
-    let pool =
-        PgPool::connect(
-                &std::env::var("DATABASE_URL")
-                    .expect("DATABASE_URL should be defined, example: postgres://postgres:shajarah-dev@localhost:5445/postgres")
-            )
-            .await
-            .expect("Failed to connect to DB");
+    let db_url = std::env::var("DATABASE_URL")
+        .expect("DATABASE_URL should be defined, example: postgres://postgres:shajarah-dev@localhost:5432/postgres");
+    tracing::debug!("connecting to {}", db_url);
+
+    let pool = PgPool::connect(&db_url)
+        .await
+        .expect("Failed to connect to DB");
 
     sqlx::migrate!().run(&pool).await?;
 

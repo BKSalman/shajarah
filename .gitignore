@@ -19,3 +19,5 @@ web/config.toml
 web/assets/shajarah.js
 web/assets/shajarah_bg.wasm
 result
+
+data

@@ -4,10 +4,16 @@
     rust-overlay.url = "github:oxalica/rust-overlay";
     flake-parts.url = "github:hercules-ci/flake-parts";
     crane.url = "github:ipetkov/crane";
+    process-compose-flake.url = "github:Platonic-Systems/process-compose-flake";
+    services-flake.url = "github:juspay/services-flake";
   };
 
   outputs = inputs@{ self, nixpkgs, rust-overlay, flake-parts, crane, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        inputs.process-compose-flake.flakeModule
+      ];
+
       systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
 
       # System-independent outputs.
@@ -85,8 +91,8 @@
 
                 environment = {
                   # The config loader reads `${SHAJARAH_CONFIG_PATH}/${SHAJARAH_CONFIG_FILE}`.
-                  SHAJARAH_CONFIG_PATH = lib.mkIf (cfg.configFile != null) (builtins.dirOf cfg.configFile);
-                  SHAJARAH_CONFIG_FILE = lib.mkIf (cfg.configFile != null) (builtins.baseNameOf cfg.configFile);
+                  SHAJARAH_CONFIG_PATH = lib.mkIf (cfg.configFile != null) (dirOf cfg.configFile);
+                  SHAJARAH_CONFIG_FILE = lib.mkIf (cfg.configFile != null) (baseNameOf cfg.configFile);
                   SHAJARAH_PORT = toString cfg.port;
                   SHAJARAH_LOG_LEVEL = cfg.logLevel;
                   RUST_LOG = cfg.logLevel;
@@ -128,7 +134,7 @@
           };
       };
 
-      perSystem = { system, lib, ... }:
+      perSystem = { self', system, lib, config, ... }:
         let
           pkgs = import nixpkgs {
             inherit system;
@@ -150,7 +156,7 @@
           # prints the correct value on mismatch. Both are platform-independent.
           wasmBindgenVersion =
             let
-              lock = builtins.fromTOML (builtins.readFile ./Cargo.lock);
+              lock = fromTOML (builtins.readFile ./Cargo.lock);
             in
             (lib.findFirst (p: p.name == "wasm-bindgen")
               (throw "wasm-bindgen not found in Cargo.lock")
@@ -258,10 +264,20 @@
           packages.default = shajarah;
           packages.shajarah = shajarah;
 
-          devShells.default = pkgs.mkShell.override {
+          devShells.default = 
+            let
+              pgcfg = config.process-compose."services".services.postgres.shajarah;
+            in
+          pkgs.mkShell.override {
             stdenv = pkgs.useWildLinker pkgs.stdenv;
           } rec {
+            inputsFrom = [
+              config.process-compose."services".services.outputs.devShell
+            ];
+
             packages = [
+              self'.packages.services
+
               # Rust
               (pkgs.rust-bin.stable.latest.default.override {
                 extensions = [ "rust-src" "rust-analyzer" ];
@@ -295,45 +311,48 @@
             ];
 
             LD_LIBRARY_PATH = "${lib.makeLibraryPath buildInputs}";
+            DATABASE_URL = "postgres://${pgcfg.superuser}@${pgcfg.listen_addresses}:${toString pgcfg.port}/shajarah";
+          };
 
-            shellHook = ''
-              cleanup() {
-                echo "Stopping development containers..."
-                docker stop shajarah-dev-db shajarah-dev-pgweb shajarah-dev-mailhog &>/dev/null &
-              }
+          process-compose."services" = { config, ... }: {
+            imports = [
+              inputs.services-flake.processComposeModules.default
+            ];
 
-              # Register cleanup on exit
-              trap cleanup EXIT
+            services.postgres."shajarah" = {
+              enable = true;
+              superuser = "shajarah";
 
-              run-services() {
-                if ! docker ps --format '{{.Names}}' | grep -q '^shajarah-dev-db$'; then
-                  docker run --rm \
-                    --name shajarah-dev-db \
-                    -p 5445:5432 \
-                    -e POSTGRES_PASSWORD=shajarah-dev-db \
-                    -d postgres &> /dev/null
-                fi
+              initdbArgs = [
+                "--locale=C.utf8"
+                "--encoding=UTF8"
+              ];
 
-                if ! docker ps --format '{{.Names}}' | grep -q '^shajarah-dev-pgweb$'; then
-                  docker run --rm \
-                    --name shajarah-dev-pgweb \
-                    -p 8081:8081 \
-                    -d sosedoff/pgweb &> /dev/null
-                fi
+              initialDatabases = [
+                {
+                  name = "shajarah";
+                  schemas = [
+                    (pkgs.writeText "shajarah-init.sql" ''
+                      CREATE EXTENSION IF NOT EXISTS pg_trgm;
+                    '')
+                  ];
+                }
+              ];
+            };
 
-                if ! docker ps --format '{{.Names}}' | grep -q '^shajarah-dev-mailhog$'; then
-                  docker run --rm \
-                    --name shajarah-dev-mailhog \
-                    -p 1025:1025 -p 8025:8025 \
-                    -d mailhog/mailhog:v1.0.1 &> /dev/null
-                fi
-              }
+            settings.processes.pgweb =
+              let
+                pgcfg = config.services.postgres.shajarah;
+              in
+              {
+                environment.PGWEB_DATABASE_URL = "postgres://${pgcfg.superuser}@${pgcfg.listen_addresses}:${toString pgcfg.port}/shajarah";
+                command = pkgs.pgweb;
+                depends_on."shajarah".condition = "process_healthy";
+              };
 
-              export DATABASE_URL=postgres://postgres:shajarah-dev-db@localhost:5445/postgres
-
-              export $(cat .env)
-              run-services
-            '';
+            settings.processes.mailhog = {
+              command = "${lib.getExe pkgs.mailhog}";
+            };
           };
         };
     };
