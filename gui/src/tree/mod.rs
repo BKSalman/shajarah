@@ -1,5 +1,5 @@
 use crate::Gender;
-use chrono::{DateTime, Utc};
+use jiff::Zoned;
 use eframe::egui::{self, Rect};
 use egui::{Vec2, include_image};
 use indexmap::IndexMap;
@@ -106,7 +106,7 @@ pub struct Node {
     name: String,
     full_name: String,
     gender: Gender,
-    birthday: Option<DateTime<Utc>>,
+    birthday: Option<Zoned>,
     last_name: String,
     father_id: Option<i32>,
     mother_id: Option<i32>,

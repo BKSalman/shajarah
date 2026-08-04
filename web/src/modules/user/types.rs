@@ -1,4 +1,4 @@
-use chrono::DateTime;
+use jiff::Zoned;
 use dioxus::prelude::*;
 use garde::Validate;
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,7 @@ pub struct ProfileImage {
     pub path: String,
     pub content_type: String,
     pub user_id: Uuid,
-    pub updated_at: Option<DateTime<chrono::Utc>>,
+    pub updated_at: Option<Zoned>,
 }
 
 #[derive(Deserialize, Validate)]

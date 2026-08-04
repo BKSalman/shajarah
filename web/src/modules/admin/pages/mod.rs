@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, NaiveTime};
+use jiff::{ToSpan, tz::TimeZone};
 use dioxus::prelude::*;
 use uuid::Uuid;
 
@@ -162,10 +162,10 @@ pub fn AdminLayout() -> Element {
 
 #[component]
 fn Invite(show_modal: Signal<Option<ShowModal>>) -> Element {
-    let mut date = use_signal(|| None::<NaiveDate>);
+    let mut date = use_signal(|| None::<jiff::civil::Date>);
 
     let mut create = use_action(
-        move |date: Option<chrono::DateTime<chrono::Utc>>| async move { create_invite(date).await },
+        move |date: Option<jiff::Zoned>| async move { create_invite(date).await },
     );
 
     let config = use_context::<Config>();
@@ -194,7 +194,7 @@ fn Invite(show_modal: Signal<Option<ShowModal>>) -> Element {
                             r#type: "date",
                             value: date().map(|d| d.to_string()).unwrap_or_else(|| String::from("")),
                             onchange: move |evt| {
-                                if let Ok(data) = evt.parsed::<NaiveDate>() {
+                                if let Ok(data) = evt.parsed::<jiff::civil::Date>() {
                                     date.set(Some(data));
                                 }
                             },
@@ -212,21 +212,21 @@ fn Invite(show_modal: Signal<Option<ShowModal>>) -> Element {
                         button {
                             class: "btn btn-sm btn-primary",
                             onclick: move |_| {
-                                date.set(Some(chrono::Utc::now().date_naive() + chrono::Duration::days(1)));
+                                date.set(Some(jiff::Timestamp::now().to_zoned(TimeZone::UTC).date() + 1.day()));
                             },
                             "بعد يوم"
                         }
                         button {
                             class: "btn btn-sm btn-primary",
                             onclick: move |_| {
-                                date.set(Some(chrono::Utc::now().date_naive() + chrono::Duration::weeks(1)));
+                                date.set(Some(jiff::Timestamp::now().to_zoned(TimeZone::UTC).date() + 1.week()));
                             },
                             "بعد أسبوع"
                         }
                         button {
                             class: "btn btn-sm btn-primary",
                             onclick: move |_| {
-                                date.set(Some(chrono::Utc::now().date_naive() + chrono::Months::new(1)));
+                                date.set(Some(jiff::Timestamp::now().to_zoned(TimeZone::UTC).date() + 1.month()));
                             },
                             "بعد شهر"
                         }
@@ -275,11 +275,7 @@ fn Invite(show_modal: Signal<Option<ShowModal>>) -> Element {
                         disabled: create.pending(),
                         onclick: move |_| {
                             let date = date()
-                                .map(|d| {
-                                    d.and_time(
-                                        NaiveTime::from_hms_opt(0, 0, 0).unwrap()
-                                    ).and_utc()
-                                });
+                                .and_then(|d| d.to_zoned(TimeZone::UTC).ok());
 
                             create.call(date);
                         },

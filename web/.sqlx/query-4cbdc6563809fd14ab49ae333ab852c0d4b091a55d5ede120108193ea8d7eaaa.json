@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE user_invites\n            SET used_at = now(), accepted_by = $1\n            WHERE token_hash = $2 AND expires_at > now() AND used_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4cbdc6563809fd14ab49ae333ab852c0d4b091a55d5ede120108193ea8d7eaaa"
+}

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use jiff::Zoned;
 use dioxus::prelude::*;
 use indexmap::IndexMap;
 
@@ -10,6 +10,8 @@ mod server_imports {
     pub use crate::modules::user::types::UserRole;
     pub use crate::server::AppState;
     pub use axum::extract::Extension;
+    pub use jiff::tz::TimeZone;
+    pub use jiff_sqlx::ToSqlx;
 }
 
 use super::types::{Gender, MemberResponse, MemberResponseFlat};
@@ -26,7 +28,7 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
                 m.name,
                 CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name,
                 m.gender as "gender: Gender",
-                m.birthday,
+                m.birthday as "birthday: jiff_sqlx::Timestamp",
                 m.last_name,
                 m.image,
                 m.image_type,
@@ -35,12 +37,12 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
                 mother.id AS mother_id,
                 mother.name AS mother_name,
                 mother.gender AS "mother_gender: Gender",
-                mother.birthday AS mother_birthday,
+                mother.birthday AS "mother_birthday: jiff_sqlx::Timestamp",
                 mother.last_name AS mother_last_name,
                 father.id AS father_id,
                 father.name AS father_name,
                 father.gender AS "father_gender: Gender",
-                father.birthday AS father_birthday,
+                father.birthday AS "father_birthday: jiff_sqlx::Timestamp",
                 father.last_name AS father_last_name
             FROM
                 members m
@@ -72,7 +74,7 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
         name: root.name.clone(),
         full_name: root.full_name.clone().unwrap_or_else(|| root.name.clone()),
         gender: root.gender,
-        birthday: root.birthday,
+        birthday: root.birthday.map(|t| t.to_jiff().to_zoned(TimeZone::UTC)),
         last_name: root.last_name.clone(),
         father_id: None,
         mother_id: None,
@@ -167,7 +169,7 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
                 id: m.id,
                 name: m.name,
                 gender: m.gender,
-                birthday: m.birthday,
+                birthday: m.birthday.map(|t| t.to_jiff().to_zoned(TimeZone::UTC)),
                 last_name: m.last_name,
                 father_id: m.father_id,
                 mother_id: m.mother_id,
@@ -197,7 +199,7 @@ pub async fn add_member(
     father_id: Option<i64>,
     mother_id: Option<i64>,
     gender: Gender,
-    birthday: Option<DateTime<Utc>>,
+    birthday: Option<Zoned>,
 ) -> anyhow::Result<()> {
     if first_name.is_empty() || last_name.is_empty() {
         return Err(anyhow::anyhow!(""));
@@ -208,14 +210,14 @@ pub async fn add_member(
     sqlx::query!(
         r#"
             INSERT INTO members (name, last_name, father_id, mother_id, gender, birthday)
-            VALUES ($1, $2, $3, $4, $5, $6);
+            VALUES ($1, $2, $3, $4, $5, $6::text::timestamptz);
         "#,
         first_name,
         last_name,
         father_id,
         mother_id,
         gender as _,
-        birthday,
+        birthday.map(|z| z.timestamp().to_string()),
     )
     .execute(&state.db_pool)
     .await?;
@@ -231,7 +233,7 @@ pub async fn edit_member(
     father_id: Option<i64>,
     mother_id: Option<i64>,
     gender: Option<Gender>,
-    birthday: Option<DateTime<Utc>>,
+    birthday: Option<Zoned>,
     personal_info: Option<IndexMap<String, String>>,
 ) -> anyhow::Result<()> {
     let Extension(state) = state;
@@ -260,7 +262,8 @@ pub async fn edit_member(
         }
 
         if let Some(birthday) = birthday {
-            sep.push_unseparated("birthday = ").push_bind(birthday);
+            sep.push_unseparated("birthday = ")
+                .push_bind(birthday.timestamp().to_sqlx());
         }
 
         if let Some(father_id) = father_id {
@@ -324,7 +327,7 @@ pub async fn upload_members_csv(csv_str: String) -> anyhow::Result<()> {
             .push_bind(members.name)
             .push_bind(members.last_name)
             .push_bind(members.gender)
-            .push_bind(members.birthday)
+            .push_bind(members.birthday.map(|z| z.timestamp().to_sqlx()))
             .push_bind(members.mother_id)
             .push_bind(members.father_id);
     });

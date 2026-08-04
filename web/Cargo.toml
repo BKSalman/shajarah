@@ -17,9 +17,9 @@ tokio = { version = "1", features = [ "fs", "io-std", "io-util", "macros", "net"
 tower-http = { version = "0.6.6", features = ["cors", "limit", "fs", "compression-br", "compression-gzip"], optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-chrono = { workspace = true }
+jiff = { workspace = true }
 indexmap = { workspace = true }
-sqlx = { version = "0.9", features = [ "runtime-tokio", "tls-rustls", "postgres", "chrono", "uuid" ], optional = true }
+sqlx = { version = "0.9", features = [ "runtime-tokio", "tls-rustls", "postgres", "uuid" ], optional = true }
 garde = { version = "0.23.0", features = ["derive", "email"] }
 uuid = { version = "1.18.0", features = ["serde", "v4"] }
 thiserror = "2.0.14"
@@ -43,6 +43,7 @@ dioxus-icons = { version = "0.1.0", default-features = false }
 web-sys.workspace = true
 hex = "0.4.3"
 sha2 = "0.11.0"
+jiff-sqlx = { version = "0.2.0", features = ["postgres"], optional = true }
 
 [target.wasm32-unknown-unknown.dependencies]
 uuid = { version = "1.18.0", features = ["serde", "v4", "js"] }
@@ -63,6 +64,7 @@ server = [
   "dep:tokio",
   "dep:tower-http",
   "dep:sqlx",
+  "dep:jiff-sqlx",
   "dep:tower-cookies",
   "dep:rand",
   "dep:argon2",

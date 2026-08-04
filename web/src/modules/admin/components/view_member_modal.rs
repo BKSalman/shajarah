@@ -4,6 +4,7 @@ use crate::{
         member::types::{Gender, MemberResponseFlat},
     },
     ui::modal::Modal,
+    util::age_years,
 };
 use base64::prelude::*;
 use dioxus::prelude::*;
@@ -177,15 +178,15 @@ fn BasicInformationSection(props: BasicInformationSectionProps) -> Element {
             h5 { class: "text-lg font-semibold text-gray-900 border-b pb-2",
                 "المعلومات الأساسية"
             }
-            if let Some(birthday) = props.member.birthday {
+            if let Some(birthday) = props.member.birthday.as_ref() {
                 div {
                     label { class: "text-sm font-medium text-gray-500", "تاريخ الميلاد" }
-                    p { class: "text-gray-900", "{birthday.date_naive()}" }
+                    p { class: "text-gray-900", "{birthday.date()}" }
                 }
                 div {
                     label { class: "text-sm font-medium text-gray-500", "العمر" }
                     p { class: "text-gray-900",
-                        "{chrono::Utc::now().years_since(birthday).unwrap_or(0)} سنة"
+                        "{age_years(birthday)} سنة"
                     }
                 }
             }

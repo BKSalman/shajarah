@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use chrono::{DateTime, Utc};
+use jiff::Zoned;
 use dioxus::{
     core::{AttributeValue, IntoAttributeValue},
     prelude::*,
@@ -56,7 +56,7 @@ pub struct MemberResponse {
     pub name: String,
     pub full_name: String,
     pub gender: Gender,
-    pub birthday: Option<DateTime<Utc>>,
+    pub birthday: Option<Zoned>,
     pub last_name: String,
     pub father_id: Option<i64>,
     pub mother_id: Option<i64>,
@@ -67,7 +67,10 @@ pub struct MemberResponse {
 }
 
 impl MemberResponse {
+    #[cfg(feature = "server")]
     pub fn add_all_children(&mut self, all_members: &[MemberRowWithParents]) {
+        use jiff::tz::TimeZone;
+
         self.children = all_members
             .iter()
             .filter(|m| {
@@ -79,7 +82,7 @@ impl MemberResponse {
                 name: m.name.clone(),
                 full_name: m.full_name.clone().unwrap_or_else(|| m.name.clone()),
                 gender: m.gender,
-                birthday: m.birthday,
+                birthday: m.birthday.map(|t| t.to_jiff().to_zoned(TimeZone::UTC)),
                 last_name: m.last_name.clone(),
                 father_id: m.father_id,
                 mother_id: m.mother_id,
@@ -116,7 +119,7 @@ pub struct MemberResponseFlat {
     pub id: i64,
     pub name: String,
     pub gender: Gender,
-    pub birthday: Option<DateTime<Utc>>,
+    pub birthday: Option<Zoned>,
     pub last_name: String,
     pub father_id: Option<i64>,
     pub mother_id: Option<i64>,
@@ -127,14 +130,14 @@ pub struct MemberResponseFlat {
     pub image_type: Option<String>,
     pub children: Vec<ChildMember>,
 }
-#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
-#[derive(Debug)]
+#[cfg(feature = "server")]
+#[derive(Debug, sqlx::FromRow)]
 pub struct MemberRowWithParents {
     pub id: i64,
     pub name: String,
     pub full_name: Option<String>,
     pub gender: Gender,
-    pub birthday: Option<chrono::DateTime<chrono::Utc>>,
+    pub birthday: Option<jiff_sqlx::Timestamp>,
     pub email: Option<String>,
     pub last_name: String,
     pub image: Option<Vec<u8>>,
@@ -143,23 +146,22 @@ pub struct MemberRowWithParents {
     pub mother_id: Option<i64>,
     pub mother_name: Option<String>,
     pub mother_gender: Option<Gender>,
-    pub mother_birthday: Option<chrono::DateTime<chrono::Utc>>,
+    pub mother_birthday: Option<jiff_sqlx::Timestamp>,
     pub mother_last_name: Option<String>,
     pub father_id: Option<i64>,
     pub father_name: Option<String>,
     pub father_gender: Option<Gender>,
-    pub father_birthday: Option<chrono::DateTime<chrono::Utc>>,
+    pub father_birthday: Option<jiff_sqlx::Timestamp>,
     pub father_last_name: Option<String>,
 }
 
-#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MemberRow {
     pub id: i64,
     pub name: String,
     pub last_name: String,
     pub gender: Gender,
-    pub birthday: Option<chrono::DateTime<chrono::Utc>>,
+    pub birthday: Option<Zoned>,
     #[serde(skip)]
     pub image: Option<Vec<u8>>,
     #[serde(skip)]
@@ -170,7 +172,6 @@ pub struct MemberRow {
     pub father_id: Option<i64>,
 }
 
-#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MemberSearch {
     pub id: i64,
@@ -178,7 +179,7 @@ pub struct MemberSearch {
     pub last_name: String,
     pub full_name: Option<String>,
     pub gender: Gender,
-    pub birthday: Option<chrono::DateTime<chrono::Utc>>,
+    pub birthday: Option<Zoned>,
     pub father: Option<String>,
     pub grandfather: Option<String>,
     pub great_grandfather: Option<String>,

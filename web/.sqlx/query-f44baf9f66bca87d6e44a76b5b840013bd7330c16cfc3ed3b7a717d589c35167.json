@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO sessions (id, user_id, created_at, expires_at)\n            VALUES ($1, $2, $3, $4)\n            RETURNING sessions.id\n        ",
+  "query": "\n            INSERT INTO sessions (id, user_id, created_at, expires_at)\n            VALUES ($1, $2, now(), now() + interval '2 days')\n            RETURNING sessions.id\n        ",
   "describe": {
     "columns": [
       {
@@ -18,14 +18,12 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid",
-        "Timestamptz",
-        "Timestamptz"
+        "Uuid"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "3d3fd7dcc2f6d64da7b1f3561114ef83d00414090c176a3f336e4b57b2e70c24"
+  "hash": "f44baf9f66bca87d6e44a76b5b840013bd7330c16cfc3ed3b7a717d589c35167"
 }

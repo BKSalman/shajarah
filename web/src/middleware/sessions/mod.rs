@@ -10,7 +10,6 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use chrono::{Duration, Utc};
 use std::sync::Arc;
 use tower_cookies::Cookies;
 use uuid::Uuid;
@@ -92,12 +91,10 @@ pub async fn refresh_session(
         sqlx::query!(
             r#"
                 UPDATE sessions
-                SET expires_at = $1
-                WHERE id = $2 AND expires_at = $3
+                SET expires_at = now() + interval '2 days'
+                WHERE id = $1 AND expires_at = now()
             "#,
-            Utc::now() + Duration::days(2),
             session_id,
-            Utc::now(),
         )
         .execute(&state.db_pool)
         .await?;

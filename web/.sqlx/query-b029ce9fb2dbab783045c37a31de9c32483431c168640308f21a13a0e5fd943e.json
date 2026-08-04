@@ -1,12 +1,14 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO members (name, last_name, gender, birthday)\n            VALUES ($1, $2, $3, $4);\n        ",
+  "query": "\n            INSERT INTO members (name, last_name, father_id, mother_id, gender, birthday)\n            VALUES ($1, $2, $3, $4, $5, $6::text::timestamptz);\n        ",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
         "Text",
         "Text",
+        "Int8",
+        "Int8",
         {
           "Custom": {
             "name": "gender",
@@ -18,10 +20,10 @@
             }
           }
         },
-        "Timestamptz"
+        "Text"
       ]
     },
     "nullable": []
   },
-  "hash": "e9548206ea082eddfbef052a8e89545ab3e6399bbc84778b4843f43a308f9e9c"
+  "hash": "b029ce9fb2dbab783045c37a31de9c32483431c168640308f21a13a0e5fd943e"
 }

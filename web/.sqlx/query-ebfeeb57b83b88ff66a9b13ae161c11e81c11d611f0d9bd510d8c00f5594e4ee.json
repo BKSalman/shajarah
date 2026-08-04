@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n            p1.id,\n            p1.name,\n            CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name) AS full_name,\n            p1.last_name,\n            p1.gender as \"gender: Gender\",\n            p1.birthday,\n            p2.name AS \"father: Option<String>\",\n            p3.name AS \"grandfather: Option<String>\",\n            p4.name AS \"great_grandfather: Option<String>\"\n            FROM members p1\n            LEFT JOIN members p2 ON p1.father_id = p2.id\n            LEFT JOIN members p3 ON p2.father_id = p3.id\n            LEFT JOIN members p4 ON p3.father_id = p4.id\n            WHERE\n            p1.name % $1\n            OR p1.last_name % $1\n            OR p2.name % $1\n            OR p3.name % $1\n            OR p4.name % $1\n            ORDER BY (\n                similarity(CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name), $1) * 0.7\n                    - ABS(\n                        LENGTH(CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name)) - LENGTH($1)\n                    )::float / GREATEST(LENGTH(CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name)), LENGTH($1)) * 0.3\n            )\n            DESC\n            LIMIT 20;\n        ",
+  "query": "\n            SELECT\n            p1.id,\n            p1.name,\n            CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name) AS full_name,\n            p1.last_name,\n            p1.gender as \"gender: Gender\",\n            p1.birthday as \"birthday: Timestamp\",\n            p2.name AS \"father: Option<String>\",\n            p3.name AS \"grandfather: Option<String>\",\n            p4.name AS \"great_grandfather: Option<String>\"\n            FROM members p1\n            LEFT JOIN members p2 ON p1.father_id = p2.id\n            LEFT JOIN members p3 ON p2.father_id = p3.id\n            LEFT JOIN members p4 ON p3.father_id = p4.id\n            WHERE\n            p1.name % $1\n            OR p1.last_name % $1\n            OR p2.name % $1\n            OR p3.name % $1\n            OR p4.name % $1\n            ORDER BY (\n                similarity(CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name), $1) * 0.7\n                    - ABS(\n                        LENGTH(CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name)) - LENGTH($1)\n                    )::float / GREATEST(LENGTH(CONCAT_WS(' ', p1.name, p2.name, p3.name, p4.name, p1.last_name)), LENGTH($1)) * 0.3\n            )\n            DESC\n            LIMIT 20;\n        ",
   "describe": {
     "columns": [
       {
@@ -65,7 +65,7 @@
       },
       {
         "ordinal": 5,
-        "name": "birthday",
+        "name": "birthday: Timestamp",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
@@ -125,5 +125,5 @@
       false
     ]
   },
-  "hash": "44e8ccc90eb746d4eff4fa520ad205a7e3488f0f5c95d3961c537560c39767ed"
+  "hash": "ebfeeb57b83b88ff66a9b13ae161c11e81c11d611f0d9bd510d8c00f5594e4ee"
 }

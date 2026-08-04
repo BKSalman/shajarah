@@ -1,15 +1,15 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n            m.id,\n            m.name,\n            m.gender as \"gender: Gender\",\n            m.birthday,\n            m.last_name,\n            m.image,\n            m.image_type,\n            m.personal_info,\n            m.father_id,\n            m.mother_id\n            FROM members m\n        ",
+  "query": "\n            UPDATE member_add_requests request\n            SET reviewed_at = now(), reviewed_by = $1, status = 'approved'\n            WHERE request.id = $2\n            RETURNING id, name, gender as \"gender: Gender\", birthday as \"birthday: jiff_sqlx::Timestamp\", last_name, image, status as \"status: RequestStatus\",\n                image_type, mother_id, father_id, personal_info as \"personal_info: Json<IndexMap<String, String>>\";\n        ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int8",
+        "type_info": "Uuid",
         "origin": {
           "Table": {
-            "table": "members",
+            "table": "member_add_requests",
             "name": "id"
           }
         }
@@ -20,7 +20,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "members",
+            "table": "member_add_requests",
             "name": "name"
           }
         }
@@ -41,18 +41,18 @@
         },
         "origin": {
           "Table": {
-            "table": "members",
+            "table": "member_add_requests",
             "name": "gender"
           }
         }
       },
       {
         "ordinal": 3,
-        "name": "birthday",
+        "name": "birthday: jiff_sqlx::Timestamp",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "members",
+            "table": "member_add_requests",
             "name": "birthday"
           }
         }
@@ -63,7 +63,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "members",
+            "table": "member_add_requests",
             "name": "last_name"
           }
         }
@@ -74,58 +74,83 @@
         "type_info": "Bytea",
         "origin": {
           "Table": {
-            "table": "members",
+            "table": "member_add_requests",
             "name": "image"
           }
         }
       },
       {
         "ordinal": 6,
-        "name": "image_type",
-        "type_info": "Text",
+        "name": "status: RequestStatus",
+        "type_info": {
+          "Custom": {
+            "name": "request_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "approved",
+                "disapproved"
+              ]
+            }
+          }
+        },
         "origin": {
           "Table": {
-            "table": "members",
-            "name": "image_type"
+            "table": "member_add_requests",
+            "name": "status"
           }
         }
       },
       {
         "ordinal": 7,
-        "name": "personal_info",
-        "type_info": "Jsonb",
+        "name": "image_type",
+        "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "members",
-            "name": "personal_info"
+            "table": "member_add_requests",
+            "name": "image_type"
           }
         }
       },
       {
         "ordinal": 8,
-        "name": "father_id",
+        "name": "mother_id",
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "members",
-            "name": "father_id"
+            "table": "member_add_requests",
+            "name": "mother_id"
           }
         }
       },
       {
         "ordinal": 9,
-        "name": "mother_id",
+        "name": "father_id",
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "members",
-            "name": "mother_id"
+            "table": "member_add_requests",
+            "name": "father_id"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "personal_info: Json<IndexMap<String, String>>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "personal_info"
           }
         }
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
     },
     "nullable": [
       false,
@@ -134,11 +159,12 @@
       true,
       false,
       true,
+      false,
       true,
       true,
       true,
       true
     ]
   },
-  "hash": "64540eca94fa15d4422aa65e999ee94a5b6a6ce75d62ff789f80c89108a6c683"
+  "hash": "6137aec617120780f15f13eb627da26c645f4dec9889a6b5f1b618bdbfd2ad61"
 }

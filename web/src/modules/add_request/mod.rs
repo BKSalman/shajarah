@@ -1,4 +1,3 @@
-use chrono::NaiveDateTime;
 use dioxus::prelude::*;
 use garde::Validate;
 use indexmap::IndexMap;
@@ -270,18 +269,16 @@ pub fn AddMember() -> Element {
                                     .birthday()
                                     .read()
                                     .as_ref()
-                                    .map(|dt| dt.format("%Y-%m-%d").to_string())
+                                    .map(|dt| dt.strftime("%Y-%m-%d").to_string())
                                     .unwrap_or_default(),
                                 oninput: move |evt| {
                                     request_data
                                         .birthday()
                                         .set(
-                                            NaiveDateTime::parse_from_str(
-                                                    &format!("{} 00:00:00", evt.value()),
-                                                    "%Y-%m-%d %H:%M:%S",
-                                                )
-                                                .map(|d| d.and_utc())
-                                                .ok(),
+                                            evt.value()
+                                                .parse::<jiff::civil::Date>()
+                                                .ok()
+                                                .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok()),
                                         );
                                     clear_field_error("birthday");
                                 },

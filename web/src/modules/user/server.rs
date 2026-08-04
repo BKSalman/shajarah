@@ -12,7 +12,6 @@ mod server_imports {
         password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
     };
     pub use axum::Extension;
-    pub use chrono::Utc;
     pub use garde::Validate as _;
     pub use sha2::Digest as _;
     pub use sha2::Sha256;
@@ -32,8 +31,6 @@ pub async fn get_user() -> Result<UserResponseBrief> {
 
 #[post("/api/v1/user", Extension(state): Extension<AppState>)]
 pub async fn register_user(invite_token: Uuid, register_data: RegisterData) -> anyhow::Result<()> {
-    use crate::modules::invite::types::InviteRow;
-
     let mut hasher = Sha256::default();
     hasher.update(invite_token.to_string().as_bytes());
     let token_hash = hex::encode(hasher.finalize());
@@ -42,14 +39,12 @@ pub async fn register_user(invite_token: Uuid, register_data: RegisterData) -> a
 
     tracing::info!("{invite_token}");
 
-    if sqlx::query_as!(
-        InviteRow,
+    if sqlx::query!(
         r#"
-            SELECT * FROM user_invites
-            WHERE token_hash = $1 AND expires_at > $2 AND used_at IS NULL
+            SELECT id FROM user_invites
+            WHERE token_hash = $1 AND expires_at > now() AND used_at IS NULL
         "#,
         token_hash,
-        Utc::now()
     )
     .fetch_optional(&mut *tx)
     .await?
@@ -82,7 +77,7 @@ pub async fn register_user(invite_token: Uuid, register_data: RegisterData) -> a
     let user = sqlx::query!(
         r#"
             INSERT INTO users (id, first_name, last_name, email, password, role, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5, $6, now())
             RETURNING id;
         "#,
         Uuid::new_v4(),
@@ -91,22 +86,18 @@ pub async fn register_user(invite_token: Uuid, register_data: RegisterData) -> a
         email,
         hashed_password,
         UserRole::User as _,
-        Utc::now(),
     )
     .fetch_one(&mut *tx)
     .await?;
 
-    sqlx::query_as!(
-        InviteRow,
+    sqlx::query!(
         r#"
             UPDATE user_invites
-            SET used_at = $1, accepted_by = $2
-            WHERE token_hash = $3 AND expires_at > $4 AND used_at = NULL
+            SET used_at = now(), accepted_by = $1
+            WHERE token_hash = $2 AND expires_at > now() AND used_at IS NULL
         "#,
-        Utc::now(),
         user.id,
         token_hash,
-        Utc::now()
     )
     .execute(&mut *tx)
     .await?;
@@ -147,7 +138,6 @@ pub async fn logout_user() -> anyhow::Result<()> {
 pub async fn login_user(login_data: LoginData) -> anyhow::Result<()> {
     use crate::middleware::sessions::{SESSION_COOKIE_NAME, types::CreateSession};
     use argon2::{Argon2, PasswordVerifier, password_hash::PasswordHash};
-    use chrono::Utc;
     use uuid::Uuid;
 
     login_data.validate()?;
@@ -215,14 +205,11 @@ pub async fn login_user(login_data: LoginData) -> anyhow::Result<()> {
         return Err(anyhow::anyhow!("Inavlid credentials"));
     }
 
-    let now = Utc::now();
     let time_now = tower_cookies::cookie::time::OffsetDateTime::now_utc();
 
     let new_session = CreateSession {
         id: Uuid::new_v4(),
         user_id: user.id,
-        created_at: now,
-        expires_at: now + chrono::Duration::days(2),
     };
 
     #[derive(sqlx::FromRow)]
@@ -234,13 +221,11 @@ pub async fn login_user(login_data: LoginData) -> anyhow::Result<()> {
         SessionRow,
         r#"
             INSERT INTO sessions (id, user_id, created_at, expires_at)
-            VALUES ($1, $2, $3, $4)
+            VALUES ($1, $2, now(), now() + interval '2 days')
             RETURNING sessions.id
         "#,
         new_session.id,
         new_session.user_id,
-        new_session.created_at,
-        new_session.expires_at,
     )
     .fetch_one(&mut *tx)
     .await?;

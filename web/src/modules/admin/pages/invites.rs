@@ -1,14 +1,14 @@
-use chrono::{DateTime, Utc};
+use jiff::{Zoned, tz::TimeZone};
 use dioxus::prelude::*;
 use uuid::Uuid;
 
 use crate::modules::invite::server::{delete_invite, get_invites};
 
-fn fmt_dt(dt: DateTime<Utc>) -> String {
-    dt.format("%Y-%m-%d %H:%M").to_string()
+fn fmt_dt(dt: &Zoned) -> String {
+    dt.strftime("%Y-%m-%d %H:%M").to_string()
 }
 
-fn fmt_opt(dt: Option<DateTime<Utc>>) -> String {
+fn fmt_opt(dt: Option<&Zoned>) -> String {
     dt.map(fmt_dt).unwrap_or_else(|| "—".to_string())
 }
 
@@ -37,7 +37,7 @@ pub fn AdminInvites() -> Element {
                     }
                 }
             } else {
-                let now = Utc::now();
+                let now = jiff::Timestamp::now().to_zoned(TimeZone::UTC);
                 rsx! {
                     div { class: "overflow-x-auto",
                         table { class: "w-full text-sm text-right border-collapse",
@@ -58,7 +58,7 @@ pub fn AdminInvites() -> Element {
                                     {
                                         let (status_label, status_class) = if invite.used_at.is_some() {
                                             ("مستخدمة", "bg-blue-100 text-blue-800")
-                                        } else if invite.expires_at.is_some_and(|e| e < now) {
+                                        } else if invite.expires_at.as_ref().is_some_and(|e| e < &now) {
                                             ("منتهية", "bg-red-100 text-red-700")
                                         } else {
                                             ("نشطة", "bg-green-100 text-green-700")
@@ -74,11 +74,11 @@ pub fn AdminInvites() -> Element {
                                                         "{status_label}"
                                                     }
                                                 }
-                                                td { class: "px-3 py-2 whitespace-nowrap", "{fmt_dt(invite.created_at)}" }
+                                                td { class: "px-3 py-2 whitespace-nowrap", "{fmt_dt(&invite.created_at)}" }
                                                 td { class: "px-3 py-2 whitespace-nowrap",
-                                                    "{invite.expires_at.map(fmt_dt).unwrap_or_else(|| String::from(\"لا تنتهي\"))}"
+                                                    "{invite.expires_at.as_ref().map(fmt_dt).unwrap_or_else(|| String::from(\"لا تنتهي\"))}"
                                                 }
-                                                td { class: "px-3 py-2 whitespace-nowrap", "{fmt_opt(invite.used_at)}" }
+                                                td { class: "px-3 py-2 whitespace-nowrap", "{fmt_opt(invite.used_at.as_ref())}" }
                                                 td {
                                                     class: "px-3 py-2 font-mono text-xs text-gray-600",
                                                     title: invite.accepted_by.map(|u| u.to_string()),

@@ -24,7 +24,6 @@ pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
         Argon2,
         password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
     };
-    use chrono::Utc;
     use uuid::Uuid;
 
     if sqlx::query!(
@@ -66,7 +65,7 @@ pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
         UserResponse,
         r#"
             INSERT INTO users (id, first_name, last_name, email, password, role, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7);
+            VALUES ($1, $2, $3, $4, $5, $6, now());
         "#,
         Uuid::new_v4(),
         first_name,
@@ -74,7 +73,6 @@ pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
         email,
         hashed_password,
         UserRole::Admin as _,
-        Utc::now(),
     )
     .execute(&state.db_pool)
     .await?;
@@ -86,7 +84,6 @@ pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
 pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
     use crate::middleware::sessions::{SESSION_COOKIE_NAME, types::CreateSession};
     use argon2::{Argon2, PasswordVerifier, password_hash::PasswordHash};
-    use chrono::Utc;
     use uuid::Uuid;
 
     login_data.validate()?;
@@ -156,14 +153,11 @@ pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
         return Err(anyhow::anyhow!("Inavlid credentials"));
     }
 
-    let now = Utc::now();
     let time_now = tower_cookies::cookie::time::OffsetDateTime::now_utc();
 
     let new_session = CreateSession {
         id: Uuid::new_v4(),
         user_id: user.id,
-        created_at: now,
-        expires_at: now + chrono::Duration::days(2),
     };
 
     #[derive(sqlx::FromRow)]
@@ -175,13 +169,11 @@ pub async fn login_admin(login_data: LoginData) -> anyhow::Result<()> {
         SessionRow,
         r#"
             INSERT INTO sessions (id, user_id, created_at, expires_at)
-            VALUES ($1, $2, $3, $4)
+            VALUES ($1, $2, now(), now() + interval '2 days')
             RETURNING sessions.id
         "#,
         new_session.id,
         new_session.user_id,
-        new_session.created_at,
-        new_session.expires_at,
     )
     .fetch_one(&mut *tx)
     .await?;

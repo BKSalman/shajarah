@@ -7,7 +7,6 @@ use crate::{
 use axum::{
     Extension, RequestPartsExt, extract::FromRequestParts, http::StatusCode, response::IntoResponse,
 };
-use chrono::Utc;
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
@@ -95,9 +94,9 @@ impl<S: Sync + Send, const USER_ROLE: u8> FromRequestParts<S> for AuthExtractor<
                         SELECT users.id as user_id, sessions.id as session_id, users.first_name, users.email, users.role as "role: UserRole" FROM sessions
                         INNER JOIN users
                           ON sessions.user_id = users.id
-                        WHERE sessions.id = $1 AND sessions.expires_at > $2 AND users.role = 'admin'
+                        WHERE sessions.id = $1 AND sessions.expires_at > now() AND users.role = 'admin'
                     "#,
-                    session_id, Utc::now(),
+                    session_id,
                 )
                     .fetch_optional(&state.db_pool)
                     .await? else {
@@ -121,9 +120,9 @@ impl<S: Sync + Send, const USER_ROLE: u8> FromRequestParts<S> for AuthExtractor<
                         SELECT users.id as user_id, sessions.id as session_id, users.email, users.first_name, users.role as "role: UserRole" FROM sessions
                         INNER JOIN users
                           ON sessions.user_id = users.id
-                        WHERE sessions.id = $1 AND sessions.expires_at > $2
+                        WHERE sessions.id = $1 AND sessions.expires_at > now()
                     "#,
-                    session_id, Utc::now(),
+                    session_id,
                 )
                     .fetch_optional(&state.db_pool)
                     .await? else {

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT * from user_invites\n        ",
+  "query": "\n            SELECT\n                id,\n                token_hash,\n                created_by,\n                expires_at as \"expires_at: jiff_sqlx::Timestamp\",\n                used_at as \"used_at: jiff_sqlx::Timestamp\",\n                accepted_by,\n                created_at as \"created_at: jiff_sqlx::Timestamp\"\n            FROM user_invites\n        ",
   "describe": {
     "columns": [
       {
@@ -38,7 +38,7 @@
       },
       {
         "ordinal": 3,
-        "name": "expires_at",
+        "name": "expires_at: jiff_sqlx::Timestamp",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
@@ -49,7 +49,7 @@
       },
       {
         "ordinal": 4,
-        "name": "used_at",
+        "name": "used_at: jiff_sqlx::Timestamp",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
@@ -71,7 +71,7 @@
       },
       {
         "ordinal": 6,
-        "name": "created_at",
+        "name": "created_at: jiff_sqlx::Timestamp",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
@@ -94,5 +94,5 @@
       false
     ]
   },
-  "hash": "8d912ab5bce3a072b0a74a954b532e625e00fdf29d9a2cc93b3fac45fd710382"
+  "hash": "1137f1c3e505a84056a17cbcd50e4fbe975b3f41a5ecfb708d5aeffd4a7d50aa"
 }

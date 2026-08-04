@@ -1,4 +1,6 @@
 use axum::{extract::Extension, response::IntoResponse};
+use jiff::tz::TimeZone;
+use jiff_sqlx::Timestamp;
 
 use super::error::MembersError;
 use crate::{
@@ -15,14 +17,13 @@ pub async fn export_members(
     Extension(AppState(state)): Extension<AppState>,
     _auth: AuthExtractor<{ UserRole::Admin as u8 }>,
 ) -> Result<impl IntoResponse, MembersError> {
-    let recs = sqlx::query_as!(
-        MemberRow,
+    let recs = sqlx::query!(
         r#"
             SELECT
             m.id,
             m.name,
             m.gender as "gender: Gender",
-            m.birthday,
+            m.birthday as "birthday: Timestamp",
             m.last_name,
             m.image,
             m.image_type,
@@ -36,6 +37,18 @@ pub async fn export_members(
     .await?;
     let mut csv_writer = csv::Writer::from_writer(vec![]);
     for rec in recs {
+        let rec = MemberRow {
+            id: rec.id,
+            name: rec.name,
+            last_name: rec.last_name,
+            gender: rec.gender,
+            birthday: rec.birthday.map(|t| t.to_jiff().to_zoned(TimeZone::UTC)),
+            image: rec.image,
+            image_type: rec.image_type,
+            personal_info: rec.personal_info,
+            mother_id: rec.mother_id,
+            father_id: rec.father_id,
+        };
         csv_writer.serialize(rec).map_err(|e| {
             tracing::error!("{e}");
             MembersError::InternalServerError

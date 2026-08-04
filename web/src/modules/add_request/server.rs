@@ -1,22 +1,22 @@
 use anyhow::anyhow;
-use chrono::Utc;
 use dioxus::prelude::*;
 use garde::Validate;
 use indexmap::IndexMap;
 use uuid::Uuid;
 
-use crate::modules::add_request::types::{
-    RequestData, RequestStatus, RequestedMember, RequestedMemberBrief,
-    RequestedMemberRowWithParents,
-};
+use crate::modules::add_request::types::{RequestData, RequestStatus, RequestedMember};
 use crate::modules::member::types::Gender;
 use crate::modules::user::types::UserRole;
 
 #[cfg(feature = "server")]
 mod server_imports {
     pub use crate::middleware::auth::AuthExtractor;
+    pub use crate::modules::add_request::types::{
+        RequestedMemberBrief, RequestedMemberRowWithParents,
+    };
     pub use crate::server::AppState;
     pub use axum::extract::Extension;
+    pub use jiff::tz::TimeZone;
 }
 
 #[cfg(feature = "server")]
@@ -48,10 +48,10 @@ pub async fn add_request(request_data: RequestData) -> Result<(), anyhow::Error>
     sqlx::query!(
         r#"
             INSERT INTO member_add_requests (id, name, gender, birthday, last_name, father_id, mother_id, image, image_type, personal_info, submitted_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            VALUES ($1, $2, $3, $4::text::timestamptz, $5, $6, $7, $8, $9, $10, now())
         "#,
-        uuid::Uuid::new_v4(), name, gender as _, birthday, last_name, father_id, mother_id,
-        image, image_type, info, Utc::now(),
+        uuid::Uuid::new_v4(), name, gender as _, birthday.map(|z| z.timestamp().to_string()), last_name, father_id, mother_id,
+        image, image_type, info,
     )
     .execute(&state.db_pool)
     .await?;
@@ -103,7 +103,7 @@ pub async fn member_requests() -> Result<Vec<RequestedMember>, anyhow::Error> {
             id: m.id,
             name: m.name,
             gender: m.gender,
-            birthday: m.birthday,
+            birthday: m.birthday.map(|t| t.to_jiff().to_zoned(TimeZone::UTC)),
             last_name: m.last_name,
             father_id: m.father_id,
             father_name: m.father_name,
@@ -136,12 +136,11 @@ pub async fn approve_request(request_id: Uuid) -> Result<(), anyhow::Error> {
         RequestedMemberBrief,
         r#"
             UPDATE member_add_requests request
-            SET reviewed_at = $1, reviewed_by = $2, status = 'approved'
-            WHERE request.id = $3
-            RETURNING id, name, gender as "gender: Gender", birthday, last_name, image, status as "status: RequestStatus",
+            SET reviewed_at = now(), reviewed_by = $1, status = 'approved'
+            WHERE request.id = $2
+            RETURNING id, name, gender as "gender: Gender", birthday as "birthday: jiff_sqlx::Timestamp", last_name, image, status as "status: RequestStatus",
                 image_type, mother_id, father_id, personal_info as "personal_info: Json<IndexMap<String, String>>";
         "#,
-        Utc::now(),
         admin.current_user.id,
         request_id,
     )
@@ -155,12 +154,12 @@ pub async fn approve_request(request_id: Uuid) -> Result<(), anyhow::Error> {
     sqlx::query!(
         r#"
             INSERT INTO members (name, last_name, gender, birthday)
-            VALUES ($1, $2, $3, $4);
+            VALUES ($1, $2, $3, $4::text::timestamptz);
         "#,
         member_info.name,
         member_info.last_name,
         member_info.gender as _,
-        member_info.birthday,
+        member_info.birthday.map(|t| t.to_jiff().to_string()),
     )
     .execute(&mut *tx)
     .await?;
@@ -177,10 +176,9 @@ pub async fn disapprove_request(request_id: Uuid) -> Result<(), anyhow::Error> {
     sqlx::query!(
         r#"
             UPDATE member_add_requests request
-            SET reviewed_at = $1, reviewed_by = $2, status = 'disapproved'
-            WHERE request.id = $3;
+            SET reviewed_at = now(), reviewed_by = $1, status = 'disapproved'
+            WHERE request.id = $2;
         "#,
-        Utc::now(),
         admin.current_user.id,
         request_id,
     )

@@ -77,7 +77,7 @@ pub fn MemberCard(props: MemberCardProps) -> Element {
                                 d: "M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6l1 12H7L8 7z",
                             }
                         }
-                        span { "{birthday.date_naive()}" }
+                        span { "{birthday.date()}" }
                     }
                 }
                 div { class: "space-y-1 mb-3",

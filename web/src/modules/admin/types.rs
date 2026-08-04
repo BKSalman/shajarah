@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use jiff::Zoned;
 use dioxus::prelude::*;
 use indexmap::IndexMap;
 
@@ -9,7 +9,7 @@ pub struct MemberFormData {
     pub name: String,
     pub last_name: String,
     pub gender: Option<Gender>,
-    pub birthday: Option<DateTime<Utc>>,
+    pub birthday: Option<Zoned>,
     pub mother_id: Option<i64>,
     pub father_id: Option<i64>,
     pub personal_info: Option<IndexMap<String, String>>,
@@ -21,7 +21,7 @@ pub struct EditMemberFormData {
     pub name: Option<String>,
     pub last_name: Option<String>,
     pub gender: Option<Gender>,
-    pub birthday: Option<DateTime<Utc>>,
+    pub birthday: Option<Zoned>,
     pub mother_id: Option<i64>,
     pub father_id: Option<i64>,
     pub personal_info: Option<IndexMap<String, String>>,

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO user_invites (token_hash, created_by, expires_at)\n            VALUES ($1, $2, $3::text::timestamptz);\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e9df3af3afc179a786ee16ef38e4a13925d8dd263ca419476cd6f6f9ac183121"
+}

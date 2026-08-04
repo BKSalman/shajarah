@@ -9,7 +9,6 @@ use crate::{
         modal::Modal,
     },
 };
-use chrono::{NaiveDate, NaiveTime};
 use dioxus::prelude::*;
 
 #[derive(Props, Clone, PartialEq)]
@@ -26,7 +25,7 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
         name: props.member.name.clone(),
         last_name: props.member.last_name.clone(),
         gender: Some(props.member.gender),
-        birthday: props.member.birthday,
+        birthday: props.member.birthday.clone(),
         mother_id: props.member.mother_id,
         father_id: props.member.father_id,
         personal_info: props.member.personal_info.clone(),
@@ -142,11 +141,13 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                                 r#type: "date",
                                 required: true,
                                 class: "input",
-                                value: r#"{form_data().birthday.map(|d| d.date_naive().to_string()).unwrap_or(String::new())}"#,
+                                value: r#"{form_data().birthday.as_ref().map(|d| d.date().to_string()).unwrap_or(String::new())}"#,
                                 oninput: move |evt| {
-                                    let date = NaiveDate::parse_from_str(&evt.value(), "%Y-%m-%d")
+                                    let date = evt
+                                        .value()
+                                        .parse::<jiff::civil::Date>()
                                         .ok()
-                                        .and_then(|d| Some(d.and_time(NaiveTime::from_hms_opt(0, 0, 0)?).and_utc()));
+                                        .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok());
                                     form_data.birthday().set(date);
                                 },
                             }

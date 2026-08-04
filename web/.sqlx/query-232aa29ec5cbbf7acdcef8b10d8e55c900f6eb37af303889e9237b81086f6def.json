@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                m.id,\n                m.name,\n                CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name,\n                m.gender as \"gender: Gender\",\n                m.birthday,\n                m.last_name,\n                m.image,\n                m.image_type,\n                m.personal_info,\n                m.email,\n                mother.id AS mother_id,\n                mother.name AS mother_name,\n                mother.gender AS \"mother_gender: Gender\",\n                mother.birthday AS mother_birthday,\n                mother.last_name AS mother_last_name,\n                father.id AS father_id,\n                father.name AS father_name,\n                father.gender AS \"father_gender: Gender\",\n                father.birthday AS father_birthday,\n                father.last_name AS father_last_name\n            FROM\n                members m\n            LEFT JOIN\n                members mother ON m.mother_id = mother.id\n            LEFT JOIN\n                members father ON m.father_id = father.id\n            LEFT JOIN members p2 ON m.father_id = p2.id\n            LEFT JOIN members p3 ON p2.father_id = p3.id\n            LEFT JOIN members p4 ON p3.father_id = p4.id;\n        ",
+  "query": "\n            SELECT\n                m.id,\n                m.name,\n                CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name,\n                m.gender as \"gender: Gender\",\n                m.birthday as \"birthday: jiff_sqlx::Timestamp\",\n                m.last_name,\n                m.image,\n                m.image_type,\n                m.personal_info,\n                m.email,\n                mother.id AS mother_id,\n                mother.name AS mother_name,\n                mother.gender AS \"mother_gender: Gender\",\n                mother.birthday AS \"mother_birthday: jiff_sqlx::Timestamp\",\n                mother.last_name AS mother_last_name,\n                father.id AS father_id,\n                father.name AS father_name,\n                father.gender AS \"father_gender: Gender\",\n                father.birthday AS \"father_birthday: jiff_sqlx::Timestamp\",\n                father.last_name AS father_last_name\n            FROM\n                members m\n            LEFT JOIN\n                members mother ON m.mother_id = mother.id\n            LEFT JOIN\n                members father ON m.father_id = father.id\n            LEFT JOIN members p2 ON m.father_id = p2.id\n            LEFT JOIN members p3 ON p2.father_id = p3.id\n            LEFT JOIN members p4 ON p3.father_id = p4.id;\n        ",
   "describe": {
     "columns": [
       {
@@ -54,7 +54,7 @@
       },
       {
         "ordinal": 4,
-        "name": "birthday",
+        "name": "birthday: jiff_sqlx::Timestamp",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
@@ -163,7 +163,7 @@
       },
       {
         "ordinal": 13,
-        "name": "mother_birthday",
+        "name": "mother_birthday: jiff_sqlx::Timestamp",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
@@ -228,7 +228,7 @@
       },
       {
         "ordinal": 18,
-        "name": "father_birthday",
+        "name": "father_birthday: jiff_sqlx::Timestamp",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
@@ -275,5 +275,5 @@
       true
     ]
   },
-  "hash": "9e4cca7bd28605ae3600a75a417c239a45a4e97b90108679979219d8cec118f4"
+  "hash": "232aa29ec5cbbf7acdcef8b10d8e55c900f6eb37af303889e9237b81086f6def"
 }

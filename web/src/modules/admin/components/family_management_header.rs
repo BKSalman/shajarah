@@ -127,7 +127,7 @@ fn CsvUploadButton(props: CsvUploadButtonProps) -> Element {
 pub fn ExportButton() -> Element {
     rsx! {
         a {
-            href: "/api/members/export",
+            href: "/api/v1/members/export",
             download: "exported-members.csv",
             class: "btn btn-outline btn-sm",
             svg {

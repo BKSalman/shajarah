@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE member_add_requests request\n            SET reviewed_at = now(), reviewed_by = $1, status = 'disapproved'\n            WHERE request.id = $2;\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8f4d2e466ff0f27aabb7255da20dc6ef2091e935c7dfd0a7e5995b8d044a6f7b"
+}

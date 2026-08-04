@@ -38,9 +38,7 @@ pub async fn block_non_invited(
         // };
 
         // if let Some(invite) = invite_entry {
-        //     use chrono::Utc;
-
-        //     if invite.expires_at < Utc::now() {
+        //     if invite.expires_at < jiff::Timestamp::now() {
         //         return StatusCode::UNAUTHORIZED.into_response();
         //     }
         // } else {

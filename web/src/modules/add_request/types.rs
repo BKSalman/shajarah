@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use jiff::Zoned;
 use dioxus::prelude::*;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -15,7 +15,7 @@ pub struct RequestData {
     #[garde(required)]
     pub gender: Option<Gender>,
     #[garde(skip)]
-    pub birthday: Option<DateTime<Utc>>,
+    pub birthday: Option<Zoned>,
     #[garde(required)]
     pub father_id: Option<i64>,
     #[garde(skip)]
@@ -48,7 +48,7 @@ pub struct RequestedMember {
     pub id: Uuid,
     pub name: String,
     pub gender: Gender,
-    pub birthday: Option<DateTime<Utc>>,
+    pub birthday: Option<Zoned>,
     pub last_name: String,
     pub father_id: Option<i64>,
     pub father_name: Option<String>,
@@ -60,32 +60,29 @@ pub struct RequestedMember {
     pub status: RequestStatus,
 }
 
-#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[cfg(feature = "server")]
+#[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
 pub struct RequestedMemberBrief {
     pub id: Uuid,
     pub name: String,
     pub gender: Gender,
-    pub birthday: Option<DateTime<Utc>>,
+    pub birthday: Option<jiff_sqlx::Timestamp>,
     pub last_name: String,
     pub father_id: Option<i64>,
     pub mother_id: Option<i64>,
-    #[cfg(feature = "server")]
     pub personal_info: Option<sqlx::types::Json<IndexMap<String, String>>>,
-    #[cfg(not(feature = "server"))]
-    pub personal_info: Option<IndexMap<String, String>>,
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
     pub status: RequestStatus,
 }
 
-#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
-#[derive(Debug, Clone, PartialEq)]
+#[cfg(feature = "server")]
+#[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
 pub struct RequestedMemberRowWithParents {
     pub id: Uuid,
     pub name: String,
     pub gender: Gender,
-    pub birthday: Option<chrono::DateTime<chrono::Utc>>,
+    pub birthday: Option<jiff_sqlx::Timestamp>,
     pub last_name: String,
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
@@ -94,11 +91,11 @@ pub struct RequestedMemberRowWithParents {
     pub personal_info: Option<serde_json::Value>,
     pub mother_name: Option<String>,
     pub mother_gender: Option<Gender>,
-    pub mother_birthday: Option<chrono::DateTime<chrono::Utc>>,
+    pub mother_birthday: Option<jiff_sqlx::Timestamp>,
     pub mother_last_name: Option<String>,
     pub father_name: Option<String>,
     pub father_gender: Option<Gender>,
-    pub father_birthday: Option<chrono::DateTime<chrono::Utc>>,
+    pub father_birthday: Option<jiff_sqlx::Timestamp>,
     pub father_last_name: Option<String>,
     pub status: RequestStatus,
 }

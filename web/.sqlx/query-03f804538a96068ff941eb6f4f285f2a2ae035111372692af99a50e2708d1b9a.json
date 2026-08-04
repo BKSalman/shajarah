@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                        SELECT users.id as user_id, sessions.id as session_id, users.email, users.first_name, users.role as \"role: UserRole\" FROM sessions\n                        INNER JOIN users\n                          ON sessions.user_id = users.id\n                        WHERE sessions.id = $1 AND sessions.expires_at > $2\n                    ",
+  "query": "\n                        SELECT users.id as user_id, sessions.id as session_id, users.first_name, users.email, users.role as \"role: UserRole\" FROM sessions\n                        INNER JOIN users\n                          ON sessions.user_id = users.id\n                        WHERE sessions.id = $1 AND sessions.expires_at > now() AND users.role = 'admin'\n                    ",
   "describe": {
     "columns": [
       {
@@ -27,23 +27,23 @@
       },
       {
         "ordinal": 2,
-        "name": "email",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "users",
-            "name": "email"
-          }
-        }
-      },
-      {
-        "ordinal": 3,
         "name": "first_name",
         "type_info": "Text",
         "origin": {
           "Table": {
             "table": "users",
             "name": "first_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "email"
           }
         }
       },
@@ -71,17 +71,16 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Timestamptz"
+        "Uuid"
       ]
     },
     "nullable": [
       false,
       false,
-      false,
+      true,
       false,
       false
     ]
   },
-  "hash": "37c716427f018e63c54734d4b8723b1909f90222dbcc48642878000f62ed07f0"
+  "hash": "03f804538a96068ff941eb6f4f285f2a2ae035111372692af99a50e2708d1b9a"
 }

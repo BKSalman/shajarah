@@ -9,7 +9,6 @@ use crate::{
         modal::Modal,
     },
 };
-use chrono::{NaiveDate, NaiveTime};
 use dioxus::prelude::*;
 
 #[derive(Props, Clone, PartialEq)]
@@ -114,9 +113,11 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                                 required: true,
                                 class: "input",
                                 oninput: move |evt| {
-                                    let date = NaiveDate::parse_from_str(&evt.value(), "%Y-%m-%d")
+                                    let date = evt
+                                        .value()
+                                        .parse::<jiff::civil::Date>()
                                         .ok()
-                                        .and_then(|d| Some(d.and_time(NaiveTime::from_hms_opt(0, 0, 0)?).and_utc()));
+                                        .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok());
                                     form_data.birthday().set(date);
                                 },
                             }
