@@ -9,9 +9,9 @@ edition = "2024"
 [dependencies]
 shared = { path = "../shared" }
 
-dioxus = { version = "0.7.9", features = ["router", "fullstack"] }
+dioxus = { version = "0.7.10", features = ["router", "fullstack"] }
 # https://github.com/DioxusLabs/dioxus/issues/4765
-dioxus-html = { version = "0.7.9", features = ["serialize"] }
+dioxus-html = { version = "0.7.10", features = ["serialize"] }
 axum = { version = "0.8.4", features = ["macros", "multipart"], optional = true }
 tokio = { version = "1", features = [ "fs", "io-std", "io-util", "macros", "net", "parking_lot", "process", "rt", "rt-multi-thread", "signal" ], optional = true }
 tower-http = { version = "0.6.6", features = ["cors", "limit", "fs", "compression-br", "compression-gzip"], optional = true }
