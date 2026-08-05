@@ -168,12 +168,6 @@ fn main() {
     {
         let config = config::server::Config::load_config().unwrap();
 
-        // dioxus uses `PORT` and shajarah uses shajarah uses `SHAJARAH_PORT`
-        // TODO: this is stupid, should be able to set it in code, not env var
-        unsafe {
-            std::env::set_var("PORT", config.port.to_string());
-        }
-
         dioxus::serve(move || launch_server(config.clone()));
     }
 }
