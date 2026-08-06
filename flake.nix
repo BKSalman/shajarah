@@ -93,7 +93,8 @@
                   # The config loader reads `${SHAJARAH_CONFIG_PATH}/${SHAJARAH_CONFIG_FILE}`.
                   SHAJARAH_CONFIG_PATH = lib.mkIf (cfg.configFile != null) (dirOf cfg.configFile);
                   SHAJARAH_CONFIG_FILE = lib.mkIf (cfg.configFile != null) (baseNameOf cfg.configFile);
-                  SHAJARAH_PORT = toString cfg.port;
+                  PORT = toString cfg.port;
+                  ADDRESS = toString cfg.port;
                   SHAJARAH_LOG_LEVEL = cfg.logLevel;
                   RUST_LOG = cfg.logLevel;
                 } // cfg.extraEnvironment;

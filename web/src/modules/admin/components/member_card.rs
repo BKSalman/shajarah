@@ -1,4 +1,5 @@
 use crate::modules::member::types::{Gender, MemberResponseFlat};
+use base64::{Engine as _, prelude::BASE64_STANDARD};
 use dioxus::prelude::*;
 
 #[derive(Props, PartialEq, Clone)]
@@ -14,26 +15,34 @@ pub struct MemberCardProps {
 pub fn MemberCard(props: MemberCardProps) -> Element {
     let mut show_invite_input = use_signal(|| false);
     let mut email = use_signal(String::new);
+
+    let image = if let Some(image_data) = &props.member.image {
+        let base64_image_data = BASE64_STANDARD.encode(image_data).to_string();
+        rsx! {
+            img {
+                class: "w-full h-full object-cover",
+                src: r#"data:{props.member.image_type.clone().unwrap_or(String::from("image/jpeg"))};base64,{base64_image_data}"#,
+                alt: "{props.member.name} {props.member.last_name}",
+                loading: "lazy",
+            }
+            div {
+                class: "w-full h-full items-center justify-center text-white font-bold text-2xl",
+                style: "display: none; background: linear-gradient(135deg, #7A9A7A, #2C4A2C);",
+                "{props.member.name}"
+            }
+        }
+    } else {
+        rsx! {
+            div { class: "w-full h-full flex items-center justify-center text-white font-bold text-2xl bg-gradient-to-br from-gray-500 to-gray-600",
+                "{props.member.name} {props.member.last_name}"
+            }
+        }
+    };
+
     rsx! {
         div { class: "bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-all duration-200 overflow-hidden",
             div { class: "relative h-32 image-container",
-                if let Some(image_data) = &props.member.image {
-                    img {
-                        class: "w-full h-full object-cover",
-                        src: r#"data:{props.member.image_type.clone().unwrap_or(String::from("image/jpeg"))};base64,{image_data:?}"#,
-                        alt: "{props.member.name} {props.member.last_name}",
-                        loading: "lazy",
-                    }
-                    div {
-                        class: "w-full h-full items-center justify-center text-white font-bold text-2xl",
-                        style: "display: none; background: linear-gradient(135deg, #7A9A7A, #2C4A2C);",
-                        "{props.member.name}"
-                    }
-                } else {
-                    div { class: "w-full h-full flex items-center justify-center text-white font-bold text-2xl bg-gradient-to-br from-gray-500 to-gray-600",
-                        "{props.member.name} {props.member.last_name}"
-                    }
-                }
+                {image}
                 div { class: "absolute top-3 right-3",
                     match props.member.gender {
                         Gender::Male => rsx! {
