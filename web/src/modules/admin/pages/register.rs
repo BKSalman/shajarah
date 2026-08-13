@@ -35,6 +35,7 @@ pub fn AdminRegister() -> Element {
 
     rsx! {
         div { class: "min-h-screen flex items-center justify-center bg-tree-texture p-6",
+            dir: "rtl",
 
             div { class: "card card-forest w-full max-w-md fade-in hover:shadow-forest",
 
