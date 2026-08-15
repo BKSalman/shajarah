@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \n            id,\n            name,\n            last_name,\n            mother_id,\n            father_id\n        FROM members \n        WHERE mother_id IS NOT NULL OR father_id IS NOT NULL\n        ORDER BY name ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "last_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "last_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "mother_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "mother_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "father_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "father_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "cb1022571377024774ee78c631a20905114ca29b2f29d6c526f861e1ff7ee31a"
+}

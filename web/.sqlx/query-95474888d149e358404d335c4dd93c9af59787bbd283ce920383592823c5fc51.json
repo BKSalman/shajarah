@@ -1,0 +1,139 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                m.id,\n                m.name,\n                CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name,\n                m.gender AS \"gender: Gender\",\n                m.email,\n                m.last_name,\n                mother.id AS \"mother_id: Option<i64>\",\n                mother.name AS \"mother_name: Option<String>\",\n                father.id as \"father_id: Option<i64>\",\n                father.name AS \"father_name: Option<String>\"\n            FROM\n                members m\n            LEFT JOIN\n                members mother ON m.mother_id = mother.id\n            LEFT JOIN\n                members father ON m.father_id = father.id\n            LEFT JOIN members p2 ON m.father_id = p2.id\n            LEFT JOIN members p3 ON p2.father_id = p3.id\n            LEFT JOIN members p4 ON p3.father_id = p4.id\n            ORDER BY\n            m.id, m.name ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "full_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "gender: Gender",
+        "type_info": {
+          "Custom": {
+            "name": "gender",
+            "kind": {
+              "Enum": [
+                "male",
+                "female"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "gender"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "last_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "last_name"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "mother_id: Option<i64>",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "mother_name: Option<String>",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "father_id: Option<i64>",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "father_name: Option<String>",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "95474888d149e358404d335c4dd93c9af59787bbd283ce920383592823c5fc51"
+}

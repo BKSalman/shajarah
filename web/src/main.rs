@@ -11,6 +11,7 @@ use modules::admin::pages::{
     Admin, AdminLayout, invites::AdminInvites, login::AdminLogin, register::AdminRegister,
     settings::AdminSettings,
 };
+use modules::settings::server::get_settings;
 use pages::Home;
 use server::get_config;
 
@@ -112,6 +113,7 @@ async fn launch_server(config: config::server::Config) -> Result<axum::Router, a
 
     use axum::{Extension, extract::DefaultBodyLimit, routing::get};
     use middleware::sessions::refresh_session;
+    use middleware::settings_gate::gate_add_page;
     use modules::member::routes::export_members;
     use server::{AppState, InnerAppState};
     use sqlx::PgPool;
@@ -148,6 +150,10 @@ async fn launch_server(config: config::server::Config) -> Result<axum::Router, a
         .layer(axum::middleware::from_fn_with_state(
             app_state.clone(),
             refresh_session,
+        ))
+        .layer(axum::middleware::from_fn_with_state(
+            app_state.clone(),
+            gate_add_page,
         ))
         .layer(CookieManagerLayer::new())
         .layer(DefaultBodyLimit::disable())
@@ -191,6 +197,10 @@ fn app() -> Element {
     let config_resource = use_server_future(get_config)?.value();
     let config = config_resource.as_ref().unwrap().as_ref().unwrap().clone();
     use_context_provider(move || config);
+
+    let settings_resource = use_server_future(get_settings)?.value();
+    let settings = *settings_resource.as_ref().unwrap().as_ref().unwrap();
+    use_context_provider(move || settings);
 
     rsx! {
         document::Meta { name: "viewport", content: "width=device-width, initial-scale=1" }

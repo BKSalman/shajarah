@@ -11,6 +11,7 @@ use crate::{
             components::member_picker::MemberPicker, server::members_flat_unauthorized,
             types::Gender,
         },
+        settings::types::Settings,
     },
     ui::key_value_pair::{KeyValueInput, KeyValuePair},
 };
@@ -21,6 +22,20 @@ pub mod types;
 
 #[component]
 pub fn AddMemberRequest() -> Element {
+    let settings = use_context::<Settings>();
+
+    if !settings.add_page_enabled {
+        return rsx! {};
+    }
+
+    rsx! {
+        AddMemberRequestForm {
+        }
+    }
+}
+
+#[component]
+fn AddMemberRequestForm() -> Element {
     let request_data = use_store(|| RequestData {
         name: None,
         last_name: None,

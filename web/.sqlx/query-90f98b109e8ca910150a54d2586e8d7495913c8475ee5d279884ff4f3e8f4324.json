@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT add_page_enabled\n            FROM settings\n            WHERE id = TRUE\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "add_page_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "settings",
+            "name": "add_page_enabled"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "90f98b109e8ca910150a54d2586e8d7495913c8475ee5d279884ff4f3e8f4324"
+}
