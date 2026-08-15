@@ -1,7 +1,4 @@
-use dioxus::{
-    fullstack::{FileStream, MultipartFormData},
-    prelude::*,
-};
+use dioxus::{fullstack::FileStream, prelude::*};
 use indexmap::IndexMap;
 use jiff::Zoned;
 
@@ -17,13 +14,13 @@ mod server_imports {
     pub use jiff_sqlx::ToSqlx;
 }
 
-use crate::modules::member::types::EditMember;
+use crate::modules::member::types::{EditMember, MemberUnauthorizedResponseFlat};
 
 use super::types::{Gender, MemberResponse, MemberResponseFlat};
 #[cfg(feature = "server")]
 use server_imports::*;
 
-#[get("/api/v1/members", Extension(state): Extension<AppState>)]
+#[get("/api/v1/members/admin", Extension(state): Extension<AppState>, _user: AuthExtractor<{ UserRole::User as u8 }>)]
 pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
     let recs = sqlx::query_as!(
         MemberRowWithParents,
@@ -101,10 +98,8 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
     Ok(Some(root))
 }
 
-#[get("/api/v1/members/flat", state: Extension<AppState>)]
+#[get("/api/v1/members/admin/flat", Extension(state): Extension<AppState>, _user: AuthExtractor<{ UserRole::User as u8 }>)]
 pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
-    let Extension(state) = state;
-
     let recs: Vec<MemberRowWithParents> = sqlx::query_as(
         r#"
             SELECT
@@ -123,7 +118,7 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
                 mother.gender AS mother_gender,
                 mother.birthday AS mother_birthday,
                 mother.last_name AS mother_last_name,
-                father.id as father_id,
+                father.id AS father_id,
                 father.name AS father_name,
                 father.gender AS father_gender,
                 father.birthday AS father_birthday,
@@ -136,22 +131,20 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
                 members father ON m.father_id = father.id
             LEFT JOIN members p2 ON m.father_id = p2.id
             LEFT JOIN members p3 ON p2.father_id = p3.id
-            LEFT JOIN members p4 ON p3.father_id = p4.id
-            ORDER BY
-            m.id, m.name ASC
+            LEFT JOIN members p4 ON p3.father_id = p4.id;
         "#,
     )
     .fetch_all(&state.db_pool)
-    .await?;
-    let all_children: Vec<ChildMember> = sqlx::query_as(
+    .await
+    .with_context(|| "get members flat")?;
+
+    let all_children: Vec<ChildMember> = sqlx::query_as!(
+        ChildMember,
         r#"
         SELECT 
             id,
             name,
-            gender,
-            birthday,
             last_name,
-            email,
             mother_id,
             father_id
         FROM members 
@@ -160,7 +153,8 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
         "#,
     )
     .fetch_all(&state.db_pool)
-    .await?;
+    .await
+    .with_context(|| "get members children")?;
 
     let members: Vec<MemberResponseFlat> = recs
         .into_iter()
@@ -172,7 +166,8 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
                 .collect();
             MemberResponseFlat {
                 id: m.id,
-                name: m.name,
+                name: m.name.clone(),
+                full_name: m.full_name.clone().unwrap_or_else(|| m.name),
                 gender: m.gender,
                 birthday: m.birthday.map(|t| t.to_jiff().to_zoned(TimeZone::UTC)),
                 last_name: m.last_name,
@@ -189,6 +184,82 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
                 }),
                 image: m.image,
                 image_type: m.image_type,
+                children,
+            }
+        })
+        .collect();
+
+    Ok(members)
+}
+
+#[get("/api/v1/members/flat", Extension(state): Extension<AppState>)]
+pub async fn members_flat_unauthorized() -> anyhow::Result<Vec<MemberUnauthorizedResponseFlat>> {
+    let recs = sqlx::query!(
+        r#"
+            SELECT
+                m.id,
+                m.name,
+                CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name,
+                m.gender AS "gender: Gender",
+                m.email,
+                m.last_name,
+                mother.id AS "mother_id: Option<i64>",
+                mother.name AS "mother_name: Option<String>",
+                father.id as "father_id: Option<i64>",
+                father.name AS "father_name: Option<String>"
+            FROM
+                members m
+            LEFT JOIN
+                members mother ON m.mother_id = mother.id
+            LEFT JOIN
+                members father ON m.father_id = father.id
+            LEFT JOIN members p2 ON m.father_id = p2.id
+            LEFT JOIN members p3 ON p2.father_id = p3.id
+            LEFT JOIN members p4 ON p3.father_id = p4.id
+            ORDER BY
+            m.id, m.name ASC
+        "#,
+    )
+    .fetch_all(&state.db_pool)
+    .await
+    .with_context(|| "get members")?;
+
+    let all_children: Vec<ChildMember> = sqlx::query_as!(
+        ChildMember,
+        r#"
+        SELECT 
+            id,
+            name,
+            last_name,
+            mother_id,
+            father_id
+        FROM members 
+        WHERE mother_id IS NOT NULL OR father_id IS NOT NULL
+        ORDER BY name ASC
+        "#,
+    )
+    .fetch_all(&state.db_pool)
+    .await
+    .with_context(|| "get members children")?;
+
+    let members = recs
+        .into_iter()
+        .map(|m| {
+            let children: Vec<ChildMember> = all_children
+                .iter()
+                .filter(|child| child.mother_id == Some(m.id) || child.father_id == Some(m.id))
+                .cloned()
+                .collect();
+            MemberUnauthorizedResponseFlat {
+                id: m.id,
+                name: m.name.clone(),
+                full_name: m.full_name.clone().unwrap_or_else(|| m.name),
+                gender: m.gender,
+                last_name: m.last_name,
+                father_id: m.father_id,
+                mother_id: m.mother_id,
+                father_name: m.father_name,
+                mother_name: m.mother_name,
                 children,
             }
         })

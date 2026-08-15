@@ -7,7 +7,10 @@ use crate::{
     i18n::Arabic,
     modules::{
         add_request::types::{RequestData, RequestDataStoreExt},
-        member::types::Gender,
+        member::{
+            components::member_picker::MemberPicker, server::members_flat_unauthorized,
+            types::Gender,
+        },
     },
     ui::key_value_pair::{KeyValueInput, KeyValuePair},
 };
@@ -17,7 +20,7 @@ pub mod server;
 pub mod types;
 
 #[component]
-pub fn AddMember() -> Element {
+pub fn AddMemberRequest() -> Element {
     let request_data = use_store(|| RequestData {
         name: None,
         last_name: None,
@@ -45,6 +48,14 @@ pub fn AddMember() -> Element {
             errors.remove(field);
         });
     };
+
+    let members_resource = use_resource(members_flat_unauthorized);
+
+    let members = (*members_resource.read())
+        .as_ref()
+        .and_then(|e| e.as_ref().ok())
+        .cloned()
+        .unwrap_or_default();
 
     rsx! {
         div {
@@ -117,77 +128,88 @@ pub fn AddMember() -> Element {
                             }
                         },
 
-                        // Name Field
-                        div { class: "form-group",
-                            label { r#for: "name", class: "form-label",
-                                svg {
-                                    class: "w-4 h-4 inline ml-2",
-                                    fill: "none",
-                                    stroke: "currentColor",
-                                    view_box: "0 0 24 24",
-                                    path {
-                                        stroke_linecap: "round",
-                                        stroke_linejoin: "round",
-                                        stroke_width: "2",
-                                        d: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+                        // Name, Father, and Last Name Fields
+                        div { class: "grid grid-cols-1 md:grid-cols-3 gap-4",
+                            div { class: "form-group min-w-0",
+                                label { r#for: "name", class: "form-label",
+                                    svg {
+                                        class: "w-4 h-4 inline ml-2",
+                                        fill: "none",
+                                        stroke: "currentColor",
+                                        view_box: "0 0 24 24",
+                                        path {
+                                            stroke_linecap: "round",
+                                            stroke_linejoin: "round",
+                                            stroke_width: "2",
+                                            d: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+                                        }
                                     }
+                                    "الاسم الأول"
                                 }
-                                "الاسم الأول"
+                                input {
+                                    id: "name",
+                                    r#type: "text",
+                                    required: true,
+                                    disabled: is_submitting(),
+                                    class: "input w-full",
+                                    class: if has_field_error("name") { "border-red-300 focus:border-red-500" },
+                                    class: if is_submitting() { "loading" },
+                                    placeholder: "أدخل الاسم الأول",
+                                    value: request_data.name().read().as_deref().unwrap_or(""),
+                                    oninput: move |evt| {
+                                        request_data.name().set(Some(evt.value()));
+                                        clear_field_error("name");
+                                    },
+                                }
+                                if let Some(error) = get_field_error("name") {
+                                    p { class: "text-sm text-red-600 mt-1", "{error}" }
+                                }
                             }
-                            input {
-                                id: "name",
-                                r#type: "text",
-                                required: true,
-                                disabled: is_submitting(),
-                                class: "input w-full",
-                                class: if has_field_error("name") { "border-red-300 focus:border-red-500" },
-                                class: if is_submitting() { "loading" },
-                                placeholder: "أدخل الاسم الأول",
-                                value: request_data.name().read().as_deref().unwrap_or(""),
-                                oninput: move |evt| {
-                                    request_data.name().set(Some(evt.value()));
-                                    clear_field_error("name");
-                                },
-                            }
-                            if let Some(error) = get_field_error("name") {
-                                p { class: "text-sm text-red-600 mt-1", "{error}" }
-                            }
-                        }
 
-                        // Last Name Field
-                        div { class: "form-group",
-                            label { r#for: "last_name", class: "form-label",
-                                svg {
-                                    class: "w-4 h-4 inline ml-2",
-                                    fill: "none",
-                                    stroke: "currentColor",
-                                    view_box: "0 0 24 24",
-                                    path {
-                                        stroke_linecap: "round",
-                                        stroke_linejoin: "round",
-                                        stroke_width: "2",
-                                        d: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
-                                    }
+                            div { class: "form-group min-w-0",
+                                label { class: "form-label", "الوالد" }
+                                MemberPicker {
+                                    members: members.clone(),
+                                    required_gender: Some(Gender::Male),
+                                    placeholder: "ابحث عن الوالد بالاسم...".to_string(),
+                                    on_select: move |id| request_data.father_id().set(id),
                                 }
-                                "اسم العائلة"
                             }
-                            input {
-                                id: "last_name",
-                                r#type: "text",
-                                required: true,
-                                disabled: is_submitting(),
-                                class: "input w-full",
-                                class: if has_field_error("last_name") { "border-red-300 focus:border-red-500" },
-                                class: if is_submitting() { "loading" },
-                                placeholder: "أدخل اسم العائلة",
-                                value: request_data.last_name().read().as_deref().unwrap_or(""),
-                                oninput: move |evt| {
-                                    request_data.last_name().set(Some(evt.value()));
-                                    clear_field_error("last_name");
-                                },
-                            }
-                            if let Some(error) = get_field_error("last_name") {
-                                p { class: "text-sm text-red-600 mt-1", "{error}" }
+
+                            div { class: "form-group min-w-0",
+                                label { r#for: "last_name", class: "form-label",
+                                    svg {
+                                        class: "w-4 h-4 inline ml-2",
+                                        fill: "none",
+                                        stroke: "currentColor",
+                                        view_box: "0 0 24 24",
+                                        path {
+                                            stroke_linecap: "round",
+                                            stroke_linejoin: "round",
+                                            stroke_width: "2",
+                                            d: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
+                                        }
+                                    }
+                                    "اسم العائلة"
+                                }
+                                input {
+                                    id: "last_name",
+                                    r#type: "text",
+                                    required: true,
+                                    disabled: is_submitting(),
+                                    class: "input w-full",
+                                    class: if has_field_error("last_name") { "border-red-300 focus:border-red-500" },
+                                    class: if is_submitting() { "loading" },
+                                    placeholder: "أدخل اسم العائلة",
+                                    value: request_data.last_name().read().as_deref().unwrap_or(""),
+                                    oninput: move |evt| {
+                                        request_data.last_name().set(Some(evt.value()));
+                                        clear_field_error("last_name");
+                                    },
+                                }
+                                if let Some(error) = get_field_error("last_name") {
+                                    p { class: "text-sm text-red-600 mt-1", "{error}" }
+                                }
                             }
                         }
 
@@ -286,50 +308,6 @@ pub fn AddMember() -> Element {
                                 },
                             }
                             if let Some(error) = get_field_error("birthday") {
-                                p { class: "text-sm text-red-600 mt-1", "{error}" }
-                            }
-                        }
-
-                        // Father ID Field
-                        div { class: "form-group",
-                            label { r#for: "father_id", class: "form-label",
-                                svg {
-                                    class: "w-4 h-4 inline ml-2",
-                                    fill: "none",
-                                    stroke: "currentColor",
-                                    view_box: "0 0 24 24",
-                                    path {
-                                        stroke_linecap: "round",
-                                        stroke_linejoin: "round",
-                                        stroke_width: "2",
-                                        d: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-                                    }
-                                }
-                                "معرف الأب"
-                            }
-                            input {
-                                id: "father_id",
-                                r#type: "text",
-                                list: "father_ids",
-                                required: true,
-                                disabled: is_submitting(),
-                                class: "input w-full",
-                                class: if has_field_error("father_id") { "border-red-300 focus:border-red-500" },
-                                class: if is_submitting() { "loading" },
-                                placeholder: "اختر أو أدخل معرف الأب",
-                                value: request_data
-                                    .father_id()
-                                    .read()
-                                    .as_ref()
-                                    .map(|id| id.to_string())
-                                    .unwrap_or_default(),
-                                oninput: move |evt| {
-                                    request_data.father_id().set(evt.value().parse().ok());
-                                    clear_field_error("father_id");
-                                },
-                            }
-                            datalist { id: "father_ids" }
-                            if let Some(error) = get_field_error("father_id") {
                                 p { class: "text-sm text-red-600 mt-1", "{error}" }
                             }
                         }

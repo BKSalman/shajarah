@@ -11,7 +11,7 @@ use crate::{
 };
 use dioxus::{fullstack::FileStream, prelude::*};
 
-use super::member_picker::MemberPicker;
+use crate::modules::member::components::member_picker::MemberPicker;
 
 #[derive(Props, Clone, PartialEq)]
 pub struct AddMemberModalProps {
@@ -137,7 +137,7 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                         div { class: "form-group",
                             label { class: "form-label", "الوالدة" }
                             MemberPicker {
-                                members: props.members.clone(),
+                                members: props.members.clone().into_iter().map(|m| m.into()).collect(),
                                 required_gender: Some(Gender::Female),
                                 placeholder: "ابحث عن الوالدة بالاسم...".to_string(),
                                 on_select: move |id| form_data.mother_id().set(id),
@@ -146,7 +146,7 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                         div { class: "form-group",
                             label { class: "form-label", "الوالد" }
                             MemberPicker {
-                                members: props.members.clone(),
+                                members: props.members.clone().into_iter().map(|m| m.into()).collect(),
                                 required_gender: Some(Gender::Male),
                                 placeholder: "ابحث عن الوالد بالاسم...".to_string(),
                                 on_select: move |id| form_data.father_id().set(id),
@@ -161,7 +161,7 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                     icon_color: Some("blue-600".to_string()),
                     KeyValueInput {
                         pairs: (form_data
-                                                                                                                                                                                                                            .personal_info())()
+                                                                                                                                                                                                                                                                                                                                                                            .personal_info())()
                             .map(|pi| {
                                 pi.iter()
                                     .map(|(key, value)| KeyValuePair {

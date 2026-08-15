@@ -108,14 +108,6 @@ impl eframe::App for App {
                             .maintain_aspect_ratio(true)
                             .show_loading_spinner(true)
                             .ui(ui);
-                        #[cfg(feature = "debug-ui")]
-                        {
-                            let layout_node = layout_tree
-                                .get(self.id)
-                                .expect("probably didn't update the layout tree");
-                            ui.label(format!("{{ x: {}, y: {} }}", layout_node.x, layout_node.y));
-                            ui.label(layout_node.depth.to_string());
-                        }
                         ui.with_layout(egui::Layout::top_down(Align::RIGHT), |ui| {
                             ui.heading(node.id.to_string());
                             ui.heading(shape_text(node.full_name()));

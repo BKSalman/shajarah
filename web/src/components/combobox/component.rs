@@ -114,9 +114,8 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
                     open.set(false);
                 },
                 onfocus: move |_| {
-                    if !query.read().is_empty() {
-                        open.set(true);
-                    }
+                    open.set(true);
+                    props.on_search.call(query());
                 },
                 onmounted: move |element| {
                     if let Some(on_mount) = props.on_mount {
@@ -126,7 +125,7 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
             }
 
             if is_open {
-                ul { class: "absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto",
+                ul { class: "absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto",
                     for (idx, opt) in props.options.iter().enumerate() {
                         {
                             let opt = opt.clone();

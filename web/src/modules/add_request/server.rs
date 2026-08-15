@@ -151,15 +151,24 @@ pub async fn approve_request(request_id: Uuid) -> Result<(), anyhow::Error> {
         return Err(anyhow!("Bad Request"));
     };
 
+    let Ok(info) = serde_json::value::to_value(member_info.personal_info) else {
+        return Err(anyhow!("Something went wrong"));
+    };
+
     sqlx::query!(
         r#"
-            INSERT INTO members (name, last_name, gender, birthday)
-            VALUES ($1, $2, $3, $4::text::timestamptz);
+            INSERT INTO members (name, gender, birthday, last_name, father_id, mother_id, personal_info, image, image_type)
+            VALUES ($1, $2, $3::text::timestamptz, $4, $5, $6, $7, $8, $9);
         "#,
         member_info.name,
-        member_info.last_name,
         member_info.gender as _,
         member_info.birthday.map(|t| t.to_jiff().to_string()),
+        member_info.last_name,
+        member_info.father_id,
+        member_info.mother_id,
+        info,
+        member_info.image,
+        member_info.image_type,
     )
     .execute(&mut *tx)
     .await?;

@@ -1,3 +1,4 @@
+pub mod components;
 #[cfg(feature = "server")]
 pub mod error;
 #[cfg(feature = "server")]

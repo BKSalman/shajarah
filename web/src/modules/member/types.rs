@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
-use jiff::Zoned;
 use dioxus::{
     core::{AttributeValue, IntoAttributeValue},
     prelude::*,
 };
 use indexmap::IndexMap;
+use jiff::Zoned;
 use serde::{Deserialize, Serialize};
 
 use crate::modules::types::EditField;
@@ -116,10 +116,12 @@ pub struct ChildMember {
     pub name: String,
     pub last_name: String,
 }
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct MemberResponseFlat {
     pub id: i64,
     pub name: String,
+    pub full_name: String,
     pub gender: Gender,
     pub birthday: Option<Zoned>,
     pub last_name: String,
@@ -132,6 +134,55 @@ pub struct MemberResponseFlat {
     pub image_type: Option<String>,
     pub children: Vec<ChildMember>,
 }
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub struct MemberUnauthorizedResponseFlat {
+    pub id: i64,
+    pub name: String,
+    pub full_name: String,
+    pub gender: Gender,
+    pub last_name: String,
+    pub father_id: Option<i64>,
+    pub mother_id: Option<i64>,
+    pub father_name: Option<String>,
+    pub mother_name: Option<String>,
+    pub children: Vec<ChildMember>,
+}
+
+impl From<&MemberResponseFlat> for MemberUnauthorizedResponseFlat {
+    fn from(value: &MemberResponseFlat) -> Self {
+        MemberUnauthorizedResponseFlat {
+            id: value.id,
+            name: value.name.clone(),
+            full_name: value.full_name.clone(),
+            gender: value.gender,
+            last_name: value.last_name.clone(),
+            father_id: value.father_id,
+            mother_id: value.mother_id,
+            father_name: value.father_name.clone(),
+            mother_name: value.mother_name.clone(),
+            children: value.children.clone(),
+        }
+    }
+}
+
+impl From<MemberResponseFlat> for MemberUnauthorizedResponseFlat {
+    fn from(value: MemberResponseFlat) -> Self {
+        MemberUnauthorizedResponseFlat {
+            id: value.id,
+            name: value.name,
+            full_name: value.full_name,
+            gender: value.gender,
+            last_name: value.last_name,
+            father_id: value.father_id,
+            mother_id: value.mother_id,
+            father_name: value.father_name,
+            mother_name: value.mother_name,
+            children: value.children,
+        }
+    }
+}
+
 #[cfg(feature = "server")]
 #[derive(Debug, sqlx::FromRow)]
 pub struct MemberRowWithParents {

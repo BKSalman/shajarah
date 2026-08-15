@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::modules::user::pages::login::UserLogin;
 use crate::modules::user::pages::register::UserRegister;
 use components::loading::FullPageLoading;
-use modules::add_request::AddMember;
+use modules::add_request::AddMemberRequest;
 use modules::admin::pages::{
     Admin, AdminLayout, invites::AdminInvites, login::AdminLogin, register::AdminRegister,
     settings::AdminSettings,
@@ -63,9 +63,9 @@ pub enum Route {
     #[layout(PrivateTreeGuard)]
     #[route("/")]
     Home,
-    #[route("/add")]
-    AddMember,
     #[end_layout]
+    #[route("/add")]
+    AddMemberRequest,
     #[route("/register?:invite_token")]
     UserRegister { invite_token: Uuid },
     #[route("/login")]
@@ -82,7 +82,6 @@ pub fn PrivateTreeGuard() -> Element {
 
     use_effect(move || {
         if !config.public && matches!(is_authed(), Some(Err(_))) {
-            tracing::info!("alo: {}, {:?}", config.public, is_authed());
             nav.replace(Route::Unauthorized {});
         }
     });

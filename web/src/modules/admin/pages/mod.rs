@@ -422,7 +422,9 @@ pub fn Admin() -> Element {
                                 on_close: move |_| {
                                     show_modal.set(None);
                                 },
-                                on_submit: move |(id, data, image): (i64, EditMember, Option<FileStream>)| on_member_edit.call(id, data, image),
+                                on_submit: move |(id, data, image): (i64, EditMember, Option<FileStream>)| {
+                                    on_member_edit.call(id, data, image)
+                                },
                             }
                             Modal {
                                 show: show_modal().is_some_and(|m| m == ShowModal::DeleteMember(member.id)),
@@ -700,7 +702,9 @@ pub fn Admin() -> Element {
                 on_close: move |_| {
                     show_modal.set(None);
                 },
-                on_submit: move |(data, image): (MemberFormData, Option<FileStream>)| on_member_add.call((data, image)),
+                on_submit: move |(data, image): (MemberFormData, Option<FileStream>)| {
+                    on_member_add.call((data, image))
+                },
             }
             match &*tab.read() {
                 Tab::Members => {

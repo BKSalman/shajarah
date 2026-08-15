@@ -1,9 +1,9 @@
-# [[language]]
-# name = "rust"
-# formatter = { command = "bash", args = ["-c", "rustfmt | dx fmt -f -"] }
+[[language]]
+name = "rust"
+formatter = { command = "bash", args = ["-c", "set -eo pipefail; rustfmt --edition 2024 | dx fmt -f -"] }
 
 [language-server.rust-analyzer.config.cargo]
 features = ["server"]
 
-[language-server.rust-analyzer.config.check]
-targets = ["wasm32-unknown-unknown", "host-tuple"]
+# [language-server.rust-analyzer.config.check]
+# targets = ["wasm32-unknown-unknown", "host-tuple"]

@@ -11,7 +11,7 @@ use crate::{
 };
 use dioxus::{fullstack::FileStream, prelude::*};
 
-use super::member_picker::MemberPicker;
+use crate::modules::member::components::member_picker::MemberPicker;
 
 #[derive(Props, Clone, PartialEq)]
 pub struct EditMemberModalProps {
@@ -133,7 +133,12 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                                 r#type: "date",
                                 required: true,
                                 class: "input",
-                                value: if let EditField::Changed(birthday) = (&*form_data.birthday())() { birthday.date().to_string() } else { props.member.birthday.clone().map(|b| b.date().to_string()).unwrap_or(String::from("")) },
+                                value: if let EditField::Changed(birthday) = (&*form_data.birthday())() { birthday.date().to_string() } else { props
+                                    .member
+                                    .birthday
+                                    .clone()
+                                    .map(|b| b.date().to_string())
+                                    .unwrap_or(String::from("")) },
                                 oninput: move |evt: Event<FormData>| {
                                     if evt.value().is_empty() {
                                         form_data.birthday().set(EditField::Delete);
@@ -165,10 +170,15 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                         div { class: "form-group",
                             label { class: "form-label", "الوالدة" }
                             MemberPicker {
-                                members: props.members.clone(),
+                                members: props.members.clone().into_iter().map(|m| m.into()).collect(),
                                 exclude_id: Some(props.member.id),
                                 required_gender: Some(Gender::Female),
-                                initial_label: props.members.iter().find(|m| props.member.mother_id == Some(m.id)).map(|m| format!("{} {}", m.name, m.last_name)).unwrap_or_default(),
+                                initial_label: props
+                                    .members
+                                    .iter()
+                                    .find(|m| props.member.mother_id == Some(m.id))
+                                    .map(|m| format!("{} {}", m.name, m.last_name))
+                                    .unwrap_or_default(),
                                 placeholder: "ابحث عن الوالدة بالاسم...".to_string(),
                                 on_select: move |id: Option<i64>| {
                                     match id {
@@ -184,10 +194,15 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                         div { class: "form-group",
                             label { class: "form-label", "الوالد" }
                             MemberPicker {
-                                members: props.members.clone(),
+                                members: props.members.clone().into_iter().map(|m| m.into()).collect(),
                                 exclude_id: Some(props.member.id),
                                 required_gender: Some(Gender::Male),
-                                initial_label: props.members.iter().find(|m| props.member.father_id == Some(m.id)).map(|m| format!("{} {}", m.name, m.last_name)).unwrap_or_default(),
+                                initial_label: props
+                                    .members
+                                    .iter()
+                                    .find(|m| props.member.father_id == Some(m.id))
+                                    .map(|m| format!("{} {}", m.name, m.last_name))
+                                    .unwrap_or_default(),
                                 placeholder: "ابحث عن الوالد بالاسم...".to_string(),
                                 on_select: move |id: Option<i64>| {
                                     match id {
