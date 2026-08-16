@@ -51,112 +51,140 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                     title: "المعلومات الأساسية".to_string(),
                     icon_path: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z".to_string(),
                     icon_color: Some("primary-600".to_string()),
-                    div { class: "grid grid-cols-1 md:grid-cols-2 gap-4",
-                        div { class: "form-group",
-                            label { class: "form-label",
-                                "الاسم الأول "
-                                span { class: "text-red-500", "*" }
-                            }
-                            input {
-                                dir: "auto",
-                                name: "name",
-                                r#type: "text",
-                                required: true,
-                                class: "input",
-                                placeholder: "ادخل الاسم الأول",
-                                value: if let Some(name) = (&*form_data.name())() { name } else { props.member.name.clone() },
-                                oninput: move |evt: Event<FormData>| {
-                                    if evt.value() != props.member.name {
-                                        form_data.name().set(Some(evt.value()));
-                                    } else {
-                                        form_data.name().set(None);
-                                    }
-                                },
-                            }
-                        }
-                        div { class: "form-group",
-                            label { class: "form-label",
-                                "الاسم الأخير "
-                                span { class: "text-red-500", "*" }
-                            }
-                            input {
-                                dir: "auto",
-                                name: "last_name",
-                                r#type: "text",
-                                required: true,
-                                class: "input",
-                                placeholder: "ادخل الاسم الأخير",
-                                value: if let Some(last_name) = (&*form_data.last_name())() { last_name } else { props.member.last_name.clone() },
-                                oninput: move |evt: Event<FormData>| {
-                                    if evt.value() != props.member.last_name {
-                                        form_data.last_name().set(Some(evt.value()));
-                                    } else {
-                                        form_data.last_name().set(None);
-                                    }
-                                },
-                            }
-                        }
-                        div { class: "form-group",
-                            label { class: "form-label",
-                                "الجنس "
-                                span { class: "text-red-500", "*" }
-                            }
-                            select {
-                                name: "gender",
-                                required: true,
-                                class: "dropdown",
-                                value: if let Some(gender) = (&*form_data.gender())() { gender } else { props.member.gender },
-                                onchange: move |evt| {
-                                    let mut gender = form_data.gender();
-
-                                    if evt.value() == "male" {
-                                        gender.set(Some(Gender::Male));
-                                    } else if evt.value() == "female" {
-                                        gender.set(Some(Gender::Female));
-                                    } else {
-                                        gender.set(None);
-                                    }
-                                },
-                                option { value: "", "اختر الجنس" }
-                                option { value: "male", "ذكر" }
-                                option { value: "female", "أنثى" }
-                            }
-                        }
-                        div { class: "form-group",
-                            label { class: "form-label",
-                                "تاريخ الميلاد "
-                                span { class: "text-red-500", "*" }
-                            }
-                            input {
-                                dir: "auto",
-                                name: "birthday",
-                                r#type: "date",
-                                required: true,
-                                class: "input",
-                                value: if let EditField::Changed(birthday) = (&*form_data.birthday())() { birthday.date().to_string() } else { props
-                                    .member
-                                    .birthday
-                                    .clone()
-                                    .map(|b| b.date().to_string())
-                                    .unwrap_or(String::from("")) },
-                                oninput: move |evt: Event<FormData>| {
-                                    if evt.value().is_empty() {
-                                        form_data.birthday().set(EditField::Delete);
-                                    } else {
-                                        let date = evt
-                                            .value()
-                                            .parse::<jiff::civil::Date>()
-                                            .ok()
-                                            .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok());
-                                        if props.member.birthday != date {
-                                            if let Some(date) = date {
-                                                form_data.birthday().set(EditField::Changed(date));
-                                            }
+                    div { class: "flex flex-col",
+                        div { class: "flex flex-row w-full gap-4",
+                            div { class: "form-group",
+                                label { class: "form-label",
+                                    "الاسم الأول "
+                                    span { class: "text-red-500", "*" }
+                                }
+                                input {
+                                    dir: "auto",
+                                    name: "name",
+                                    r#type: "text",
+                                    required: true,
+                                    class: "input w-full",
+                                    placeholder: "ادخل الاسم الأول",
+                                    value: if let Some(name) = (&*form_data.name())() { name } else { props.member.name.clone() },
+                                    oninput: move |evt: Event<FormData>| {
+                                        if evt.value() != props.member.name {
+                                            form_data.name().set(Some(evt.value()));
                                         } else {
-                                            form_data.birthday().set(EditField::Unchanged);
+                                            form_data.name().set(None);
                                         }
-                                    }
-                                },
+                                    },
+                                }
+                            }
+                            div { class: "form-group",
+                                label { class: "form-label", "الوالد" }
+                                MemberPicker {
+                                    members: props.members.clone().into_iter().map(|m| m.into()).collect(),
+                                    exclude_id: Some(props.member.id),
+                                    required_gender: Some(Gender::Male),
+                                    initial_label: props
+                                        .members
+                                        .iter()
+                                        .find(|m| props.member.father_id == Some(m.id))
+                                        .map(|m| m.full_name.clone())
+                                        .unwrap_or_default(),
+                                    placeholder: "ابحث عن الوالد بالاسم...".to_string(),
+                                    on_select: move |id: Option<i64>| {
+                                        match id {
+                                            None => form_data.father_id().set(EditField::Delete),
+                                            Some(father_id) if Some(father_id) != props.member.father_id => {
+                                                form_data.father_id().set(EditField::Changed(father_id));
+                                            }
+                                            Some(_) => form_data.father_id().set(EditField::Unchanged),
+                                        }
+                                    },
+                                }
+                            }
+                            div { class: "form-group",
+                                label { class: "form-label",
+                                    "الاسم الأخير "
+                                    span { class: "text-red-500", "*" }
+                                }
+                                input {
+                                    dir: "auto",
+                                    name: "last_name",
+                                    r#type: "text",
+                                    required: true,
+                                    class: "input w-full",
+                                    placeholder: "ادخل الاسم الأخير",
+                                    value: if let Some(last_name) = (&*form_data.last_name())() { last_name } else { props.member.last_name.clone() },
+                                    oninput: move |evt: Event<FormData>| {
+                                        if evt.value() != props.member.last_name {
+                                            form_data.last_name().set(Some(evt.value()));
+                                        } else {
+                                            form_data.last_name().set(None);
+                                        }
+                                    },
+                                }
+                            }
+                        }
+                        div { class: "flex flex-row w-full gap-4",
+                            div { class: "form-group",
+                                label { class: "form-label",
+                                    "الجنس "
+                                    span { class: "text-red-500", "*" }
+                                }
+                                select {
+                                    name: "gender",
+                                    required: true,
+                                    class: "dropdown",
+                                    value: if let Some(gender) = (&*form_data.gender())() { gender } else { props.member.gender },
+                                    onchange: move |evt| {
+                                        let mut gender = form_data.gender();
+
+                                        if evt.value() == "male" {
+                                            gender.set(Some(Gender::Male));
+                                        } else if evt.value() == "female" {
+                                            gender.set(Some(Gender::Female));
+                                        } else {
+                                            gender.set(None);
+                                        }
+                                    },
+                                    option { value: "", "اختر الجنس" }
+                                    option { value: "male", "ذكر" }
+                                    option { value: "female", "أنثى" }
+                                }
+                            }
+                            div { class: "form-group",
+                                label { class: "form-label",
+                                    "تاريخ الميلاد "
+                                    span { class: "text-red-500", "*" }
+                                }
+                                input {
+                                    dir: "auto",
+                                    name: "birthday",
+                                    r#type: "date",
+                                    required: true,
+                                    class: "input",
+                                    value: if let EditField::Changed(birthday) = (&*form_data.birthday())() { birthday.date().to_string() } else { props
+                                        .member
+                                        .birthday
+                                        .clone()
+                                        .map(|b| b.date().to_string())
+                                        .unwrap_or(String::from("")) },
+                                    oninput: move |evt: Event<FormData>| {
+                                        if evt.value().is_empty() {
+                                            form_data.birthday().set(EditField::Delete);
+                                        } else {
+                                            let date = evt
+                                                .value()
+                                                .parse::<jiff::civil::Date>()
+                                                .ok()
+                                                .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok());
+                                            if props.member.birthday != date {
+                                                if let Some(date) = date {
+                                                    form_data.birthday().set(EditField::Changed(date));
+                                                }
+                                            } else {
+                                                form_data.birthday().set(EditField::Unchanged);
+                                            }
+                                        }
+                                    },
+                                }
                             }
                         }
                     }
@@ -187,30 +215,6 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                                             form_data.mother_id().set(EditField::Changed(mother_id));
                                         }
                                         Some(_) => form_data.mother_id().set(EditField::Unchanged),
-                                    }
-                                },
-                            }
-                        }
-                        div { class: "form-group",
-                            label { class: "form-label", "الوالد" }
-                            MemberPicker {
-                                members: props.members.clone().into_iter().map(|m| m.into()).collect(),
-                                exclude_id: Some(props.member.id),
-                                required_gender: Some(Gender::Male),
-                                initial_label: props
-                                    .members
-                                    .iter()
-                                    .find(|m| props.member.father_id == Some(m.id))
-                                    .map(|m| format!("{} {}", m.name, m.last_name))
-                                    .unwrap_or_default(),
-                                placeholder: "ابحث عن الوالد بالاسم...".to_string(),
-                                on_select: move |id: Option<i64>| {
-                                    match id {
-                                        None => form_data.father_id().set(EditField::Delete),
-                                        Some(father_id) if Some(father_id) != props.member.father_id => {
-                                            form_data.father_id().set(EditField::Changed(father_id));
-                                        }
-                                        Some(_) => form_data.father_id().set(EditField::Unchanged),
                                     }
                                 },
                             }

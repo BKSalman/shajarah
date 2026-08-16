@@ -45,85 +45,98 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                     title: "المعلومات الأساسية".to_string(),
                     icon_path: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z".to_string(),
                     icon_color: Some("primary-600".to_string()),
-                    div { class: "grid grid-cols-1 md:grid-cols-2 gap-4",
-                        div { class: "form-group",
-                            label { class: "form-label",
-                                "الاسم الأول "
-                                span { class: "text-red-500", "*" }
+                    div { class: "flex flex-col",
+                        div { class: "flex flex-row w-full gap-4",
+                            div { class: "form-group w-full",
+                                label { class: "form-label",
+                                    "الاسم الأول "
+                                    span { class: "text-red-500", "*" }
+                                }
+                                input {
+                                    dir: "auto",
+                                    name: "name",
+                                    r#type: "text",
+                                    required: true,
+                                    class: "input w-full",
+                                    placeholder: "ادخل الاسم الأول",
+                                    value: "{form_data().name}",
+                                    oninput: move |evt| {
+                                        form_data.name().set(evt.value());
+                                    },
+                                }
                             }
-                            input {
-                                dir: "auto",
-                                name: "name",
-                                r#type: "text",
-                                required: true,
-                                class: "input",
-                                placeholder: "ادخل الاسم الأول",
-                                value: "{form_data().name}",
-                                oninput: move |evt| {
-                                    form_data.name().set(evt.value());
-                                },
+                            div { class: "form-group w-full",
+                                label { class: "form-label", "الوالد" }
+                                MemberPicker {
+                                    members: props.members.clone().into_iter().map(|m| m.into()).collect(),
+                                    required_gender: Some(Gender::Male),
+                                    placeholder: "ابحث عن الوالد بالاسم...".to_string(),
+                                    on_select: move |id| form_data.father_id().set(id),
+                                }
                             }
-                        }
-                        div { class: "form-group",
-                            label { class: "form-label",
-                                "الاسم الأخير "
-                                span { class: "text-red-500", "*" }
-                            }
-                            input {
-                                dir: "auto",
-                                name: "last_name",
-                                r#type: "text",
-                                required: true,
-                                class: "input",
-                                placeholder: "ادخل الاسم الأخير",
-                                value: "{form_data().last_name}",
-                                oninput: move |evt| {
-                                    form_data.last_name().set(evt.value());
-                                },
-                            }
-                        }
-                        div { class: "form-group",
-                            label { class: "form-label",
-                                "الجنس "
-                                span { class: "text-red-500", "*" }
-                            }
-                            select {
-                                name: "gender",
-                                required: true,
-                                class: "dropdown",
-                                onchange: move |evt| {
-                                    if evt.value() == "male" {
-                                        form_data.gender().set(Some(Gender::Male));
-                                    } else if evt.value() == "female" {
-                                        form_data.gender().set(Some(Gender::Female));
-                                    } else {
-                                        form_data.gender().set(None);
-                                    }
-                                },
-                                option { value: "", "اختر الجنس" }
-                                option { value: "male", "ذكر" }
-                                option { value: "female", "أنثى" }
+                            div { class: "form-group w-full",
+                                label { class: "form-label",
+                                    "الاسم الأخير "
+                                    span { class: "text-red-500", "*" }
+                                }
+                                input {
+                                    dir: "auto",
+                                    name: "last_name",
+                                    r#type: "text",
+                                    required: true,
+                                    class: "input w-full",
+                                    placeholder: "ادخل الاسم الأخير",
+                                    value: "{form_data().last_name}",
+                                    oninput: move |evt| {
+                                        form_data.last_name().set(evt.value());
+                                    },
+                                }
                             }
                         }
-                        div { class: "form-group",
-                            label { class: "form-label",
-                                "تاريخ الميلاد "
-                                span { class: "text-red-500", "*" }
+                        div { class: "flex flex-row w-full gap-4",
+                            div { class: "form-group w-full",
+                                label { class: "form-label",
+                                    "الجنس "
+                                    span { class: "text-red-500", "*" }
+                                }
+                                select {
+                                    name: "gender",
+                                    required: true,
+                                    class: "dropdown w-full",
+                                    onchange: move |evt| {
+                                        if evt.value() == "male" {
+                                            form_data.gender().set(Some(Gender::Male));
+                                        } else if evt.value() == "female" {
+                                            form_data.gender().set(Some(Gender::Female));
+                                        } else {
+                                            form_data.gender().set(None);
+                                        }
+                                    },
+                                    option { value: "", "اختر الجنس" }
+                                    option { value: "male", "ذكر" }
+                                    option { value: "female", "أنثى" }
+                                }
                             }
-                            input {
-                                dir: "auto",
-                                name: "birthday",
-                                r#type: "date",
-                                required: true,
-                                class: "input",
-                                oninput: move |evt| {
-                                    let date = evt
-                                        .value()
-                                        .parse::<jiff::civil::Date>()
-                                        .ok()
-                                        .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok());
-                                    form_data.birthday().set(date);
-                                },
+                            div { class: "form-group w-full",
+                                label { class: "form-label",
+                                    "تاريخ الميلاد "
+                                    span { class: "text-red-500", "*" }
+                                }
+                                input {
+                                    dir: "auto",
+                                    name: "birthday",
+                                    r#type: "date",
+                                    required: true,
+                                    class: "input w-full",
+                                    oninput: move |evt| {
+                                        let date = evt
+                                            .value()
+                                            .parse::<jiff::civil::Date>()
+                                            .ok()
+                                            .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok());
+                                        form_data.birthday().set(date);
+                                    },
+                                }
                             }
                         }
                     }
@@ -143,15 +156,6 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                                 on_select: move |id| form_data.mother_id().set(id),
                             }
                         }
-                        div { class: "form-group",
-                            label { class: "form-label", "الوالد" }
-                            MemberPicker {
-                                members: props.members.clone().into_iter().map(|m| m.into()).collect(),
-                                required_gender: Some(Gender::Male),
-                                placeholder: "ابحث عن الوالد بالاسم...".to_string(),
-                                on_select: move |id| form_data.father_id().set(id),
-                            }
-                        }
                     }
                 }
                 FormSection {
@@ -161,7 +165,7 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                     icon_color: Some("blue-600".to_string()),
                     KeyValueInput {
                         pairs: (form_data
-                                                                                                                                                                                                                                                                                                                                                                            .personal_info())()
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            .personal_info())()
                             .map(|pi| {
                                 pi.iter()
                                     .map(|(key, value)| KeyValuePair {
