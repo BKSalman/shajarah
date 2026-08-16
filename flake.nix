@@ -265,9 +265,24 @@
           packages.default = shajarah;
           packages.shajarah = shajarah;
 
-          devShells.default = 
+          devShells.default =
             let
               pgcfg = config.process-compose."services".services.postgres.shajarah;
+
+              # Nightly-only build flags. These live here rather than in .cargo/config.toml so they
+              # apply to this shell alone — a stable toolchain outside it would reject the -Z flags.
+              # CARGO_BUILD_RUSTFLAGS and CARGO_TARGET_<triple>_RUSTFLAGS are the env equivalents of
+              # `[build] rustflags` and `[target.<triple>] rustflags`, so they sit below RUSTFLAGS in
+              # cargo's precedence and a caller-supplied RUSTFLAGS still wins.
+              cranelift = pkgs.stdenv.hostPlatform.isLinux;
+              hostTriple = lib.toUpper (builtins.replaceStrings [ "-" ] [ "_" ]
+                pkgs.stdenv.hostPlatform.rust.rustcTarget);
+
+              # -Zthreads parallelises the rustc frontend. Cranelift is a much faster codegen
+              # backend but cannot target wasm32, so it goes on the host triple only.
+              baseRustflags = [ "--cfg=web_sys_unstable_apis" "-Zthreads=8" ];
+              hostRustflags = baseRustflags
+                ++ lib.optional cranelift "-Zcodegen-backend=cranelift";
             in
           pkgs.mkShell.override {
             stdenv = pkgs.useWildLinker pkgs.stdenv;
@@ -279,11 +294,15 @@
             packages = [
               self'.packages.services
 
-              # Rust
-              (pkgs.rust-bin.stable.latest.default.override {
-                extensions = [ "rust-src" "rust-analyzer" ];
+              # Rust. Nightly is dev-shell only: it unlocks the parallel rustc frontend
+              # (-Zthreads) and the cranelift backend, both wired up via the env vars below.
+              # `rustToolchainFor` above (nix build) and CI stay on stable.
+              (pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default.override {
+                extensions = [ "rust-src" "rust-analyzer" ]
+                  ++ lib.optional cranelift "rustc-codegen-cranelift-preview";
                 targets = [ "wasm32-unknown-unknown" ];
-              })
+              }))
+              wasm-bindgen-cli
               pkgs.dioxus-cli
               pkgs.cargo-watch
               pkgs.sqlx-cli
@@ -313,6 +332,12 @@
 
             LD_LIBRARY_PATH = "${lib.makeLibraryPath buildInputs}";
             DATABASE_URL = "postgres://${pgcfg.superuser}@${pgcfg.listen_addresses}:${toString pgcfg.port}/shajarah";
+
+            # Set via `env` because the attribute name is computed, which a `rec` set disallows.
+            env = {
+              CARGO_BUILD_RUSTFLAGS = lib.concatStringsSep " " baseRustflags;
+              "CARGO_TARGET_${hostTriple}_RUSTFLAGS" = lib.concatStringsSep " " hostRustflags;
+            };
           };
 
           process-compose."services" = { config, ... }: {
