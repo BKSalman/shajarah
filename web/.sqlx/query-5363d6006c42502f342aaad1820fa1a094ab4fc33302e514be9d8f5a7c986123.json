@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                m.id,\n                m.name,\n                CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name,\n                m.gender AS \"gender: Gender\",\n                m.email,\n                m.last_name,\n                mother.id AS \"mother_id: Option<i64>\",\n                mother.name AS \"mother_name: Option<String>\",\n                father.id as \"father_id: Option<i64>\",\n                father.name AS \"father_name: Option<String>\"\n            FROM\n                members m\n            LEFT JOIN\n                members mother ON m.mother_id = mother.id\n            LEFT JOIN\n                members father ON m.father_id = father.id\n            LEFT JOIN members p2 ON m.father_id = p2.id\n            LEFT JOIN members p3 ON p2.father_id = p3.id\n            LEFT JOIN members p4 ON p3.father_id = p4.id\n            ORDER BY\n            m.id, m.name ASC\n        ",
+  "query": "\n            SELECT\n                m.id,\n                m.name,\n                CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name,\n                m.gender AS \"gender: Gender\",\n                m.email,\n                m.last_name,\n                mother.id AS \"mother_id: Option<i64>\",\n                mother.name AS \"mother_name: Option<String>\",\n                father.id as \"father_id: Option<i64>\",\n                CONCAT_WS(' ', p2.name, p3.name, p4.name, p2.last_name) AS father_name\n            FROM\n                members m\n            LEFT JOIN\n                members mother ON m.mother_id = mother.id\n            LEFT JOIN\n                members father ON m.father_id = father.id\n            LEFT JOIN members p2 ON m.father_id = p2.id\n            LEFT JOIN members p3 ON p2.father_id = p3.id\n            LEFT JOIN members p4 ON p3.father_id = p4.id\n            ORDER BY\n            m.id, m.name ASC\n        ",
   "describe": {
     "columns": [
       {
@@ -109,14 +109,9 @@
       },
       {
         "ordinal": 9,
-        "name": "father_name: Option<String>",
+        "name": "father_name",
         "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "members",
-            "name": "name"
-          }
-        }
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -132,8 +127,8 @@
       false,
       false,
       false,
-      false
+      null
     ]
   },
-  "hash": "95474888d149e358404d335c4dd93c9af59787bbd283ce920383592823c5fc51"
+  "hash": "5363d6006c42502f342aaad1820fa1a094ab4fc33302e514be9d8f5a7c986123"
 }
