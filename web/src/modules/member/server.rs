@@ -42,7 +42,7 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
                 mother.birthday AS "mother_birthday: jiff_sqlx::Timestamp",
                 mother.last_name AS mother_last_name,
                 father.id AS father_id,
-                father.name AS father_name,
+                CONCAT_WS(' ', p2.name, p3.name, p4.name, p2.last_name) AS father_name,
                 father.gender AS "father_gender: Gender",
                 father.birthday AS "father_birthday: jiff_sqlx::Timestamp",
                 father.last_name AS father_last_name
@@ -119,7 +119,7 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
                 mother.birthday AS mother_birthday,
                 mother.last_name AS mother_last_name,
                 father.id AS father_id,
-                father.name AS father_name,
+                CONCAT_WS(' ', p2.name, p3.name, p4.name, p2.last_name) AS father_name,
                 father.gender AS father_gender,
                 father.birthday AS father_birthday,
                 father.last_name AS father_last_name
@@ -206,7 +206,7 @@ pub async fn members_flat_unauthorized() -> anyhow::Result<Vec<MemberUnauthorize
                 mother.id AS "mother_id: Option<i64>",
                 mother.name AS "mother_name: Option<String>",
                 father.id as "father_id: Option<i64>",
-                father.name AS "father_name: Option<String>"
+                CONCAT_WS(' ', p2.name, p3.name, p4.name, p2.last_name) AS father_name
             FROM
                 members m
             LEFT JOIN
