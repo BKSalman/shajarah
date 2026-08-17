@@ -10,7 +10,9 @@ pub struct KeyValuePair {
 pub struct KeyValueInputProps {
     pub pairs: Vec<KeyValuePair>,
     pub on_pairs_change: EventHandler<Vec<KeyValuePair>>,
+    #[props(default)]
     pub key_placeholder: Option<String>,
+    #[props(default)]
     pub value_placeholder: Option<String>,
     /// Keys the caller mandates: their row can't be renamed or deleted, only
     /// filled in. Matched by key, not by position.
@@ -44,32 +46,40 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                     let errored = error_keys.contains(&pair.key);
                     rsx! {
                         div { class: "flex gap-3 items-center",
-                            div { class: "flex-1",
-                                input {
-                                    r#type: "text",
-                                    value: "{pair.key}",
-                                    placeholder: "{key_placeholder}",
-                                    class: "input w-full",
-                                    class: if locked { "bg-gray-50 text-gray-600" },
-                                    readonly: locked,
-                                    oninput: {
-                                        let pairs = pairs.clone();
-                                        move |evt| {
-                                            if locked {
-                                                return;
+                            if locked {
+                                label { class: "form-label",
+                                    span { "{pair.key}" }
+                                    span { class: "text-red-600 w-10 text-center", "*" }
+                                    span { ":" }
+                                }
+                            } else {
+                                div { class: "flex-1",
+                                    input {
+                                        r#type: "text",
+                                        value: "{pair.key}",
+                                        placeholder: "{key_placeholder}",
+                                        class: "input w-full",
+                                        class: if locked { "bg-gray-50 text-gray-600" },
+                                        readonly: locked,
+                                        oninput: {
+                                            let pairs = pairs.clone();
+                                            move |evt| {
+                                                if locked {
+                                                    return;
+                                                }
+                                                let mut new_pairs = pairs.clone();
+                                                new_pairs[index].key = evt.value();
+                                                on_pairs_change.call(new_pairs);
                                             }
-                                            let mut new_pairs = pairs.clone();
-                                            new_pairs[index].key = evt.value();
-                                            on_pairs_change.call(new_pairs);
-                                        }
-                                    },
+                                        },
+                                    }
                                 }
                             }
                             div { class: "flex-1",
                                 input {
                                     r#type: "text",
                                     value: "{pair.value}",
-                                    placeholder: "{value_placeholder}",
+                                    placeholder: if !locked { "{value_placeholder}" },
                                     class: "input w-full",
                                     class: if errored { "input-error" },
                                     oninput: {
@@ -83,9 +93,7 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
                                     },
                                 }
                             }
-                            if locked {
-                                span { class: "text-red-600 w-10 text-center", "*" }
-                            } else {
+                            if !locked {
                                 button {
                                     r#type: "button",
                                     class: "btn btn-danger btn-sm",
