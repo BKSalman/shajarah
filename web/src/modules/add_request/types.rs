@@ -14,12 +14,30 @@ pub struct RequestData {
     pub last_name: Option<String>,
     #[garde(required)]
     pub gender: Option<Gender>,
-    #[garde(skip)]
+    #[garde(required)]
     pub birthday: Option<Zoned>,
     #[garde(required)]
     pub father_id: Option<i64>,
     #[garde(skip)]
     pub mother_id: Option<i64>,
+    #[garde(skip)]
+    pub info: IndexMap<String, String>,
+    #[garde(skip)]
+    pub image: Option<Vec<u8>>,
+    #[garde(skip)]
+    pub image_type: Option<String>,
+    #[garde(dive)]
+    pub children: Vec<RequestChildData>,
+}
+
+#[derive(Default, Debug, Clone, Store, garde::Validate, Serialize, Deserialize)]
+pub struct RequestChildData {
+    #[garde(required, length(min = 1))]
+    pub name: Option<String>,
+    #[garde(required)]
+    pub gender: Option<Gender>,
+    #[garde(required)]
+    pub birthday: Option<Zoned>,
     #[garde(skip)]
     pub info: IndexMap<String, String>,
     #[garde(skip)]

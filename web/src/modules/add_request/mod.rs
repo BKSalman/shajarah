@@ -6,7 +6,9 @@ use std::collections::HashMap;
 use crate::{
     i18n::Arabic,
     modules::{
-        add_request::types::{RequestData, RequestDataStoreExt},
+        add_request::types::{
+            RequestChildData, RequestChildDataStoreExt, RequestData, RequestDataStoreExt,
+        },
         member::{
             components::member_picker::MemberPicker, server::members_flat_unauthorized,
             types::Gender,
@@ -46,6 +48,7 @@ fn AddMemberRequestForm() -> Element {
         info: IndexMap::new(),
         image: None,
         image_type: None,
+        children: Vec::new(),
     });
 
     let mut field_errors = use_signal(HashMap::<String, String>::new);
@@ -120,6 +123,7 @@ fn AddMemberRequestForm() -> Element {
                                             );
                                     }
                                     is_submitting.set(false);
+                                    tracing::debug!("errors: {:?}", field_errors);
                                     return;
                                 }
 
@@ -164,13 +168,13 @@ fn AddMemberRequestForm() -> Element {
                                 input {
                                     id: "name",
                                     r#type: "text",
-                                    required: true,
+                                    // required: true,
                                     disabled: is_submitting(),
                                     class: "input w-full",
                                     class: if has_field_error("name") { "border-red-300 focus:border-red-500" },
                                     class: if is_submitting() { "loading" },
                                     placeholder: "أدخل الاسم الأول",
-                                    value: request_data.name().read().as_deref().unwrap_or(""),
+                                    value: request_data.name(),
                                     oninput: move |evt| {
                                         request_data.name().set(Some(evt.value()));
                                         clear_field_error("name");
@@ -187,7 +191,14 @@ fn AddMemberRequestForm() -> Element {
                                     members: members.clone(),
                                     required_gender: Some(Gender::Male),
                                     placeholder: "ابحث عن الوالد بالاسم...".to_string(),
-                                    on_select: move |id| request_data.father_id().set(id),
+                                    input_class: if has_field_error("father_id") { "input-error" } else { "" },
+                                    on_select: move |id| {
+                                        request_data.father_id().set(id);
+                                        clear_field_error("father_id");
+                                    },
+                                }
+                                if let Some(error) = get_field_error("father_id") {
+                                    p { class: "text-sm text-red-600 mt-1", "{error}" }
                                 }
                             }
 
@@ -210,7 +221,7 @@ fn AddMemberRequestForm() -> Element {
                                 input {
                                     id: "last_name",
                                     r#type: "text",
-                                    required: true,
+                                    // required: true,
                                     disabled: is_submitting(),
                                     class: "input w-full",
                                     class: if has_field_error("last_name") { "border-red-300 focus:border-red-500" },
@@ -247,7 +258,7 @@ fn AddMemberRequestForm() -> Element {
                             }
                             select {
                                 id: "gender",
-                                required: true,
+                                // required: true,
                                 disabled: is_submitting(),
                                 class: "dropdown",
                                 class: if has_field_error("gender") { "border-red-300 focus:border-red-500" },
@@ -298,7 +309,7 @@ fn AddMemberRequestForm() -> Element {
                             input {
                                 id: "birthday",
                                 r#type: "date",
-                                required: true,
+                                // required: true,
                                 disabled: is_submitting(),
                                 class: "input w-full",
                                 class: if has_field_error("birthday") { "border-red-300 focus:border-red-500" },
@@ -381,7 +392,7 @@ fn AddMemberRequestForm() -> Element {
                                         d: "M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z",
                                     }
                                 }
-                                "صورة شخصية (اختياري)"
+                                "صورة شخصية"
                             }
                             input {
                                 id: "image",
@@ -444,6 +455,31 @@ fn AddMemberRequestForm() -> Element {
                             }
                             if let Some(error) = get_field_error("image") {
                                 p { class: "text-sm text-red-600 mt-1", "{error}" }
+                            }
+                        }
+
+                        button {
+                            class: "btn btn-primary",
+
+                            onclick: move |e| {
+                                e.prevent_default();
+
+                                request_data.children().push(RequestChildData::default());
+                            },
+
+                            "إضافة طفل"
+                        }
+
+                        for (i, child) in request_data.children().iter().enumerate() {
+                            if i > 0 {
+                                hr {}
+                            }
+                            div { "الطفل {i + 1}" }
+                            ChildForm {
+                                idx: i,
+                                child,
+                                is_submitting,
+                                field_errors,
                             }
                         }
 
@@ -525,6 +561,276 @@ fn AddMemberRequestForm() -> Element {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+#[component]
+fn ChildForm(
+    idx: usize,
+    child: Store<RequestChildData>,
+    is_submitting: Signal<bool>,
+    field_errors: Signal<HashMap<String, String>>,
+) -> Element {
+    let get_field_error =
+        move |field: &str| -> Option<String> { field_errors.read().get(field).cloned() };
+
+    let has_field_error = move |field: &str| -> bool { field_errors.read().contains_key(field) };
+
+    let mut clear_field_error = move |field: &str| {
+        field_errors.with_mut(|errors| {
+            errors.remove(field);
+        });
+    };
+
+    rsx! {
+        div { class: "form-group min-w-0",
+            label { r#for: "name", class: "form-label",
+                svg {
+                    class: "w-4 h-4 inline ml-2",
+                    fill: "none",
+                    stroke: "currentColor",
+                    view_box: "0 0 24 24",
+                    path {
+                        stroke_linecap: "round",
+                        stroke_linejoin: "round",
+                        stroke_width: "2",
+                        d: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+                    }
+                }
+                "الاسم الأول"
+            }
+            input {
+                id: "name",
+                r#type: "text",
+                // required: true,
+                disabled: is_submitting(),
+                class: "input w-full",
+                class: if has_field_error(&format!("children[{idx}].name")) { "border-red-300 focus:border-red-500" },
+                class: if is_submitting() { "loading" },
+                placeholder: "أدخل الاسم الأول",
+                value: child.name(),
+                oninput: move |evt| {
+                    child.name().set(Some(evt.value()));
+                    clear_field_error(&format!("children[{idx}].name"));
+                },
+            }
+            if let Some(error) = get_field_error(&format!("children[{idx}].name")) {
+                p { class: "text-sm text-red-600 mt-1", "{error}" }
+            }
+        }
+        div { class: "form-group",
+            label { r#for: "gender", class: "form-label",
+                svg {
+                    class: "w-4 h-4 inline ml-2",
+                    fill: "none",
+                    stroke: "currentColor",
+                    view_box: "0 0 24 24",
+                    path {
+                        stroke_linecap: "round",
+                        stroke_linejoin: "round",
+                        stroke_width: "2",
+                        d: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z",
+                    }
+                }
+                "الجنس"
+            }
+            select {
+                id: "gender",
+                // required: true,
+                disabled: is_submitting(),
+                class: "dropdown",
+                class: if has_field_error(&format!("children[{idx}].gender")) { "border-red-300 focus:border-red-500" },
+                class: if is_submitting() { "loading" },
+                onchange: move |evt| {
+                    match evt.value().as_str() {
+                        "male" => child.gender().set(Some(Gender::Male)),
+                        "female" => child.gender().set(Some(Gender::Female)),
+                        _ => child.gender().set(None),
+                    }
+                    clear_field_error(&format!("children[{idx}].gender"));
+                },
+
+                option { value: "", "-- اختر الجنس --" }
+                option {
+                    value: "male",
+                    selected: matches!(child.gender().read().as_ref(), Some(Gender::Male)),
+                    "ذكر"
+                }
+                option {
+                    value: "female",
+                    selected: matches!(child.gender().read().as_ref(), Some(Gender::Female)),
+                    "أنثى"
+                }
+            }
+            if let Some(error) = get_field_error(&format!("children[{idx}].gender")) {
+                p { class: "text-sm text-red-600 mt-1", "{error}" }
+            }
+        }
+        div { class: "form-group",
+            label { r#for: "birthday", class: "form-label",
+                svg {
+                    class: "w-4 h-4 inline ml-2",
+                    fill: "none",
+                    stroke: "currentColor",
+                    view_box: "0 0 24 24",
+                    path {
+                        stroke_linecap: "round",
+                        stroke_linejoin: "round",
+                        stroke_width: "2",
+                        d: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+                    }
+                }
+                "تاريخ الولادة"
+            }
+            input {
+                id: "birthday",
+                r#type: "date",
+                // required: true,
+                disabled: is_submitting(),
+                class: "input w-full",
+                class: if has_field_error(&format!("children[{idx}].birthday")) { "border-red-300 focus:border-red-500" },
+                class: if is_submitting() { "loading" },
+                value: child
+                    .birthday()
+                    .read()
+                    .as_ref()
+                    .map(|dt| dt.strftime("%Y-%m-%d").to_string())
+                    .unwrap_or_default(),
+                oninput: move |evt| {
+                    child
+                        .birthday()
+                        .set(
+                            evt
+                                .value()
+                                .parse::<jiff::civil::Date>()
+                                .ok()
+                                .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok()),
+                        );
+                    clear_field_error(&format!("children[{idx}].birthday"));
+                },
+            }
+            if let Some(error) = get_field_error(&format!("children[{idx}].birthday")) {
+                p { class: "text-sm text-red-600 mt-1", "{error}" }
+            }
+        }
+
+        div { class: "form-group",
+            label { class: "form-label",
+                svg {
+                    class: "w-4 h-4 inline ml-2",
+                    fill: "none",
+                    stroke: "currentColor",
+                    view_box: "0 0 24 24",
+                    path {
+                        stroke_linecap: "round",
+                        stroke_linejoin: "round",
+                        stroke_width: "2",
+                        d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+                    }
+                }
+                "معلومات إضافية"
+            }
+            KeyValueInput {
+                pairs: child
+                    .info()
+                    .read()
+                    .iter()
+                    .map(|(key, value)| KeyValuePair {
+                        key: key.clone(),
+                        value: value.clone(),
+                    })
+                    .collect(),
+                key_placeholder: "مثال: المهنة".to_string(),
+                value_placeholder: "مثال: محامي".to_string(),
+                on_pairs_change: move |new_pairs: Vec<KeyValuePair>| {
+                    let new_info = new_pairs
+                        .iter()
+                        .map(|pair| (pair.key.clone(), pair.value.clone()))
+                        .collect();
+                    child.info().set(new_info);
+                },
+            }
+        }
+
+        div { class: "form-group",
+            label { r#for: "image", class: "form-label",
+                svg {
+                    class: "w-4 h-4 inline ml-2",
+                    fill: "none",
+                    stroke: "currentColor",
+                    view_box: "0 0 24 24",
+                    path {
+                        stroke_linecap: "round",
+                        stroke_linejoin: "round",
+                        stroke_width: "2",
+                        d: "M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z",
+                    }
+                }
+                "صورة شخصية"
+            }
+            input {
+                id: "image",
+                r#type: "file",
+                accept: "image/*",
+                disabled: is_submitting(),
+                class: "input w-full",
+                class: if is_submitting() { "loading" },
+                onchange: move |evt| async move {
+                    #[cfg(feature = "web")]
+                    {
+                        if let Some(file_data) = evt.files().first() {
+                            let Some(mime_type) = file_data.content_type() else {
+                                return;
+                            };
+                            let max_size = 25 * 1024 * 1024; // 25MB
+                            let allowed_types = ["image/jpeg", "image/png", "image/gif"];
+
+                            if file_data.size() as usize > max_size {
+                                field_errors
+
+                                    .with_mut(|errors| {
+                                        errors
+
+                                            .insert(
+                                                "image".to_string(),
+                                                "حجم الصورة يجب أن يكون أقل من 25MB"
+                                                    .to_string(),
+                                            );
+                                    });
+                                return;
+                            }
+                            if !allowed_types.contains(&mime_type.as_str()) {
+                                field_errors
+                                    .with_mut(|errors| {
+                                        errors
+                                            .insert(
+                                                format!("children[{idx}].image"),
+                                                "نوع الصورة غير مدعوم. يرجى استخدام JPG أو PNG أو GIF"
+                                                    .to_string(),
+                                            );
+                                    });
+                                return;
+                            }
+                            if let Ok(file_data) = file_data.read_bytes().await
+                            {
+                                child.image().set(Some(file_data.to_vec()));
+                                child.image_type().set(Some(mime_type));
+                                field_errors
+                                    .with_mut(|errors| {
+                                        errors.remove(&format!("children[{idx}].image"));
+                                    });
+                            }
+                        }
+                    }
+                },
+            }
+            p { class: "text-xs text-gray-500 mt-1",
+                "أحجام الصور المقبولة: JPG, PNG, GIF - الحد الأقصى: 25MB"
+            }
+            if let Some(error) = get_field_error(&format!("children[{idx}].image")) {
+                p { class: "text-sm text-red-600 mt-1", "{error}" }
             }
         }
     }

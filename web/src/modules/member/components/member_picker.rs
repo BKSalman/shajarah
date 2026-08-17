@@ -15,6 +15,9 @@ pub struct MemberPickerProps {
     pub initial_label: String,
     #[props(default = "ابحث بالاسم...".to_string())]
     pub placeholder: String,
+    /// Extra classes merged onto the inner text input, e.g. a validation state
+    #[props(into, default = String::new())]
+    pub input_class: String,
     pub on_select: EventHandler<Option<i64>>,
 }
 
@@ -58,6 +61,7 @@ pub fn MemberPicker(props: MemberPickerProps) -> Element {
         Combobox {
             default_value: props.initial_label.clone(),
             placeholder: props.placeholder.clone(),
+            input_class: props.input_class.clone(),
             options: options(),
             on_search: move |query: String| {
                 if query.trim().is_empty() {

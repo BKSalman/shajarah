@@ -23,6 +23,9 @@ pub struct ComboboxProps<T: core::fmt::Debug + Clone + PartialEq + 'static> {
     /// Pre-fills the search input, e.g. to show the currently selected value
     #[props(default = String::new())]
     pub default_value: String,
+    /// Extra classes merged onto the inner text input, e.g. a validation state
+    #[props(into, default = String::new())]
+    pub input_class: String,
 }
 
 #[component]
@@ -106,6 +109,7 @@ pub fn Combobox<T: core::fmt::Debug + Clone + PartialEq + 'static>(
         div { class: "combobox relative w-full",
             input {
                 class: "input w-full",
+                class: "{props.input_class}",
                 value: query(),
                 placeholder: "{props.placeholder}",
                 oninput: on_input,
