@@ -34,4 +34,11 @@
   .input:invalid {
     border-color: var(--color-error);
   }
+
+  .input-error,
+  .input-error:hover:not(:disabled),
+  .input-error:focus-visible {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+  }
 }

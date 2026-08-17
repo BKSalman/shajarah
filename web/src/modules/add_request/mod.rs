@@ -171,7 +171,7 @@ fn AddMemberRequestForm() -> Element {
                                     // required: true,
                                     disabled: is_submitting(),
                                     class: "input w-full",
-                                    class: if has_field_error("name") { "border-red-300 focus:border-red-500" },
+                                    class: if has_field_error("name") { "input-error" },
                                     class: if is_submitting() { "loading" },
                                     placeholder: "أدخل الاسم الأول",
                                     value: request_data.name(),
@@ -224,7 +224,7 @@ fn AddMemberRequestForm() -> Element {
                                     // required: true,
                                     disabled: is_submitting(),
                                     class: "input w-full",
-                                    class: if has_field_error("last_name") { "border-red-300 focus:border-red-500" },
+                                    class: if has_field_error("last_name") { "input-error" },
                                     class: if is_submitting() { "loading" },
                                     placeholder: "أدخل اسم العائلة",
                                     value: request_data.last_name().read().as_deref().unwrap_or(""),
@@ -261,7 +261,7 @@ fn AddMemberRequestForm() -> Element {
                                 // required: true,
                                 disabled: is_submitting(),
                                 class: "dropdown",
-                                class: if has_field_error("gender") { "border-red-300 focus:border-red-500" },
+                                class: if has_field_error("gender") { "dropdown-error" },
                                 class: if is_submitting() { "loading" },
                                 onchange: move |evt| {
                                     match evt.value().as_str() {
@@ -312,7 +312,7 @@ fn AddMemberRequestForm() -> Element {
                                 // required: true,
                                 disabled: is_submitting(),
                                 class: "input w-full",
-                                class: if has_field_error("birthday") { "border-red-300 focus:border-red-500" },
+                                class: if has_field_error("birthday") { "input-error" },
                                 class: if is_submitting() { "loading" },
                                 value: request_data
                                     .birthday()
@@ -607,7 +607,7 @@ fn ChildForm(
                 // required: true,
                 disabled: is_submitting(),
                 class: "input w-full",
-                class: if has_field_error(&format!("children[{idx}].name")) { "border-red-300 focus:border-red-500" },
+                class: if has_field_error(&format!("children[{idx}].name")) { "input-error" },
                 class: if is_submitting() { "loading" },
                 placeholder: "أدخل الاسم الأول",
                 value: child.name(),
@@ -641,7 +641,7 @@ fn ChildForm(
                 // required: true,
                 disabled: is_submitting(),
                 class: "dropdown",
-                class: if has_field_error(&format!("children[{idx}].gender")) { "border-red-300 focus:border-red-500" },
+                class: if has_field_error(&format!("children[{idx}].gender")) { "dropdown-error" },
                 class: if is_submitting() { "loading" },
                 onchange: move |evt| {
                     match evt.value().as_str() {
@@ -690,7 +690,7 @@ fn ChildForm(
                 // required: true,
                 disabled: is_submitting(),
                 class: "input w-full",
-                class: if has_field_error(&format!("children[{idx}].birthday")) { "border-red-300 focus:border-red-500" },
+                class: if has_field_error(&format!("children[{idx}].birthday")) { "input-error" },
                 class: if is_submitting() { "loading" },
                 value: child
                     .birthday()
