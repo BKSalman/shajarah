@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT add_page_enabled,\n                   add_request_rules as \"add_request_rules: sqlx::types::Json<RequestRules>\"\n            FROM settings\n            WHERE id = TRUE\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "add_page_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "settings",
+            "name": "add_page_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "add_request_rules: sqlx::types::Json<RequestRules>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "settings",
+            "name": "add_request_rules"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "3ccc4b15d558220e9179a392b91b96b28e3b72f2719dde767a32b8ff63465a4b"
+}

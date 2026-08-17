@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE settings\n            SET add_page_enabled = $1, add_request_rules = $2, updated_at = now()\n            WHERE id = TRUE\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "de945a19e656d73e064f91694679973e5176f02b90468b48346061b428256bc9"
+}

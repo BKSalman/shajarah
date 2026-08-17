@@ -8,12 +8,13 @@ use crate::{
     modules::{
         add_request::types::{
             RequestChildData, RequestChildDataStoreExt, RequestData, RequestDataStoreExt,
+            missing_required_info,
         },
         member::{
             components::member_picker::MemberPicker, server::members_flat_unauthorized,
             types::Gender,
         },
-        settings::types::Settings,
+        settings::types::{RequestRules, Settings},
     },
     ui::key_value_pair::{KeyValueInput, KeyValuePair},
 };
@@ -21,6 +22,21 @@ use server::add_request;
 
 pub mod server;
 pub mod types;
+
+#[component]
+fn RequiredMark() -> Element {
+    rsx! {
+        span { class: "text-red-600 mr-1", "*" }
+    }
+}
+
+fn seed_info(rules: &RequestRules) -> IndexMap<String, String> {
+    rules
+        .required_info_keys
+        .iter()
+        .map(|key| (key.clone(), String::new()))
+        .collect()
+}
 
 #[component]
 pub fn AddMemberRequest() -> Element {
@@ -38,17 +54,22 @@ pub fn AddMemberRequest() -> Element {
 
 #[component]
 fn AddMemberRequestForm() -> Element {
-    let request_data = use_store(|| RequestData {
-        name: None,
-        last_name: None,
-        gender: None,
-        birthday: None,
-        father_id: None,
-        mother_id: None,
-        info: IndexMap::new(),
-        image: None,
-        image_type: None,
-        children: Vec::new(),
+    let rules = use_context::<Settings>().add_request_rules;
+
+    let request_data = use_store({
+        let rules = rules.clone();
+        move || RequestData {
+            name: None,
+            last_name: None,
+            gender: None,
+            birthday: None,
+            father_id: None,
+            mother_id: None,
+            info: seed_info(&rules),
+            image: None,
+            image_type: None,
+            children: Vec::new(),
+        }
     });
 
     let mut field_errors = use_signal(HashMap::<String, String>::new);
@@ -98,52 +119,59 @@ fn AddMemberRequestForm() -> Element {
                     form {
                         class: "space-y-6",
                         autocomplete: "off",
-                        onsubmit: move |e| {
-                            e.prevent_default();
-                            async move {
-                                if is_submitting() {
-                                    return;
-                                }
+                        onsubmit: {
+                            let rules = rules.clone();
+                            move |e: Event<FormData>| {
+                                e.prevent_default();
+                                let rules = rules.clone();
+                                async move {
+                                    if is_submitting() {
+                                        return;
+                                    }
 
-                                show_success.set(false);
+                                    show_success.set(false);
 
-                                // Clear previous errors
-                                error_message.set(None);
-                                field_errors.set(HashMap::new());
+                                    // Clear previous errors
+                                    error_message.set(None);
+                                    field_errors.set(HashMap::new());
 
-                                is_submitting.set(true);
+                                    is_submitting.set(true);
 
-                                if let Err(report) = garde::with_i18n(Arabic, || request_data().validate()) {
-                                    for (field_name, field_report) in report.iter() {
-                                        let mut errors = field_errors.write();
-                                        errors
-                                            .insert(
-                                                field_name.to_string(),
-                                                field_report.message().to_string(),
-                                            );
+                                    if let Err(report) = garde::with_i18n(
+                                        Arabic,
+                                        || request_data().validate_with(&rules),
+                                    ) {
+                                        for (field_name, field_report) in report.iter() {
+                                            let mut errors = field_errors.write();
+                                            errors
+                                                .insert(
+                                                    field_name.to_string(),
+                                                    field_report.message().to_string(),
+                                                );
+                                        }
+                                        is_submitting.set(false);
+                                        tracing::debug!("errors: {:?}", field_errors);
+                                        return;
+                                    }
+
+                                    match add_request(request_data()).await {
+                                        Ok(_) => {
+                                            request_data.name().set(None);
+                                            request_data.last_name().set(None);
+                                            request_data.gender().set(None);
+                                            request_data.birthday().set(None);
+                                            request_data.father_id().set(None);
+                                            request_data.info().set(seed_info(&rules));
+                                            request_data.image().set(None);
+                                            request_data.image_type().set(None);
+                                            show_success.set(true);
+                                        }
+                                        Err(server_error) => {
+                                            error_message.set(Some(server_error.to_string()));
+                                        }
                                     }
                                     is_submitting.set(false);
-                                    tracing::debug!("errors: {:?}", field_errors);
-                                    return;
                                 }
-
-                                match add_request(request_data()).await {
-                                    Ok(_) => {
-                                        request_data.name().set(None);
-                                        request_data.last_name().set(None);
-                                        request_data.gender().set(None);
-                                        request_data.birthday().set(None);
-                                        request_data.father_id().set(None);
-                                        request_data.info().set(IndexMap::new());
-                                        request_data.image().set(None);
-                                        request_data.image_type().set(None);
-                                        show_success.set(true);
-                                    }
-                                    Err(server_error) => {
-                                        error_message.set(Some(server_error.to_string()));
-                                    }
-                                }
-                                is_submitting.set(false);
                             }
                         },
 
@@ -164,6 +192,7 @@ fn AddMemberRequestForm() -> Element {
                                         }
                                     }
                                     "الاسم الأول"
+                                    RequiredMark {}
                                 }
                                 input {
                                     id: "name",
@@ -186,7 +215,10 @@ fn AddMemberRequestForm() -> Element {
                             }
 
                             div { class: "form-group min-w-0",
-                                label { class: "form-label", "الوالد" }
+                                label { class: "form-label",
+                                    "الوالد"
+                                    RequiredMark {}
+                                }
                                 MemberPicker {
                                     members: members.clone(),
                                     required_gender: Some(Gender::Male),
@@ -217,6 +249,7 @@ fn AddMemberRequestForm() -> Element {
                                         }
                                     }
                                     "اسم العائلة"
+                                    RequiredMark {}
                                 }
                                 input {
                                     id: "last_name",
@@ -255,6 +288,7 @@ fn AddMemberRequestForm() -> Element {
                                     }
                                 }
                                 "الجنس"
+                                RequiredMark {}
                             }
                             select {
                                 id: "gender",
@@ -305,6 +339,9 @@ fn AddMemberRequestForm() -> Element {
                                     }
                                 }
                                 "تاريخ الولادة"
+                                if rules.require_birthday {
+                                    RequiredMark {}
+                                }
                             }
                             input {
                                 id: "birthday",
@@ -367,13 +404,30 @@ fn AddMemberRequestForm() -> Element {
                                     .collect(),
                                 key_placeholder: "مثال: المهنة".to_string(),
                                 value_placeholder: "مثال: محامي".to_string(),
-                                on_pairs_change: move |new_pairs: Vec<KeyValuePair>| {
-                                    let new_info = new_pairs
-                                        .iter()
-                                        .map(|pair| (pair.key.clone(), pair.value.clone()))
-                                        .collect();
-                                    request_data.info().set(new_info);
+                                locked_keys: rules.required_info_keys.clone(),
+                                error_keys: if has_field_error("info") { missing_required_info(&request_data.info().read(), &rules.required_info_keys) } else { Vec::new() },
+                                on_pairs_change: {
+                                    let required_keys = rules.required_info_keys.clone();
+                                    move |new_pairs: Vec<KeyValuePair>| {
+                                        let mut new_info: IndexMap<String, String> = new_pairs
+                                            .iter()
+                                            .map(|pair| (pair.key.clone(), pair.value.clone()))
+                                            .collect();
+                                        // A free-form row can be renamed onto a locked key, and
+                                        // `collect` keeps only the last value for a duplicate —
+                                        // put any mandated row that vanished back.
+                                        for key in &required_keys {
+                                            new_info.entry(key.clone()).or_default();
+                                        }
+                                        if missing_required_info(&new_info, &required_keys).is_empty() {
+                                            clear_field_error("info");
+                                        }
+                                        request_data.info().set(new_info);
+                                    }
                                 },
+                            }
+                            if let Some(error) = get_field_error("info") {
+                                p { class: "text-sm text-red-600 mt-1", "{error}" }
                             }
                         }
 
@@ -393,6 +447,11 @@ fn AddMemberRequestForm() -> Element {
                                     }
                                 }
                                 "صورة شخصية"
+                                if rules.require_image {
+                                    RequiredMark {}
+                                } else {
+                                    " (اختياري)"
+                                }
                             }
                             input {
                                 id: "image",
@@ -400,6 +459,7 @@ fn AddMemberRequestForm() -> Element {
                                 accept: "image/*",
                                 disabled: is_submitting(),
                                 class: "input w-full",
+                                class: if has_field_error("image") { "input-error" },
                                 class: if is_submitting() { "loading" },
                                 onchange: move |evt| async move {
                                     #[cfg(feature = "web")]
@@ -461,10 +521,18 @@ fn AddMemberRequestForm() -> Element {
                         button {
                             class: "btn btn-primary",
 
-                            onclick: move |e| {
-                                e.prevent_default();
+                            onclick: {
+                                let rules = rules.clone();
+                                move |e: Event<MouseData>| {
+                                    e.prevent_default();
 
-                                request_data.children().push(RequestChildData::default());
+                                    request_data
+                                        .children()
+                                        .push(RequestChildData {
+                                            info: seed_info(&rules),
+                                            ..RequestChildData::default()
+                                        });
+                                }
                             },
 
                             "إضافة طفل"
@@ -480,6 +548,7 @@ fn AddMemberRequestForm() -> Element {
                                 child,
                                 is_submitting,
                                 field_errors,
+                                rules: rules.clone(),
                             }
                         }
 
@@ -572,6 +641,7 @@ fn ChildForm(
     child: Store<RequestChildData>,
     is_submitting: Signal<bool>,
     field_errors: Signal<HashMap<String, String>>,
+    rules: RequestRules,
 ) -> Element {
     let get_field_error =
         move |field: &str| -> Option<String> { field_errors.read().get(field).cloned() };
@@ -600,6 +670,7 @@ fn ChildForm(
                     }
                 }
                 "الاسم الأول"
+                RequiredMark {}
             }
             input {
                 id: "name",
@@ -635,6 +706,7 @@ fn ChildForm(
                     }
                 }
                 "الجنس"
+                RequiredMark {}
             }
             select {
                 id: "gender",
@@ -683,6 +755,9 @@ fn ChildForm(
                     }
                 }
                 "تاريخ الولادة"
+                if rules.require_birthday {
+                    RequiredMark {}
+                }
             }
             input {
                 id: "birthday",
@@ -744,13 +819,27 @@ fn ChildForm(
                     .collect(),
                 key_placeholder: "مثال: المهنة".to_string(),
                 value_placeholder: "مثال: محامي".to_string(),
-                on_pairs_change: move |new_pairs: Vec<KeyValuePair>| {
-                    let new_info = new_pairs
-                        .iter()
-                        .map(|pair| (pair.key.clone(), pair.value.clone()))
-                        .collect();
-                    child.info().set(new_info);
+                locked_keys: rules.required_info_keys.clone(),
+                error_keys: if has_field_error(&format!("children[{idx}].info")) { missing_required_info(&child.info().read(), &rules.required_info_keys) } else { Vec::new() },
+                on_pairs_change: {
+                    let required_keys = rules.required_info_keys.clone();
+                    move |new_pairs: Vec<KeyValuePair>| {
+                        let mut new_info: IndexMap<String, String> = new_pairs
+                            .iter()
+                            .map(|pair| (pair.key.clone(), pair.value.clone()))
+                            .collect();
+                        for key in &required_keys {
+                            new_info.entry(key.clone()).or_default();
+                        }
+                        if missing_required_info(&new_info, &required_keys).is_empty() {
+                            clear_field_error(&format!("children[{idx}].info"));
+                        }
+                        child.info().set(new_info);
+                    }
                 },
+            }
+            if let Some(error) = get_field_error(&format!("children[{idx}].info")) {
+                p { class: "text-sm text-red-600 mt-1", "{error}" }
             }
         }
 
@@ -769,6 +858,11 @@ fn ChildForm(
                     }
                 }
                 "صورة شخصية"
+                if rules.require_image {
+                    RequiredMark {}
+                } else {
+                    " (اختياري)"
+                }
             }
             input {
                 id: "image",
@@ -776,6 +870,7 @@ fn ChildForm(
                 accept: "image/*",
                 disabled: is_submitting(),
                 class: "input w-full",
+                class: if has_field_error(&format!("children[{idx}].image")) { "input-error" },
                 class: if is_submitting() { "loading" },
                 onchange: move |evt| async move {
                     #[cfg(feature = "web")]
@@ -794,7 +889,7 @@ fn ChildForm(
                                         errors
 
                                             .insert(
-                                                "image".to_string(),
+                                                format!("children[{idx}].image"),
                                                 "حجم الصورة يجب أن يكون أقل من 25MB"
                                                     .to_string(),
                                             );

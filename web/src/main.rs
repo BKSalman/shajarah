@@ -199,7 +199,12 @@ fn app() -> Element {
     use_context_provider(move || config);
 
     let settings_resource = use_server_future(get_settings)?.value();
-    let settings = *settings_resource.as_ref().unwrap().as_ref().unwrap();
+    let settings = settings_resource
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .clone();
     use_context_provider(move || settings);
 
     rsx! {

@@ -16,6 +16,7 @@ mod server_imports {
     pub use crate::modules::add_request::types::{
         RequestedMemberBrief, RequestedMemberRowWithParents,
     };
+    pub use crate::modules::settings::server::add_request_rules;
     pub use crate::server::AppState;
     pub use axum::extract::Extension;
     pub use jiff::tz::TimeZone;
@@ -26,7 +27,9 @@ use server_imports::*;
 
 #[post("/api/v1/members/request", Extension(state): Extension<AppState>)]
 pub async fn add_request(request_data: RequestData) -> Result<(), anyhow::Error> {
-    request_data.validate()?;
+    let rules = add_request_rules(&state.db_pool).await?;
+
+    request_data.validate_with(&rules)?;
 
     let RequestData {
         name: Some(name),
@@ -89,6 +92,8 @@ pub async fn add_request(request_data: RequestData) -> Result<(), anyhow::Error>
         .execute(&mut *tx)
         .await?;
     }
+
+    tx.commit().await?;
 
     Ok(())
 }

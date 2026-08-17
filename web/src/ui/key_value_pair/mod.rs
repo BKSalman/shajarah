@@ -12,6 +12,13 @@ pub struct KeyValueInputProps {
     pub on_pairs_change: EventHandler<Vec<KeyValuePair>>,
     pub key_placeholder: Option<String>,
     pub value_placeholder: Option<String>,
+    /// Keys the caller mandates: their row can't be renamed or deleted, only
+    /// filled in. Matched by key, not by position.
+    #[props(default)]
+    pub locked_keys: Vec<String>,
+    /// Keys whose row failed validation.
+    #[props(default)]
+    pub error_keys: Vec<String>,
 }
 
 #[component]
@@ -26,57 +33,75 @@ pub fn KeyValueInput(props: KeyValueInputProps) -> Element {
     let pairs = props.pairs.clone();
 
     let on_pairs_change = props.on_pairs_change;
+    let locked_keys = props.locked_keys.clone();
+    let error_keys = props.error_keys.clone();
 
     rsx! {
         div { class: "space-y-3",
             for (index, pair) in pairs.iter().enumerate() {
-                div { class: "flex gap-3 items-center",
-                    div { class: "flex-1",
-                        input {
-                            r#type: "text",
-                            value: "{pair.key}",
-                            placeholder: "{key_placeholder}",
-                            class: "input w-full",
-                            oninput: {
-                                let pairs = pairs.clone();
-                                move |evt| {
-                                    let mut new_pairs = pairs.clone();
-                                    new_pairs[index].key = evt.value();
-                                    on_pairs_change.call(new_pairs);
+                {
+                    let locked = locked_keys.contains(&pair.key);
+                    let errored = error_keys.contains(&pair.key);
+                    rsx! {
+                        div { class: "flex gap-3 items-center",
+                            div { class: "flex-1",
+                                input {
+                                    r#type: "text",
+                                    value: "{pair.key}",
+                                    placeholder: "{key_placeholder}",
+                                    class: "input w-full",
+                                    class: if locked { "bg-gray-50 text-gray-600" },
+                                    readonly: locked,
+                                    oninput: {
+                                        let pairs = pairs.clone();
+                                        move |evt| {
+                                            if locked {
+                                                return;
+                                            }
+                                            let mut new_pairs = pairs.clone();
+                                            new_pairs[index].key = evt.value();
+                                            on_pairs_change.call(new_pairs);
+                                        }
+                                    },
                                 }
-                            },
-                        }
-                    }
-                    div { class: "flex-1",
-                        input {
-                            r#type: "text",
-                            value: "{pair.value}",
-                            placeholder: "{value_placeholder}",
-                            class: "input w-full",
-                            oninput: {
-                                let pairs = pairs.clone();
-                                move |evt| {
-                                    let mut new_pairs = pairs.clone();
-                                    new_pairs[index].value = evt.value();
-
-                                    on_pairs_change.call(new_pairs);
-                                }
-                            },
-                        }
-                    }
-                    button {
-                        r#type: "button",
-                        class: "btn btn-danger btn-sm",
-                        onclick: {
-                            let pairs = pairs.clone();
-                            move |_| {
-                                let mut new_pairs = pairs.clone();
-                                new_pairs.remove(index);
-
-                                on_pairs_change.call(new_pairs);
                             }
-                        },
-                        "حذف"
+                            div { class: "flex-1",
+                                input {
+                                    r#type: "text",
+                                    value: "{pair.value}",
+                                    placeholder: "{value_placeholder}",
+                                    class: "input w-full",
+                                    class: if errored { "input-error" },
+                                    oninput: {
+                                        let pairs = pairs.clone();
+                                        move |evt| {
+                                            let mut new_pairs = pairs.clone();
+                                            new_pairs[index].value = evt.value();
+
+                                            on_pairs_change.call(new_pairs);
+                                        }
+                                    },
+                                }
+                            }
+                            if locked {
+                                span { class: "text-red-600 w-10 text-center", "*" }
+                            } else {
+                                button {
+                                    r#type: "button",
+                                    class: "btn btn-danger btn-sm",
+                                    onclick: {
+                                        let pairs = pairs.clone();
+                                        move |_| {
+                                            let mut new_pairs = pairs.clone();
+                                            new_pairs.remove(index);
+
+                                            on_pairs_change.call(new_pairs);
+                                        }
+                                    },
+                                    "حذف"
+                                }
+                            }
+                        }
                     }
                 }
             }
