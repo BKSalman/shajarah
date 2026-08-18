@@ -15,11 +15,11 @@ pub fn Modal(props: ModalProps) -> Element {
     }
     rsx! {
         div {
-            class: "fixed inset-0 flex items-center justify-center p-0 md:p-4 z-50",
+            class: "fixed inset-0 flex items-center justify-center md:p-4 z-50",
             style: "background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(2px);",
             onclick: move |_| props.on_close.call(()),
             div {
-                class: "bg-white rounded-none md:rounded-xl md:max-w-{max_width_class} h-full md:h-auto max-h-screen overflow-y-auto shadow-2xl md:border md:border-gray-200 transform transition ease-out duration-200",
+                class: "flex-1 bg-white rounded-none md:rounded-xl md:max-w-{max_width_class} h-full md:h-auto max-h-screen overflow-y-auto shadow-2xl md:border md:border-gray-200 transform transition ease-out duration-200",
                 onclick: move |e| e.stop_propagation(),
                 div { class: "card-header flex justify-between gap-4 items-center",
                     h3 { class: "text-xl font-bold text-gray-900", "{props.title}" }
