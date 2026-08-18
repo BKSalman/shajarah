@@ -19,10 +19,17 @@ pub fn RequestCard(props: RequestCardProps) -> Element {
     let mut image_state = use_signal(|| ImageState::Loading);
     let mut image_src = use_signal(String::new);
 
-    // Initialize image loading
     use_effect(move || {
         if let Some(url) = &props.request.image {
-            image_src.set(BASE64_STANDARD.encode(url).to_string());
+            image_src.set(format!(
+                r#"data:{};base64,{}"#,
+                props
+                    .request
+                    .image_type
+                    .clone()
+                    .unwrap_or(String::from("image/jpeg")),
+                BASE64_STANDARD.encode(url)
+            ));
             image_state.set(ImageState::Loading);
         } else {
             image_state.set(ImageState::GeneratedAvatar);
@@ -67,7 +74,6 @@ pub fn RequestCard(props: RequestCardProps) -> Element {
             // Image Container
             div { class: "relative h-32 image-container",
 
-                // Loading State
                 if *image_state.read() == ImageState::Loading {
                     div { class: "w-full h-full flex items-center justify-center skeleton-shimmer",
                         div { class: "image-loading",
@@ -76,12 +82,13 @@ pub fn RequestCard(props: RequestCardProps) -> Element {
                     }
                 }
 
-                // User Uploaded Image
-                if *image_state.read() == ImageState::UserImage {
+                if matches!(*image_state.read(), ImageState::Loading | ImageState::UserImage)
+                    && !image_src.read().is_empty()
+                {
                     img {
                         src: "{image_src}",
                         alt: "{props.request.name} {props.request.last_name}",
-                        class: "w-full h-full object-cover",
+                        class: if *image_state.read() == ImageState::Loading { "hidden" } else { "w-full h-full object-cover" },
                         onload: handle_image_load,
                         onerror: handle_image_error,
                     }

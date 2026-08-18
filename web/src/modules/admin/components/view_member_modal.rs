@@ -79,24 +79,29 @@ fn MemberHeader(props: MemberHeaderProps) -> Element {
         div { class: "text-center mb-6",
             div { class: "w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden relative",
                 match props.image_state {
-                    ImageState::Loading => rsx! {
-                        div { class: "w-full h-full flex items-center justify-center bg-gray-200 animate-pulse",
-                            div { class: "w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" }
-                        }
-                    },
-                    ImageState::UserImage => {
+                    ImageState::Loading | ImageState::UserImage => {
+                        let loading = props.image_state == ImageState::Loading;
                         if let Some(image_url) = &props.member.image {
                             rsx! {
+                                if loading {
+                                    div { class: "w-full h-full flex items-center justify-center bg-gray-200 animate-pulse",
+                                        div { class: "w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" }
+                                    }
+                                }
                                 img {
-                                    src: "{BASE64_STANDARD.encode(image_url)}",
-                                    class: "w-full h-full object-cover transition-opacity duration-200",
+                                    src: r#"data:{props.member.image_type.clone().unwrap_or(String::from("image/jpeg"))};base64,{BASE64_STANDARD.encode(image_url)}"#,
+                                    class: if loading { "hidden" } else { "w-full h-full object-cover transition-opacity duration-200" },
                                     alt: "صورة {props.member.name} {props.member.last_name}",
                                     onload: move |_| props.on_image_load.call(()),
                                     onerror: move |_| props.on_image_error.call(()),
                                 }
                             }
                         } else {
-                            rsx! {}
+                            rsx! {
+                                div { class: "w-full h-full flex items-center justify-center bg-gray-200 animate-pulse",
+                                    div { class: "w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" }
+                                }
+                            }
                         }
                     }
                     ImageState::GeneratedAvatar => rsx! {
