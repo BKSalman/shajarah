@@ -376,6 +376,21 @@ pub fn Admin() -> Element {
         },
     );
 
+    let mut on_request_approve = use_action(move |id| async move {
+        approve_request(id).await?;
+        add_requests_resource.restart();
+        members_resource.restart();
+
+        anyhow::Ok(())
+    });
+
+    let mut on_request_reject = use_action(move |id| async move {
+        disapprove_request(id).await?;
+        add_requests_resource.restart();
+
+        anyhow::Ok(())
+    });
+
     let members_grid = match &*members_resource.read() {
         Some(Ok(members)) => {
             rsx! {
@@ -529,23 +544,8 @@ pub fn Admin() -> Element {
 
                                 RequestCard {
                                     request: request.clone(),
-                                    on_approve: move |id| async move {
-                                        match approve_request(id).await {
-                                            Ok(_) => {
-                                                add_requests_resource.restart();
-                                                members_resource.restart();
-                                            }
-                                            Err(e) => {}
-                                        }
-                                    },
-                                    on_reject: move |id| async move {
-                                        match disapprove_request(id).await {
-                                            Ok(_) => {
-                                                add_requests_resource.restart();
-                                            }
-                                            Err(e) => {}
-                                        }
-                                    },
+                                    on_approve: move |id| on_request_approve.call(id),
+                                    on_reject: move |id| on_request_reject.call(id),
                                     on_view: move |id| {
                                         show_modal.set(Some(ShowModal::ViewRequest(id)));
                                     },
