@@ -118,7 +118,7 @@ pub async fn member_requests() -> Result<Vec<RequestedMember>, anyhow::Error> {
             mother.birthday AS mother_birthday,
             mother.last_name AS mother_last_name,
             father.id as father_id,
-            father.name AS father_name,
+            CONCAT_WS(' ', father.name, grandfather.name, greatfather.name, greatgrandfather.name, father.last_name) AS father_name,
             father.gender AS father_gender,
             father.birthday AS father_birthday,
             father.last_name AS father_last_name
@@ -128,6 +128,12 @@ pub async fn member_requests() -> Result<Vec<RequestedMember>, anyhow::Error> {
             members mother ON m.mother_id = mother.id
         LEFT JOIN
             members father ON m.father_id = father.id
+        LEFT JOIN
+            members grandfather ON father.father_id = grandfather.id
+        LEFT JOIN
+            members greatfather ON grandfather.father_id = greatfather.id
+        LEFT JOIN
+            members greatgrandfather ON greatfather.father_id = greatgrandfather.id
         ORDER BY
             m.submitted_at DESC,
             m.name ASC
