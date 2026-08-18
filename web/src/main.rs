@@ -12,7 +12,7 @@ use modules::admin::pages::{
     settings::AdminSettings,
 };
 use modules::settings::server::get_settings;
-use pages::Home;
+use pages::{Home, HomeLayout};
 use server::get_config;
 
 pub mod components;
@@ -47,6 +47,7 @@ impl axum::response::IntoResponse for ErrorResponse {
     }
 }
 
+#[rustfmt::skip]
 #[derive(Debug, Clone, Routable, PartialEq)]
 pub enum Route {
     #[route("/admin/login")]
@@ -54,19 +55,21 @@ pub enum Route {
     #[route("/admin/register")]
     AdminRegister,
     #[layout(AdminLayout)]
-    #[route("/admin")]
-    Admin,
-    #[route("/admin/settings")]
-    AdminSettings,
-    #[route("/admin/invites")]
-    AdminInvites,
+        #[route("/admin")]
+        Admin,
+        #[route("/admin/settings")]
+        AdminSettings,
+        #[route("/admin/invites")]
+        AdminInvites,
     #[end_layout]
-    #[layout(PrivateTreeGuard)]
-    #[route("/")]
-    Home,
+    #[layout(HomeLayout)]
+        #[layout(PrivateTreeGuard)]
+            #[route("/")]
+            Home,
+        #[end_layout]
+        #[route("/add")]
+        AddMemberRequest,
     #[end_layout]
-    #[route("/add")]
-    AddMemberRequest,
     #[route("/register?:invite_token")]
     UserRegister { invite_token: Uuid },
     #[route("/login")]
