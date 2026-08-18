@@ -139,7 +139,7 @@ pub fn Tree() -> Element {
             div {
                 dir: "rtl",
                 class: "flex flex-col w-full",
-                class: if fullscreen_tree() { "h-dvh fixed top-0 left-0 w-full z-100 bg-white" } else { "h-150 lg:h-200" },
+                class: if fullscreen_tree() { "h-dvh fixed top-0 left-0 w-full z-100 bg-white" } else { "h-[60dvh] sm:h-150 lg:h-200" },
                 button {
                     class: "btn-rect btn-primary rounded-t-sm",
                     onclick: move |_| {

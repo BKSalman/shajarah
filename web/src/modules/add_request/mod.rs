@@ -98,10 +98,10 @@ fn AddMemberRequestForm() -> Element {
 
     rsx! {
         div {
-            class: "min-h-screen flex items-center justify-center bg-tree-texture p-6",
+            class: "min-h-screen flex items-center justify-center bg-tree-texture lg:p-6",
             dir: "rtl",
 
-            div { class: "card card-forest w-3/4 max-w-2xl fade-in hover:shadow-forest",
+            div { class: "card card-forest max-w-2xl fade-in hover:shadow-forest",
 
                 div { class: "card-body",
 

@@ -84,7 +84,7 @@ fn Sidebar(show_sidebar: Signal<bool>) -> Element {
 
 #[component]
 pub fn AdminLayout() -> Element {
-    let mut show_sidebar = use_signal(|| true);
+    let mut show_sidebar = use_signal(|| false);
     let show_modal = use_context_provider(|| Signal::new(None::<ShowModal>));
     let admin_future = use_server_future(get_admin)?;
 
