@@ -17,7 +17,7 @@ pub fn Tree() -> Element {
     let mut ctx = use_signal(|| {
         cfg_select! {
             target_arch = "wasm32" => None::<gui::egui::Context>,
-            _ => None::<()>
+            _ => None::<()>,
         }
     });
     let mut commands = use_signal(move || None::<futures::channel::mpsc::Sender<EguiCommand>>);
@@ -51,7 +51,7 @@ pub fn Tree() -> Element {
                     && let Some(ctx) = ctx()
                 {
                     commands
-                        .send(EguiCommand::HighlightMember(member.id as i32))
+                        .send(EguiCommand::HighlightMember(member.id))
                         .await?;
                     ctx.request_repaint();
                 }
@@ -88,9 +88,7 @@ pub fn Tree() -> Element {
             if let Some(mut commands) = commands()
                 && let Some(ctx) = ctx()
             {
-                commands
-                    .send(EguiCommand::HighlightMember(id as i32))
-                    .await?;
+                commands.send(EguiCommand::HighlightMember(id)).await?;
                 ctx.request_repaint();
             }
         }

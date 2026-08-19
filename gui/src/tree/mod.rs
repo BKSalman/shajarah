@@ -1,8 +1,8 @@
 use crate::Gender;
-use jiff::Zoned;
 use eframe::egui::{self, Rect};
 use egui::{Vec2, include_image};
 use indexmap::IndexMap;
+use jiff::Zoned;
 use layout::LayoutTree;
 use serde::{Deserialize, Serialize};
 pub mod draw;
@@ -53,8 +53,8 @@ impl TreeUi {
         self.offset += delta;
     }
 
-    pub fn focus_node(&mut self, id: i32) {
-        fn uncollapse_ancestors(node: &mut Node, id: i32) -> bool {
+    pub fn focus_node(&mut self, id: i64) {
+        fn uncollapse_ancestors(node: &mut Node, id: i64) -> bool {
             if node.id == id {
                 return true; // found it, start uncollapsing on the way up
             }
@@ -102,7 +102,7 @@ fn yes() -> bool {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node {
-    pub id: i32,
+    pub id: i64,
     name: String,
     full_name: String,
     gender: Gender,

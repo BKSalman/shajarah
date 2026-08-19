@@ -238,10 +238,10 @@ impl LayoutTree {
             log::debug!("layed out the tree");
         }
     }
-    pub fn get(&self, id: i32) -> Option<&LayoutNode> {
+    pub fn get(&self, id: i64) -> Option<&LayoutNode> {
         self.0.iter().find(|n| n.id == id)
     }
-    pub fn get_mut(&mut self, id: i32) -> Option<&mut LayoutNode> {
+    pub fn get_mut(&mut self, id: i64) -> Option<&mut LayoutNode> {
         self.0.iter_mut().find(|n| n.id == id)
     }
 }
@@ -292,7 +292,7 @@ where
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct LayoutNode {
-    id: i32,
+    id: i64,
     gender: Gender,
     pub children: Vec<usize>,
     mother_idx: Option<usize>,

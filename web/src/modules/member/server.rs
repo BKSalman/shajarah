@@ -21,7 +21,7 @@ use super::types::{Gender, MemberResponse, MemberResponseFlat};
 use server_imports::*;
 
 #[get("/api/v1/members/admin", Extension(state): Extension<AppState>, _user: AuthExtractor<{ UserRole::User as u8 }>)]
-pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
+pub async fn members() -> anyhow::Result<MemberResponse> {
     let recs = sqlx::query_as!(
         MemberRowWithParents,
         r#"
@@ -60,42 +60,56 @@ pub async fn members() -> anyhow::Result<Option<MemberResponse>> {
     .fetch_all(&state.db_pool)
     .await?;
 
-    if recs.is_empty() {
-        return Ok(None);
-    }
+    let family_name = state.config.family_name.clone().unwrap_or_default();
 
-    let Some(root) = recs
-        .iter()
-        .find(|rec| rec.father_id.is_none() && rec.mother_id.is_none())
-    else {
-        return Err(anyhow::anyhow!("No root member"));
-    };
-
-    let mut root = MemberResponse {
-        id: root.id,
-        name: root.name.clone(),
-        full_name: root.full_name.clone().unwrap_or_else(|| root.name.clone()),
-        gender: root.gender,
-        birthday: root.birthday.map(|t| t.to_jiff().to_zoned(TimeZone::UTC)),
-        last_name: root.last_name.clone(),
+    // XXX: this is kinda hacky, maybe send the family name and let egui handle it
+    let mut family_node = MemberResponse {
+        id: i64::MAX,
+        name: family_name.clone(),
+        full_name: family_name.clone(),
+        gender: Gender::Male,
+        birthday: None,
+        last_name: String::new(),
         father_id: None,
         mother_id: None,
-        personal_info: root.personal_info.as_ref().and_then(|p| {
-            p.as_object().map(|o| {
-                o.into_iter()
-                    .map(|(k, v)| (k.to_string(), v.as_str().unwrap_or("").to_string()))
-                    .rev()
-                    .collect::<IndexMap<String, String>>()
-            })
-        }),
+        personal_info: None,
         children: Vec::new(),
-        image: root.image.clone(),
-        image_type: root.image_type.clone(),
+        image: None,
+        image_type: None,
     };
 
-    root.add_all_children(&recs);
+    if let Some(root) = recs
+        .iter()
+        .find(|rec| rec.father_id.is_none() && rec.mother_id.is_none())
+    {
+        let mut root = MemberResponse {
+            id: root.id,
+            name: root.name.clone(),
+            full_name: root.full_name.clone().unwrap_or_else(|| root.name.clone()),
+            gender: root.gender,
+            birthday: root.birthday.map(|t| t.to_jiff().to_zoned(TimeZone::UTC)),
+            last_name: root.last_name.clone(),
+            father_id: None,
+            mother_id: None,
+            personal_info: root.personal_info.as_ref().and_then(|p| {
+                p.as_object().map(|o| {
+                    o.into_iter()
+                        .map(|(k, v)| (k.to_string(), v.as_str().unwrap_or("").to_string()))
+                        .rev()
+                        .collect::<IndexMap<String, String>>()
+                })
+            }),
+            children: Vec::new(),
+            image: root.image.clone(),
+            image_type: root.image_type.clone(),
+        };
 
-    Ok(Some(root))
+        root.add_all_children(&recs);
+
+        family_node.children.push(root);
+    }
+
+    Ok(family_node)
 }
 
 #[get("/api/v1/members/admin/flat", Extension(state): Extension<AppState>, _user: AuthExtractor<{ UserRole::User as u8 }>)]

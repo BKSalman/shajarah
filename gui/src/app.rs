@@ -109,7 +109,6 @@ impl eframe::App for App {
                             .show_loading_spinner(true)
                             .ui(ui);
                         ui.with_layout(egui::Layout::top_down(Align::RIGHT), |ui| {
-                            ui.heading(node.id.to_string());
                             ui.heading(shape_text(node.full_name()));
                             if let Some(personal_info) = node.personal_info()
                                 && !personal_info.is_empty()
