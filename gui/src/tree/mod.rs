@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::Gender;
 use eframe::egui::{self, Rect};
 use egui::{Vec2, include_image};
@@ -11,6 +13,8 @@ pub mod layout;
 const DEFAULT_IMAGE: egui::ImageSource<'static> = include_image!("../../assets/avatar.png");
 const NODE_RADIUS: u8 = 40;
 
+const TREE_MEMORY_ID: &'static str = "treeui";
+
 pub struct TreeUi {
     pub offset: Vec2,
     centered: bool,
@@ -19,12 +23,17 @@ pub struct TreeUi {
     pub layout_tree: LayoutTree,
     pub viewport: Rect,
     selected_node: Option<Node>,
+    animation: Option<SelectionAnimation>,
 }
 
 impl TreeUi {
-    pub fn new(root: Option<Node>) -> Self {
+    pub fn new(root: Option<Node>, ctx: &egui::Context) -> Self {
         let mut tree = LayoutTree::new();
         tree.set_root(root.clone());
+
+        let animation =
+            ctx.memory_mut(|m| m.data.get_temp::<SelectionAnimation>(TREE_MEMORY_ID.into()));
+
         Self {
             offset: Vec2::ZERO,
             centered: false,
@@ -33,6 +42,7 @@ impl TreeUi {
             root,
             viewport: Rect::ZERO,
             selected_node: None,
+            animation,
         }
     }
 
@@ -53,7 +63,7 @@ impl TreeUi {
         self.offset += delta;
     }
 
-    pub fn focus_node(&mut self, id: i64) {
+    pub fn focus_node(&mut self, id: i64, ctx: &egui::Context) {
         fn uncollapse_ancestors(node: &mut Node, id: i64) -> bool {
             if node.id == id {
                 return true; // found it, start uncollapsing on the way up
@@ -75,10 +85,20 @@ impl TreeUi {
 
             if let Some(node) = self.layout_tree.get(id) {
                 let center = self.viewport.center().to_vec2();
-                self.offset = Vec2::new(
+                let final_offset = Vec2::new(
                     -node.x * self.scale + center.x,
                     -node.y * self.scale + center.y,
                 );
+
+                let animation = SelectionAnimation::new(
+                    self.offset.clone(),
+                    Duration::from_millis(75),
+                    final_offset,
+                );
+
+                ctx.memory_mut(|m| m.data.insert_temp(TREE_MEMORY_ID.into(), animation.clone()));
+
+                self.animation = Some(animation);
             }
         }
     }
@@ -134,5 +154,38 @@ impl Node {
 
     pub fn personal_info(&self) -> Option<&IndexMap<String, String>> {
         self.personal_info.as_ref()
+    }
+}
+
+#[derive(Clone)]
+struct SelectionAnimation {
+    start: jiff::Timestamp,
+    duration: Duration,
+    starting_offset: Vec2,
+    final_offset: Vec2,
+}
+
+impl SelectionAnimation {
+    fn new(starting_offset: Vec2, duration: Duration, final_offset: Vec2) -> Self {
+        Self {
+            start: jiff::Timestamp::now(),
+            duration,
+            starting_offset,
+            final_offset,
+        }
+    }
+
+    /// Returns `None` once finished
+    fn animate_selection(self, current_offset: &mut Vec2) -> Option<Self> {
+        let elapsed = jiff::Timestamp::now()
+            .duration_since(self.start)
+            .unsigned_abs();
+        if elapsed >= self.duration {
+            *current_offset = self.final_offset;
+            return None;
+        }
+        let t = elapsed.as_secs_f32() / self.duration.as_secs_f32();
+        *current_offset = self.starting_offset + (self.final_offset - self.starting_offset) * t;
+        Some(self)
     }
 }

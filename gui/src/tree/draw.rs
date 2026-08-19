@@ -85,7 +85,12 @@ impl TreeUi {
                 if let Some(node) = &self.selected_node
                     && prev_id != Some(node.id)
                 {
-                    self.focus_node(node.id);
+                    self.focus_node(node.id, ui.ctx());
+                }
+
+                if let Some(animation) = self.animation.take() {
+                    ui.ctx().request_repaint();
+                    self.animation = animation.animate_selection(&mut self.offset);
                 }
             }
         });

@@ -28,7 +28,7 @@ impl App {
         let address = "";
         load_family_data(address, sender.clone(), &cc.egui_ctx);
         Self {
-            tree: TreeUi::new(None),
+            tree: TreeUi::new(None, &cc.egui_ctx),
             message_sender: sender.clone(),
             message_receiver: receiver,
             backend_address: address.to_string(),
@@ -61,7 +61,7 @@ impl eframe::App for App {
                 EguiCommand::HighlightMember(member_id) => {
                     log::info!("{member_id}");
                     self.tree.reset_node_selection();
-                    self.tree.focus_node(member_id);
+                    self.tree.focus_node(member_id, ctx);
                 }
             }
         }
