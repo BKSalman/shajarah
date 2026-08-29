@@ -53,16 +53,20 @@ pub async fn add_request(request_data: RequestData) -> Result<(), anyhow::Error>
 
     let mut tx = state.db_pool.begin().await?;
 
-    sqlx::query!(
+    let request = sqlx::query!(
         r#"
             INSERT INTO member_add_requests (id, name, gender, birthday, last_name, father_id, mother_id, image, image_type, personal_info, submitted_at)
             VALUES ($1, $2, $3, $4::text::timestamptz, $5, $6, $7, $8, $9, $10, now())
+            RETURNING id;
         "#,
         uuid::Uuid::new_v4(), name, gender as _, birthday.map(|z| z.timestamp().to_string()), last_name, father_id, mother_id,
         image, image_type, info,
     )
-    .execute(&mut *tx)
+    .fetch_one(&mut *tx)
     .await?;
+
+    let mother_request_id = matches!(gender, Gender::Female).then_some(request.id);
+    let father_request_id = matches!(gender, Gender::Male).then_some(request.id);
 
     for child in children {
         let RequestChildData {
@@ -83,11 +87,12 @@ pub async fn add_request(request_data: RequestData) -> Result<(), anyhow::Error>
 
         sqlx::query!(
             r#"
-                INSERT INTO member_add_requests (id, name, gender, birthday, last_name, image, image_type, personal_info, submitted_at)
-                VALUES ($1, $2, $3, $4::text::timestamptz, $5, $6, $7, $8, now())
+                INSERT INTO member_add_requests (id, name, gender, birthday, last_name, image, image_type, personal_info, submitted_at, mother_request_id, father_request_id)
+                VALUES ($1, $2, $3, $4::text::timestamptz, $5, $6, $7, $8, now(), $9, $10)
             "#,
             uuid::Uuid::new_v4(), name, gender as _, birthday.map(|z| z.timestamp().to_string()), last_name,
             image, image_type, info,
+            mother_request_id, father_request_id,
         )
         .execute(&mut *tx)
         .await?;
