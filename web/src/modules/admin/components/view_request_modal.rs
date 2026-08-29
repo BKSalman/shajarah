@@ -13,6 +13,7 @@ use uuid::Uuid;
 pub struct ViewRequestModalProps {
     pub show: bool,
     pub request: RequestedMember,
+    pub children_requests: Vec<RequestedMember>,
     pub on_close: EventHandler<()>,
     pub on_edit: EventHandler<Uuid>,
 }
@@ -48,7 +49,10 @@ pub fn ViewRequestModal(props: ViewRequestModalProps) -> Element {
                 }
                 div { class: "grid grid-cols-1 md:grid-cols-2 gap-6",
                     BasicInformationSection { request: props.request.clone() }
-                    FamilyRelationshipsSection { request: props.request.clone() }
+                    FamilyRelationshipsSection {
+                        request: props.request.clone(),
+                        children_requests: props.children_requests,
+                    }
                 }
                 if let Some(personal_info) = &props.request.personal_info {
                     if !personal_info.is_empty() {
@@ -200,6 +204,7 @@ fn BasicInformationSection(props: BasicInformationSectionProps) -> Element {
 #[derive(Props, Clone, PartialEq)]
 struct FamilyRelationshipsSectionProps {
     request: RequestedMember,
+    children_requests: Vec<RequestedMember>,
 }
 
 #[component]
@@ -221,16 +226,16 @@ fn FamilyRelationshipsSection(props: FamilyRelationshipsSectionProps) -> Element
                     p { class: "text-gray-900", "{mother_name}" }
                 }
             }
-            // if !props.request.children.is_empty() {
-            //     div {
-            //         label { class: "text-sm font-medium text-gray-500", "الأطفال" }
-            //         div { class: "space-y-1",
-            //             for child in props.request.children {
-            //                 p { class: "text-gray-900 text-sm", "{child.name} {child.last_name}" }
-            //             }
-            //         }
-            //     }
-            // }
+            if !props.children_requests.is_empty() {
+                div {
+                    label { class: "text-sm font-medium text-gray-500", "الأطفال" }
+                    div { class: "space-y-1",
+                        for child in props.children_requests {
+                            p { class: "text-gray-900 text-sm", "{child.name} {child.last_name}" }
+                        }
+                    }
+                }
+            }
         }
     }
 }
