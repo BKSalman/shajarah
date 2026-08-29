@@ -1,8 +1,5 @@
-use crate::{
-    Message, load_family_data, setup_fonts,
-    tree::{TreeUi, draw::shape_text},
-};
-use eframe::egui::{self, Align, Widget as _};
+use crate::{Message, bidi::bidi_job, load_family_data, setup_fonts, tree::TreeUi};
+use eframe::egui::{self, Align, TextFormat, Widget as _};
 use shared::EguiCommand;
 use std::sync::mpsc::{self, Receiver, Sender};
 
@@ -40,7 +37,7 @@ impl App {
 impl eframe::App for App {
     fn save(&mut self, _storage: &mut dyn eframe::Storage) {}
 
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         while let Ok(message) = self.message_receiver.try_recv() {
             log::debug!("got {message:?}");
             match message {
@@ -61,18 +58,18 @@ impl eframe::App for App {
                 EguiCommand::HighlightMember(member_id) => {
                     log::info!("{member_id}");
                     self.tree.reset_node_selection();
-                    self.tree.focus_node(member_id, ctx);
+                    self.tree.focus_node(member_id, ui);
                 }
             }
         }
 
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+        egui::Panel::top("top_panel").show(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 let is_web = cfg!(target_arch = "wasm32");
                 if !is_web {
                     ui.menu_button("File", |ui| {
                         if ui.button("Quit").clicked() {
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                            ui.send_viewport_cmd(egui::ViewportCommand::Close);
                         }
                     });
                     ui.add_space(16.0);
@@ -84,51 +81,54 @@ impl eframe::App for App {
 
                     let reload = ui.button("⟳").on_hover_text("Refresh tree");
                     if reload.clicked() {
-                        load_family_data(&self.backend_address, self.message_sender.clone(), ctx);
+                        load_family_data(&self.backend_address, self.message_sender.clone(), ui);
                         self.tree.request_recenter();
                     }
 
                     let label = ui.label("backend address:");
-                    egui::TextEdit::singleline(&mut self.backend_address)
-                        .hint_text("http://localhost:3001")
-                        .show(ui)
-                        .response
-                        .labelled_by(label.id);
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.backend_address)
+                            .hint_text("http://localhost:3001"),
+                    )
+                    .labelled_by(label.id);
                 }
             });
         });
 
         if let Some(node) = self.tree.selected_node() {
-            egui::TopBottomPanel::bottom("member")
-                .min_height(200.)
-                .show(ctx, |ui| {
-                    ui.with_layout(egui::Layout::right_to_left(Align::TOP), |ui| {
-                        let image = node.image();
-                        egui::Image::new(image)
-                            .maintain_aspect_ratio(true)
-                            .show_loading_spinner(true)
-                            .ui(ui);
-                        ui.with_layout(egui::Layout::top_down(Align::RIGHT), |ui| {
-                            ui.heading(shape_text(node.full_name()));
-                            if let Some(personal_info) = node.personal_info()
-                                && !personal_info.is_empty()
-                            {
-                                ui.add_space(10.);
-                                ui.heading(shape_text("المعلومات الشخصية:"));
-                                for (key, value) in personal_info {
-                                    ui.heading(shape_text(&format!("{key}: {value}")));
-                                }
+            egui::Panel::bottom("member").min_size(200.).show(ui, |ui| {
+                ui.with_layout(egui::Layout::right_to_left(Align::TOP), |ui| {
+                    let image = node.image();
+                    egui::Image::new(image)
+                        .maintain_aspect_ratio(true)
+                        .show_loading_spinner(true)
+                        .ui(ui);
+                    ui.with_layout(egui::Layout::top_down(Align::RIGHT), |ui| {
+                        let heading = TextFormat {
+                            font_id: egui::TextStyle::Heading.resolve(ui.style()),
+                            color: ui.visuals().text_color(),
+                            ..Default::default()
+                        };
+                        ui.label(bidi_job(node.full_name(), heading.clone()));
+                        if let Some(personal_info) = node.personal_info()
+                            && !personal_info.is_empty()
+                        {
+                            ui.add_space(10.);
+                            ui.label(bidi_job("المعلومات الشخصية:", heading.clone()));
+                            for (key, value) in personal_info {
+                                ui.label(bidi_job(&format!("{key}: {value}"), heading.clone()));
                             }
-                        })
-                    });
+                        }
+                    })
                 });
+            });
         };
 
-        let tree_rect = ctx.available_rect();
+        let tree_rect = ui.available_rect_before_wrap();
 
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show(ui, |ui| {
             if ui.input(|i| i.key_pressed(egui::Key::F5)) {
-                load_family_data(&self.backend_address, self.message_sender.clone(), ctx);
+                load_family_data(&self.backend_address, self.message_sender.clone(), ui);
             }
             self.tree.draw(ui, tree_rect);
         });

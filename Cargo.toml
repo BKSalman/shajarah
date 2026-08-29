@@ -41,8 +41,6 @@ opt-level = 2
 opt-level = 2
 [profile.dev.package.glow]
 opt-level = 2
-[profile.dev.package.ar-reshaper]
-opt-level = 2
 [profile.dev.package.unicode-bidi]
 opt-level = 2
 [profile.dev.package.image]

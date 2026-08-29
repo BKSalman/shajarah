@@ -730,9 +730,9 @@ pub fn Admin() -> Element {
                     on_member_add.call((data, image))
                 },
             }
+
             match &*tab.read() {
                 Tab::Members => {
-
                     rsx! {
                         FamilyManagementHeader {
                             members_count,

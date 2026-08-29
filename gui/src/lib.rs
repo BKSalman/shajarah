@@ -1,5 +1,6 @@
 #![warn(clippy::all, rust_2018_idioms)]
 mod app;
+mod bidi;
 mod tree;
 mod zoom;
 pub use app::App;

@@ -1,4 +1,3 @@
-use ar_reshaper::{ArabicReshaper, ReshaperConfig, config::LigaturesFlags};
 use eframe::egui::{self, UiBuilder};
 use egui::Stroke;
 #[cfg(feature = "debug-ui")]
@@ -8,17 +7,13 @@ use egui::{
     Color32, CornerRadius, FontFamily, FontId, PointerButton, Pos2, Rect, Sense, Shape, TextFormat,
     Vec2, epaint::CubicBezierShape, text::LayoutJob,
 };
-use unicode_bidi::BidiInfo;
 
 use super::{DEFAULT_IMAGE, NODE_RADIUS, Node, TreeUi, layout::LayoutTree};
+use crate::bidi::append_bidi;
 use crate::zoom::Zoom;
 
 const MAX_SCALE: f32 = 5.0;
 const MIN_SCALE: f32 = 0.2;
-const RESHAPER: ArabicReshaper = ArabicReshaper::new(ReshaperConfig::new(
-    ar_reshaper::Language::Arabic,
-    LigaturesFlags::default(),
-));
 const EXPAND_INDICATOR_SIZE: f32 = 20.;
 
 impl TreeUi {
@@ -152,13 +147,13 @@ impl Node {
             }
         }
 
-        let text_style = FontId::new(24.0 * scale, FontFamily::Monospace);
+        let text_style = FontId::new(24.0 * scale, FontFamily::Proportional);
         let painter = ui.painter();
         let mut job = LayoutJob::default();
-        job.append(
-            &shape_text(&self.name),
-            0.0,
-            TextFormat {
+        append_bidi(
+            &mut job,
+            &self.name,
+            &TextFormat {
                 font_id: text_style.clone(),
                 color: ui.visuals().text_color(),
                 ..Default::default()
@@ -305,25 +300,4 @@ impl Node {
             StrokeKind::Middle,
         );
     }
-}
-
-pub fn shape_text(input: &str) -> String {
-    let mut output = String::new();
-    if input.is_empty() {
-        return output;
-    }
-    let bidi_info = BidiInfo::new(input, None);
-    for paragraph in bidi_info.paragraphs.iter() {
-        let (levels, runs) = bidi_info.visual_runs(paragraph, paragraph.range.clone());
-        for run in runs {
-            let run_level = levels[run.start];
-            let text = &input[paragraph.range.clone()][run];
-            if run_level.is_rtl() {
-                output.push_str(&RESHAPER.reshape(text).chars().rev().collect::<String>());
-            } else {
-                output.push_str(text);
-            }
-        }
-    }
-    output
 }

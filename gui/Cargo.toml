@@ -18,9 +18,8 @@ indexmap = { workspace = true }
 anyhow = { workspace = true }
 jiff = { workspace = true }
 log = "0.4"
-ar-reshaper = "1.5.0"
 unicode-bidi = "0.3.18"
-egui_extras = { version = "0.33", features = ["image", "http"] }
+egui_extras = { version = "0.36", features = ["image", "http"] }
 image = { version = "0.25", default-features = false, features = ["rayon", "jpeg", "png", "webp"] }
 ehttp = { version = "0.6.0", features = ["json"] }
 futures = "0.3.32"
@@ -30,7 +29,7 @@ wasm-bindgen = "0.2.122"
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 env_logger = "0.10"
-eframe = { version = "0.33", default-features = false, features = [
+eframe = { version = "0.36", default-features = false, features = [
     "accesskit",
     "default_fonts",
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
@@ -42,7 +41,7 @@ eframe = { version = "0.33", default-features = false, features = [
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { workspace = true }
 wasm-bindgen-futures = "0.4"
-eframe = { version = "0.33", default-features = false, features = [
+eframe = { version = "0.36", default-features = false, features = [
     "accesskit",     # Make egui compatible with screen readers. NOTE: adds a lot of dependencies.
     "default_fonts", # Embed the default egui fonts.
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
