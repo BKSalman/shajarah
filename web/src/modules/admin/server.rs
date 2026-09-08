@@ -18,6 +18,21 @@ pub async fn get_admin() -> Result<UserResponseBrief> {
     Ok(admin.or_unauthorized("Unauthorized")?.current_user)
 }
 
+#[cfg(feature = "server")]
+pub async fn has_admin(db_pool: &sqlx::PgPool) -> Result<bool, sqlx::Error> {
+    let rec = sqlx::query!(
+        r#"
+        SELECT id FROM users
+        WHERE role = $1
+        "#,
+        UserRole::Admin as _,
+    )
+    .fetch_optional(db_pool)
+    .await?;
+
+    Ok(rec.is_some())
+}
+
 #[post("/api/v1/admin", Extension(state): Extension<AppState>)]
 pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
     use argon2::{
@@ -26,17 +41,7 @@ pub async fn register_admin(register_data: RegisterData) -> anyhow::Result<()> {
     };
     use uuid::Uuid;
 
-    if sqlx::query!(
-        r#"
-        SELECT id, role as "role: UserRole" FROM users
-        WHERE role = $1
-                "#,
-        UserRole::Admin as _,
-    )
-    .fetch_optional(&state.db_pool)
-    .await?
-    .is_some()
-    {
+    if has_admin(&state.db_pool).await? {
         return Err(anyhow::anyhow!("Bad Request"));
     }
 

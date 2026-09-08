@@ -80,13 +80,12 @@ pub enum Route {
 
 #[component]
 pub fn PrivateTreeGuard() -> Element {
-    let nav = navigator();
-    let is_authed = use_server_future(crate::modules::user::server::get_user)?;
     let config = use_context::<config::client::Config>();
+    let is_authed = use_server_future(crate::modules::user::server::get_user)?;
 
     use_effect(move || {
         if !config.public && matches!(is_authed(), Some(Err(_))) {
-            nav.replace(Route::Unauthorized {});
+            navigator().replace(Route::Unauthorized {});
         }
     });
 
@@ -115,6 +114,7 @@ async fn launch_server(config: config::server::Config) -> Result<axum::Router, a
     use std::sync::Arc;
 
     use axum::{Extension, extract::DefaultBodyLimit, routing::get};
+    use middleware::admin_gate::gate_admin_register;
     use middleware::sessions::refresh_session;
     use middleware::settings_gate::gate_add_page;
     use modules::member::routes::export_members;
@@ -157,6 +157,10 @@ async fn launch_server(config: config::server::Config) -> Result<axum::Router, a
         .layer(axum::middleware::from_fn_with_state(
             app_state.clone(),
             gate_add_page,
+        ))
+        .layer(axum::middleware::from_fn_with_state(
+            app_state.clone(),
+            gate_admin_register,
         ))
         .layer(CookieManagerLayer::new())
         .layer(DefaultBodyLimit::disable())

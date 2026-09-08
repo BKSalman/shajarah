@@ -1,4 +1,6 @@
 #[cfg(feature = "server")]
+pub mod admin_gate;
+#[cfg(feature = "server")]
 pub mod auth;
 pub mod private_tree;
 #[cfg(feature = "server")]
