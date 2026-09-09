@@ -8,7 +8,7 @@ use crate::{
     modules::{
         add_request::types::{
             RequestChildData, RequestChildDataStoreExt, RequestData, RequestDataStoreExt,
-            missing_required_info,
+            image_required_for, missing_required_info,
         },
         member::{
             components::member_picker::MemberPicker, server::members_flat_unauthorized,
@@ -447,7 +447,7 @@ fn AddMemberRequestForm() -> Element {
                                     }
                                 }
                                 "صورة شخصية"
-                                if rules.require_image {
+                                if image_required_for(request_data.gender().read().as_ref().copied(), &rules) {
                                     RequiredMark {}
                                 } else {
                                     " (اختياري)"
@@ -858,7 +858,7 @@ fn ChildForm(
                     }
                 }
                 "صورة شخصية"
-                if rules.require_image {
+                if image_required_for(child.gender().read().as_ref().copied(), &rules) {
                     RequiredMark {}
                 } else {
                     " (اختياري)"

@@ -191,7 +191,7 @@ pub fn AdminSettings() -> Element {
                     }
                     SettingToggle {
                         title: "الصورة الشخصية",
-                        description: "إلزام مُقدّم الطلب بإرفاق صورة شخصية للفرد وكل طفل.",
+                        description: "إلزام مُقدّم الطلب بإرفاق صورة شخصية للفرد وكل طفل. لا ينطبق هذا على الإناث، فالصورة تبقى اختيارية لهنّ دائماً.",
                         enabled: rules.require_image,
                         busy: save.pending(),
                         on_toggle: {

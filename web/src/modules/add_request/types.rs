@@ -30,7 +30,7 @@ pub struct RequestData {
     pub mother_id: Option<i64>,
     #[garde(custom(require_info_keys))]
     pub info: IndexMap<String, String>,
-    #[garde(custom(require_image))]
+    #[garde(custom(require_image(self.gender)))]
     pub image: Option<Vec<u8>>,
     #[garde(skip)]
     pub image_type: Option<String>,
@@ -49,7 +49,7 @@ pub struct RequestChildData {
     pub birthday: Option<Zoned>,
     #[garde(custom(require_info_keys))]
     pub info: IndexMap<String, String>,
-    #[garde(custom(require_image))]
+    #[garde(custom(require_image(self.gender)))]
     pub image: Option<Vec<u8>>,
     #[garde(skip)]
     pub image_type: Option<String>,
@@ -81,12 +81,20 @@ fn require_birthday(value: &Option<Zoned>, rules: &RequestRules) -> garde::Resul
     Ok(())
 }
 
-fn require_image(value: &Option<Vec<u8>>, rules: &RequestRules) -> garde::Result {
-    if rules.require_image && value.is_none() {
-        return Err(required_message());
-    }
+fn require_image(
+    gender: Option<Gender>,
+) -> impl FnOnce(&Option<Vec<u8>>, &RequestRules) -> garde::Result {
+    move |value, rules| {
+        if rules.require_image && value.is_none() && gender != Some(Gender::Female) {
+            return Err(required_message());
+        }
 
-    Ok(())
+        Ok(())
+    }
+}
+
+pub fn image_required_for(gender: Option<Gender>, rules: &RequestRules) -> bool {
+    rules.require_image && gender != Some(Gender::Female)
 }
 
 fn require_info_keys(value: &IndexMap<String, String>, rules: &RequestRules) -> garde::Result {
@@ -241,6 +249,37 @@ mod tests {
             .validate_with(&rules)
             .expect_err("image is required");
         assert_eq!(error_paths(&report), ["image"]);
+    }
+
+    #[test]
+    fn females_are_exempt_from_the_image_requirement() {
+        let rules = RequestRules {
+            require_birthday: false,
+            require_image: true,
+            ..RequestRules::default()
+        };
+
+        let mut request = valid_request();
+        request.gender = Some(Gender::Female);
+        request.children.push(RequestChildData {
+            name: Some("نورة".to_string()),
+            gender: Some(Gender::Female),
+            ..RequestChildData::default()
+        });
+
+        assert!(request.validate_with(&rules).is_ok());
+
+        // A son in the same request still needs one.
+        request.children.push(RequestChildData {
+            name: Some("عبدالله".to_string()),
+            gender: Some(Gender::Male),
+            ..RequestChildData::default()
+        });
+
+        let report = request
+            .validate_with(&rules)
+            .expect_err("the son still needs an image");
+        assert_eq!(error_paths(&report), ["children[1].image"]);
     }
 
     #[test]
