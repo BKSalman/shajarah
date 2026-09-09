@@ -12,7 +12,8 @@ use crate::{
             types::{EditMember, MemberResponseFlat},
         },
     },
-    ui::modal::Modal,
+    ui::{modal::Modal, search_bar::SearchBar},
+    util::matches_search,
 };
 
 use super::ShowModal;
@@ -46,6 +47,31 @@ pub fn MembersGrid(
 
     let members_count = members_list.len();
 
+    let mut search = use_signal(String::new);
+
+    let visible_members = {
+        let query = search();
+
+        members_list
+            .iter()
+            .filter(|member| {
+                matches_search(
+                    &query,
+                    &[
+                        member.full_name.as_str(),
+                        member.last_name.as_str(),
+                        member.father_name.as_deref().unwrap_or_default(),
+                        member.mother_name.as_deref().unwrap_or_default(),
+                    ]
+                    .join(" "),
+                )
+            })
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+
+    let visible_count = visible_members.len();
+
     let mut on_member_edit = use_action(
         move |id: i64, data: EditMember, image: Option<FileStream>| async move {
             edit_member(id, data).await?;
@@ -63,8 +89,10 @@ pub fn MembersGrid(
 
     let members_grid = match &*members_resource.read() {
         Some(Ok(members)) => {
+            let searching = !search().trim().is_empty();
+
             rsx! {
-                if members.is_empty() {
+                if visible_members.is_empty() {
                     div { class: "col-span-full text-center py-12",
                         svg {
                             class: "w-16 h-16 mx-auto text-gray-400 mb-4",
@@ -79,17 +107,25 @@ pub fn MembersGrid(
                             }
                         }
                         h3 { class: "text-lg font-medium text-gray-900 mb-2",
-                            "لا يوجد أعضاء"
+                            if searching {
+                                "لا نتائج"
+                            } else {
+                                "لا يوجد أعضاء"
+                            }
                         }
                         p { class: "text-gray-500",
-                            "لم يتم العثور على أعضاء مطابقين للبحث"
+                            if searching {
+                                "لم يتم العثور على أعضاء مطابقين للبحث"
+                            } else {
+                                "لم تتم إضافة أي عضو بعد"
+                            }
                         }
                     }
                 } else {
                     div {
                         class: "grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 pb-6",
                         id: "members-grid",
-                        for member in members {
+                        for member in visible_members.iter() {
                             ViewMemberModal {
                                 member: member.clone(),
                                 on_edit: move |id| {
@@ -183,6 +219,18 @@ pub fn MembersGrid(
                 csv_upload.call(e);
                 tracing::info!("{:?}", csv_upload.value());
             },
+        }
+        div { class: "p-3",
+
+            SearchBar {
+                value: search(),
+                placeholder: Some(
+                    "ابحث عن فرد بالاسم أو اسم الأب أو الأم..."
+                        .to_string(),
+                ),
+                result_count: Some(visible_count),
+                on_input: move |value| search.set(value),
+            }
         }
         {members_grid}
     }
