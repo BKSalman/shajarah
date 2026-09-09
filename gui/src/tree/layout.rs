@@ -19,6 +19,7 @@ impl LayoutTree {
             gender: root.gender,
             father_idx: None,
             mother_idx: None,
+            parent_idx: None,
             children: Vec::new(),
             x: 0.,
             y: 0.,
@@ -45,6 +46,7 @@ impl LayoutTree {
                     id: child.id,
                     mother_idx,
                     father_idx,
+                    parent_idx: Some(node_idx),
                     gender: child.gender,
                     order: i,
                     depth,
@@ -93,14 +95,14 @@ impl LayoutTree {
         if order == 0 {
             return None;
         }
-        let father = self[node]
-            .father_idx
+        let parent = self[node]
+            .parent_idx
             .expect("Nodes where `order != 0` always have parents.");
-        Some(self[father].children[order - 1])
+        Some(self[parent].children[order - 1])
     }
     fn left_siblings(&self, node: usize) -> Vec<usize> {
         let order = self[node].order;
-        if let Some(parent) = self[node].father_idx {
+        if let Some(parent) = self[node].parent_idx {
             self[parent].children[0..order].into()
         } else {
             Vec::new()
@@ -126,7 +128,7 @@ impl LayoutTree {
             let mut max = -f32::INFINITY;
             for node in &row {
                 let node = *node;
-                self[node].y = if let Some(parent) = self[node].father_idx {
+                self[node].y = if let Some(parent) = self[node].parent_idx {
                     self[parent].y + NODE_RADIUS as f32 * 2. + NODE_PADDING * 2.
                 } else {
                     0.0
@@ -218,7 +220,7 @@ impl LayoutTree {
     }
     fn finalize_x(&mut self, root: usize) {
         for node in self.breadth_first(root) {
-            let shift = if let Some(parent) = self[node].father_idx {
+            let shift = if let Some(parent) = self[node].parent_idx {
                 self[parent].mod_
             } else {
                 0.0
@@ -297,6 +299,10 @@ pub struct LayoutNode {
     pub children: Vec<usize>,
     mother_idx: Option<usize>,
     father_idx: Option<usize>,
+    /// The node this one hangs off in the drawn tree, whichever parent that is.
+    /// `father_idx` alone is `None` for the children of a woman, which used to
+    /// strand them at the root and panic `previous_sibling`.
+    parent_idx: Option<usize>,
     /// The position of this node among it's siblings.
     ///
     /// Can also be thought of as the number of left-siblings this node has.
@@ -314,5 +320,63 @@ pub struct LayoutNode {
 impl LayoutNode {
     pub fn is_leaf(&self) -> bool {
         self.children.is_empty() || self.collapsed
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A node with `children`, deserialized the way the server sends it.
+    fn node(id: i64, gender: &str, children: serde_json::Value) -> Node {
+        serde_json::from_value(serde_json::json!({
+            "id": id,
+            "name": format!("عضو {id}"),
+            "full_name": format!("عضو {id}"),
+            "gender": gender,
+            "birthday": null,
+            "last_name": "العتيبي",
+            "father_id": null,
+            "mother_id": null,
+            "personal_info": null,
+            "children": children,
+            "image": null,
+            "collapsed": false,
+        }))
+        .expect("node json")
+    }
+
+    #[test]
+    fn a_mother_with_several_children_lays_out() {
+        // Children of a woman have no `father_idx`, which used to strand them
+        // at the root and panic `previous_sibling` on the second one.
+        let root = node(
+            1,
+            "female",
+            serde_json::json!([
+                node(2, "male", serde_json::json!([])),
+                node(3, "female", serde_json::json!([])),
+                node(4, "male", serde_json::json!([])),
+            ]),
+        );
+
+        let mut tree = LayoutTree::new();
+        tree.update_tree(root);
+        tree.layout();
+
+        let children: Vec<f32> = (1..=3).map(|idx| tree[idx].x).collect();
+        let depths: Vec<usize> = (1..=3).map(|idx| tree[idx].depth).collect();
+
+        assert_eq!(depths, [1, 1, 1]);
+        assert!(
+            children[0] < children[1] && children[1] < children[2],
+            "siblings should be laid out left to right, got {children:?}"
+        );
+        assert!(
+            tree[1].y > tree[0].y,
+            "children sit below their mother, got {} vs {}",
+            tree[1].y,
+            tree[0].y
+        );
     }
 }
