@@ -47,7 +47,7 @@ pub fn AddRequestsGrid(
                     .iter()
                     .filter(|r| {
                         matches!(r.status, RequestStatus::Pending) && r.mother_request_id.is_none()
-                            && r.father_request_id.is_none()
+                            && r.father_request_id.is_none() && r.spouse_of_request_id.is_none()
                     })
                     .filter(|r| {
                         matches_search(
@@ -108,15 +108,29 @@ pub fn AddRequestsGrid(
                                     ViewRequestModal {
                                         show: show_modal().is_some_and(|r| r == ShowModal::ViewRequest(request.id)),
                                         request: request.clone(),
-                                        children_requests: requests
+                                        spouse_request: requests
                                             .iter()
-                                            .filter(|r| {
-                                                matches!(r.status, RequestStatus::Pending)
-                                                    && (r.mother_request_id == Some(request.id)
-                                                        || r.father_request_id == Some(request.id))
-                                            })
-                                            .cloned()
-                                            .collect(),
+                                            .find(|r| r.spouse_of_request_id == Some(request.id))
+                                            .cloned(),
+                                        children_requests: {
+                                            let spouse_id = requests
+                                                .iter()
+                                                .find(|r| r.spouse_of_request_id == Some(request.id))
+                                                .map(|r| r.id);
+                                            requests
+                                                .iter()
+                                                .filter(|r| {
+                                                    matches!(r.status, RequestStatus::Pending)
+                                                        && r.spouse_of_request_id.is_none()
+                                                        && (r.mother_request_id == Some(request.id)
+                                                            || r.father_request_id == Some(request.id)
+                                                            || (spouse_id.is_some()
+                                                                && (r.mother_request_id == spouse_id
+                                                                    || r.father_request_id == spouse_id)))
+                                                })
+                                                .cloned()
+                                                .collect()
+                                        },
                                         on_close: move |_| {
                                             show_modal.set(None);
                                         },
@@ -127,6 +141,10 @@ pub fn AddRequestsGrid(
 
                                     RequestCard {
                                         request: request.clone(),
+                                        spouse_request: requests
+                                            .iter()
+                                            .find(|r| r.spouse_of_request_id == Some(request.id))
+                                            .cloned(),
                                         on_approve: move |id| on_request_approve.call(id),
                                         on_reject: move |id| on_request_reject.call(id),
                                         on_view: move |id| {

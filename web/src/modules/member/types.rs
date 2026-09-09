@@ -22,6 +22,16 @@ pub enum Gender {
     Female,
 }
 
+impl Gender {
+    /// The gender a spouse must have: this app models marriage across genders.
+    pub fn opposite(self) -> Gender {
+        match self {
+            Gender::Male => Gender::Female,
+            Gender::Female => Gender::Male,
+        }
+    }
+}
+
 impl core::fmt::Display for Gender {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

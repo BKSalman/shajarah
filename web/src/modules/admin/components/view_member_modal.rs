@@ -1,7 +1,7 @@
 use crate::{
     modules::{
         admin::components::ImageState,
-        member::types::{Gender, MemberResponseFlat},
+        member::types::{Gender, MarriageStatus, MemberResponseFlat},
     },
     ui::modal::Modal,
     util::age_years,
@@ -219,6 +219,23 @@ fn FamilyRelationshipsSection(props: FamilyRelationshipsSectionProps) -> Element
                 div {
                     label { class: "text-sm font-medium text-gray-500", "الوالدة" }
                     p { class: "text-gray-900", "{mother_name}" }
+                }
+            }
+            if !props.member.spouses.is_empty() {
+                div {
+                    label { class: "text-sm font-medium text-gray-500", "الزواج" }
+                    div { class: "space-y-1",
+                        for spouse in props.member.spouses {
+                            div { class: "flex items-center gap-2",
+                                p { class: "text-gray-900 text-sm", "{spouse.full_name}" }
+                                span {
+                                    class: "text-xs px-2 py-0.5 rounded-full",
+                                    class: if spouse.status == MarriageStatus::Married { "bg-green-100 text-green-700" } else { "bg-gray-100 text-gray-600" },
+                                    "{spouse.status.label()}"
+                                }
+                            }
+                        }
+                    }
                 }
             }
             if !props.member.children.is_empty() {

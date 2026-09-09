@@ -1,7 +1,7 @@
 use crate::{
     modules::{
         admin::types::{MemberFormData, MemberFormDataStoreExt},
-        member::types::{Gender, MemberResponseFlat},
+        member::types::{Gender, MarriageStatus, MemberResponseFlat},
     },
     ui::{
         form::FormSection,
@@ -154,6 +154,37 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                                 required_gender: Some(Gender::Female),
                                 placeholder: "ابحث عن الوالدة بالاسم...".to_string(),
                                 on_select: move |id| form_data.mother_id().set(id),
+                            }
+                        }
+                        div { class: "form-group",
+                            label { class: "form-label", "الزوج/الزوجة" }
+                            if let Some(gender) = form_data.gender()() {
+                                MemberPicker {
+                                    members: props.members.clone().into_iter().map(|m| m.into()).collect(),
+                                    required_gender: Some(gender.opposite()),
+                                    placeholder: "ابحث عن الزوج/الزوجة بالاسم...".to_string(),
+                                    on_select: move |id| form_data.spouse_id().set(id),
+                                }
+                                select {
+                                    class: "dropdown w-full mt-2",
+                                    onchange: move |evt| {
+                                        if let Ok(status) = evt.value().parse::<MarriageStatus>() {
+                                            form_data.marriage_status().set(status);
+                                        }
+                                    },
+                                    option {
+                                        value: "married",
+                                        selected: form_data.marriage_status()() == MarriageStatus::Married,
+                                        "متزوج"
+                                    }
+                                    option {
+                                        value: "separated",
+                                        selected: form_data.marriage_status()() == MarriageStatus::Separated,
+                                        "منفصل"
+                                    }
+                                }
+                            } else {
+                                p { class: "text-sm text-gray-500", "اختر الجنس أولاً" }
                             }
                         }
                     }

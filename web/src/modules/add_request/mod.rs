@@ -8,11 +8,13 @@ use crate::{
     modules::{
         add_request::types::{
             RequestChildData, RequestChildDataStoreExt, RequestData, RequestDataStoreExt,
-            image_required_for, missing_required_info,
+            RequestSpouseData, RequestSpouseDataStoreExt, SpouseKind, image_required_for,
+            missing_required_info,
         },
         member::{
-            components::member_picker::MemberPicker, server::members_flat_unauthorized,
-            types::Gender,
+            components::member_picker::MemberPicker,
+            server::members_flat_unauthorized,
+            types::{Gender, MarriageStatus, MemberUnauthorizedResponseFlat},
         },
         settings::types::{RequestRules, Settings},
     },
@@ -97,6 +99,22 @@ fn AddMemberRequestForm() -> Element {
         .cloned()
         .unwrap_or_default();
 
+    // How the spouse is named on each child's "belongs to this spouse" checkbox.
+    let spouse_label: Option<String> =
+        request_data
+            .spouse()
+            .read()
+            .as_ref()
+            .and_then(|spouse| match spouse.kind {
+                SpouseKind::Existing => spouse.member_id.and_then(|id| {
+                    members
+                        .iter()
+                        .find(|member| member.id == id)
+                        .map(|member| member.full_name.clone())
+                }),
+                SpouseKind::New => spouse.name.clone(),
+            });
+
     rsx! {
         div {
             class: "min-h-screen flex items-center justify-center bg-tree-texture lg:p-6",
@@ -165,6 +183,9 @@ fn AddMemberRequestForm() -> Element {
                                             request_data.info().set(seed_info(&rules));
                                             request_data.image().set(None);
                                             request_data.image_type().set(None);
+                                            request_data.mother_id().set(None);
+                                            request_data.spouse().set(None);
+                                            request_data.children().set(Vec::new());
                                             show_success.set(true);
                                         }
                                         Err(server_error) => {
@@ -519,6 +540,55 @@ fn AddMemberRequestForm() -> Element {
                             }
                         }
 
+                        hr {}
+
+                        if let Some(spouse) = request_data.spouse().transpose() {
+                            div { class: "flex items-center justify-between",
+                                div { class: "font-medium", "الزوج/الزوجة" }
+                                button {
+                                    class: "btn btn-outline btn-sm",
+                                    onclick: move |e: Event<MouseData>| {
+                                        e.prevent_default();
+                                        request_data.spouse().set(None);
+                                        for child in request_data.children().iter() {
+                                            child.from_spouse().set(false);
+                                        }
+                                    },
+                                    "إزالة"
+                                }
+                            }
+                            SpouseForm {
+                                spouse,
+                                members: members.clone(),
+                                main_gender: request_data.gender().read().as_ref().copied(),
+                                is_submitting,
+                                field_errors,
+                                rules: rules.clone(),
+                            }
+                        } else {
+                            button {
+                                class: "btn btn-primary",
+                                onclick: {
+                                    let rules = rules.clone();
+                                    move |e: Event<MouseData>| {
+                                        e.prevent_default();
+                                        request_data
+                                            .spouse()
+                                            .set(
+                                                Some(RequestSpouseData {
+                                                    info: seed_info(&rules),
+                                                    status: Some(MarriageStatus::Married),
+                                                    ..RequestSpouseData::default()
+                                                }),
+                                            );
+                                    }
+                                },
+                                "إضافة زوج/زوجة"
+                            }
+                        }
+
+                        hr {}
+
                         button {
                             class: "btn btn-primary",
 
@@ -550,6 +620,7 @@ fn AddMemberRequestForm() -> Element {
                                 is_submitting,
                                 field_errors,
                                 rules: rules.clone(),
+                                spouse_label: spouse_label.clone(),
                             }
                         }
 
@@ -643,6 +714,8 @@ fn ChildForm(
     is_submitting: Signal<bool>,
     field_errors: Signal<HashMap<String, String>>,
     rules: RequestRules,
+    /// How the request's spouse is named, when one was given.
+    spouse_label: Option<String>,
 ) -> Element {
     let get_field_error =
         move |field: &str| -> Option<String> { field_errors.read().get(field).cloned() };
@@ -656,6 +729,17 @@ fn ChildForm(
     };
 
     rsx! {
+        if let Some(spouse_label) = spouse_label {
+            label { class: "flex items-center gap-2 mb-2",
+                input {
+                    r#type: "checkbox",
+                    checked: child.from_spouse()(),
+                    disabled: is_submitting(),
+                    onchange: move |evt| child.from_spouse().set(evt.checked()),
+                }
+                "من {spouse_label}"
+            }
+        }
         div { class: "form-group min-w-0",
             label { r#for: "name", class: "form-label",
                 svg {
@@ -927,6 +1011,335 @@ fn ChildForm(
             }
             if let Some(error) = get_field_error(&format!("children[{idx}].image")) {
                 p { class: "text-sm text-red-600 mt-1", "{error}" }
+            }
+        }
+    }
+}
+
+/// The spouse block on the request form: either somebody already in the tree,
+/// or a new person who gets created when an admin approves the request.
+#[component]
+fn SpouseForm(
+    spouse: Store<RequestSpouseData>,
+    members: Vec<MemberUnauthorizedResponseFlat>,
+    main_gender: Option<Gender>,
+    is_submitting: Signal<bool>,
+    field_errors: Signal<HashMap<String, String>>,
+    rules: RequestRules,
+) -> Element {
+    let get_field_error =
+        move |field: &str| -> Option<String> { field_errors.read().get(field).cloned() };
+
+    let has_field_error = move |field: &str| -> bool { field_errors.read().contains_key(field) };
+
+    let mut clear_field_error = move |field: &str| {
+        field_errors.with_mut(|errors| {
+            errors.remove(field);
+        });
+    };
+
+    let kind = spouse.kind()();
+
+    rsx! {
+        div { class: "space-y-4",
+
+            // Where the spouse comes from
+            div { class: "flex gap-4",
+                for (value , label) in [
+                    (SpouseKind::Existing, "من العائلة"),
+                    (SpouseKind::New, "من خارج العائلة"),
+                ]
+                {
+                    label { class: "flex items-center gap-2",
+                        input {
+                            r#type: "radio",
+                            name: "spouse_kind",
+                            checked: kind == value,
+                            disabled: is_submitting(),
+                            onchange: move |_| {
+                                spouse.kind().set(value);
+                                for key in [
+                                    "spouse.member_id",
+                                    "spouse.name",
+                                    "spouse.last_name",
+                                    "spouse.gender",
+                                    "spouse.birthday",
+                                    "spouse.info",
+                                    "spouse.image",
+                                ]
+                                {
+                                    clear_field_error(key);
+                                }
+                            },
+                        }
+                        "{label}"
+                    }
+                }
+            }
+
+            if kind == SpouseKind::Existing {
+                div { class: "form-group",
+                    label { class: "form-label",
+                        "الزوج/الزوجة"
+                        RequiredMark {}
+                    }
+                    if main_gender.is_some() {
+                        MemberPicker {
+                            members: members.clone(),
+                            required_gender: main_gender.map(Gender::opposite),
+                            placeholder: "ابحث عن الزوج/الزوجة بالاسم...".to_string(),
+                            input_class: if has_field_error("spouse.member_id") { "input-error" } else { "" },
+                            on_select: move |id| {
+                                spouse.member_id().set(id);
+                                clear_field_error("spouse.member_id");
+                            },
+                        }
+                    } else {
+                        p { class: "text-sm text-gray-500", "اختر جنس الفرد أولاً" }
+                    }
+                    if let Some(error) = get_field_error("spouse.member_id") {
+                        p { class: "text-sm text-red-600 mt-1", "{error}" }
+                    }
+                }
+            } else {
+                div { class: "grid grid-cols-1 sm:grid-cols-2 gap-4",
+                    div { class: "form-group",
+                        label { class: "form-label",
+                            "الاسم الأول"
+                            RequiredMark {}
+                        }
+                        input {
+                            r#type: "text",
+                            class: "input w-full",
+                            class: if has_field_error("spouse.name") { "input-error" },
+                            disabled: is_submitting(),
+                            placeholder: "ادخل الاسم الأول",
+                            value: spouse.name()().unwrap_or_default(),
+                            oninput: move |evt| {
+                                clear_field_error("spouse.name");
+                                spouse.name().set(Some(evt.value()));
+                            },
+                        }
+                        if let Some(error) = get_field_error("spouse.name") {
+                            p { class: "text-sm text-red-600 mt-1", "{error}" }
+                        }
+                    }
+
+                    div { class: "form-group",
+                        label { class: "form-label",
+                            "اسم العائلة"
+                            RequiredMark {}
+                        }
+                        input {
+                            r#type: "text",
+                            class: "input w-full",
+                            class: if has_field_error("spouse.last_name") { "input-error" },
+                            disabled: is_submitting(),
+                            placeholder: "ادخل اسم العائلة",
+                            value: spouse.last_name()().unwrap_or_default(),
+                            oninput: move |evt| {
+                                clear_field_error("spouse.last_name");
+                                spouse.last_name().set(Some(evt.value()));
+                            },
+                        }
+                        if let Some(error) = get_field_error("spouse.last_name") {
+                            p { class: "text-sm text-red-600 mt-1", "{error}" }
+                        }
+                    }
+                }
+
+                div { class: "form-group",
+                    label { class: "form-label",
+                        "الجنس"
+                        RequiredMark {}
+                    }
+                    select {
+                        class: "dropdown w-full",
+                        class: if has_field_error("spouse.gender") { "dropdown-error" },
+                        disabled: is_submitting(),
+                        onchange: move |evt| {
+                            spouse.gender().set(evt.value().parse::<Gender>().ok());
+                            clear_field_error("spouse.gender");
+                        },
+                        option { value: "", selected: spouse.gender()().is_none(), "اختر الجنس" }
+                        option {
+                            value: "male",
+                            selected: spouse.gender()() == Some(Gender::Male),
+                            "ذكر"
+                        }
+                        option {
+                            value: "female",
+                            selected: spouse.gender()() == Some(Gender::Female),
+                            "أنثى"
+                        }
+                    }
+                    if let Some(error) = get_field_error("spouse.gender") {
+                        p { class: "text-sm text-red-600 mt-1", "{error}" }
+                    }
+                }
+
+                div { class: "form-group",
+                    label { class: "form-label",
+                        "تاريخ الميلاد"
+                        if rules.require_birthday {
+                            RequiredMark {}
+                        } else {
+                            " (اختياري)"
+                        }
+                    }
+                    input {
+                        r#type: "date",
+                        class: "input w-full",
+                        class: if has_field_error("spouse.birthday") { "input-error" },
+                        disabled: is_submitting(),
+                        value: spouse.birthday()().map(|b| b.date().to_string()).unwrap_or_default(),
+                        onchange: move |evt| {
+                            clear_field_error("spouse.birthday");
+                            spouse
+                                .birthday()
+                                .set(
+                                    evt
+                                        .value()
+                                        .parse::<jiff::civil::Date>()
+                                        .ok()
+                                        .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok()),
+                                );
+                        },
+                    }
+                    if let Some(error) = get_field_error("spouse.birthday") {
+                        p { class: "text-sm text-red-600 mt-1", "{error}" }
+                    }
+                }
+
+                div { class: "form-group",
+                    label { class: "form-label", "معلومات إضافية" }
+                    KeyValueInput {
+                        pairs: spouse
+                            .info()
+                            .read()
+                            .iter()
+                            .map(|(key, value)| KeyValuePair {
+                                key: key.clone(),
+                                value: value.clone(),
+                            })
+                            .collect::<Vec<_>>(),
+                        key_placeholder: "مثال: المهنة".to_string(),
+                        value_placeholder: "مثال: محامي".to_string(),
+                        locked_keys: rules.required_info_keys.clone(),
+                        error_keys: if has_field_error("spouse.info") { missing_required_info(&spouse.info().read(), &rules.required_info_keys) } else { Vec::new() },
+                        on_pairs_change: {
+                            let required_keys = rules.required_info_keys.clone();
+                            move |new_pairs: Vec<KeyValuePair>| {
+                                let mut new_info: IndexMap<String, String> = new_pairs
+                                    .iter()
+                                    .map(|pair| (pair.key.clone(), pair.value.clone()))
+                                    .collect();
+                                for key in &required_keys {
+                                    new_info.entry(key.clone()).or_default();
+                                }
+                                if missing_required_info(&new_info, &required_keys).is_empty() {
+                                    clear_field_error("spouse.info");
+                                }
+                                spouse.info().set(new_info);
+                            }
+                        },
+                    }
+                    if let Some(error) = get_field_error("spouse.info") {
+                        p { class: "text-sm text-red-600 mt-1", "{error}" }
+                    }
+                }
+
+                div { class: "form-group",
+                    label { class: "form-label",
+                        "صورة شخصية"
+                        if image_required_for(spouse.gender()(), &rules) {
+                            RequiredMark {}
+                        } else {
+                            " (اختياري)"
+                        }
+                    }
+                    input {
+                        r#type: "file",
+                        accept: "image/*",
+                        class: "input w-full",
+                        class: if has_field_error("spouse.image") { "input-error" },
+                        disabled: is_submitting(),
+                        onchange: move |evt| async move {
+                            #[cfg(feature = "web")]
+                            {
+                                if let Some(file_data) = evt.files().first() {
+                                    let Some(mime_type) = file_data.content_type() else {
+                                        return;
+                                    };
+                                    let max_size = 25 * 1024 * 1024;
+                                    let allowed_types = ["image/jpeg", "image/png", "image/gif"];
+                                    if file_data.size() as usize > max_size {
+                                        field_errors
+                                            .with_mut(|errors| {
+                                                errors
+                                                    .insert(
+                                                        "spouse.image".to_string(),
+                                                        "حجم الصورة يجب أن يكون أقل من 25MB".to_string(),
+                                                    );
+                                            });
+                                        return;
+                                    }
+                                    if !allowed_types.contains(&mime_type.as_str()) {
+                                        field_errors
+                                            .with_mut(|errors| {
+                                                errors
+                                                    .insert(
+                                                        "spouse.image".to_string(),
+                                                        "نوع الصورة غير مدعوم".to_string(),
+                                                    );
+                                            });
+                                        return;
+                                    }
+                                    if let Ok(bytes) = file_data.read_bytes().await {
+                                        spouse.image().set(Some(bytes.to_vec()));
+                                        spouse.image_type().set(Some(mime_type));
+                                        field_errors
+                                            .with_mut(|errors| {
+                                                errors.remove("spouse.image");
+                                            });
+                                    }
+                                }
+                            }
+                        },
+                    }
+                    if let Some(error) = get_field_error("spouse.image") {
+                        p { class: "text-sm text-red-600 mt-1", "{error}" }
+                    }
+                }
+            }
+
+            div { class: "form-group",
+                label { class: "form-label",
+                    "حالة الزواج"
+                    RequiredMark {}
+                }
+                select {
+                    class: "dropdown w-full",
+                    class: if has_field_error("spouse.status") { "dropdown-error" },
+                    disabled: is_submitting(),
+                    onchange: move |evt| {
+                        spouse.status().set(evt.value().parse::<MarriageStatus>().ok());
+                        clear_field_error("spouse.status");
+                    },
+                    option {
+                        value: "married",
+                        selected: spouse.status()() == Some(MarriageStatus::Married),
+                        "متزوج"
+                    }
+                    option {
+                        value: "separated",
+                        selected: spouse.status()() == Some(MarriageStatus::Separated),
+                        "منفصل"
+                    }
+                }
+                if let Some(error) = get_field_error("spouse.status") {
+                    p { class: "text-sm text-red-600 mt-1", "{error}" }
+                }
             }
         }
     }

@@ -15,7 +15,7 @@ use crate::{
             types::MemberFormData,
         },
         invite::server::create_invite,
-        member::server::{add_member, edit_member_image, members_flat},
+        member::server::{add_marriage, add_member, edit_member_image, members_flat},
         user::server::logout_user,
     },
     ui::modal::Modal,
@@ -315,6 +315,9 @@ pub fn Admin() -> Element {
             .await?;
             if let Some(image) = image {
                 edit_member_image(id, image).await?;
+            }
+            if let Some(spouse_id) = data.spouse_id {
+                add_marriage(id, spouse_id, data.marriage_status).await?;
             }
             members_resource.restart();
             show_modal.set(None);

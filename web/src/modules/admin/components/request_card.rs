@@ -8,6 +8,9 @@ use crate::modules::{
 
 #[derive(Props, Clone, PartialEq)]
 pub struct RequestCardProps {
+    /// The spouse submitted as a new person alongside this request, if any.
+    #[props(default)]
+    pub spouse_request: Option<RequestedMember>,
     request: RequestedMember,
     on_approve: EventHandler<Uuid>,
     on_reject: EventHandler<Uuid>,
@@ -18,6 +21,8 @@ pub struct RequestCardProps {
 pub fn RequestCard(props: RequestCardProps) -> Element {
     let mut image_state = use_signal(|| ImageState::Loading);
     let mut image_src = use_signal(String::new);
+
+    let spouse = spouse_label(&props.request, props.spouse_request.as_ref());
 
     use_effect(move || {
         if let Some(url) = &props.request.image {
@@ -160,6 +165,12 @@ pub fn RequestCard(props: RequestCardProps) -> Element {
                 }
 
                 // Family Relations
+                if let Some(spouse) = spouse.clone() {
+                    div { class: "text-xs text-gray-600 mb-3",
+                        span { class: "font-medium", "الزوج/الزوجة: " }
+                        span { "{spouse}" }
+                    }
+                }
                 if props.request.father_name.is_some() || props.request.mother_name.is_some() {
                     div { class: "text-xs text-gray-600 mb-3",
                         if let Some(father_name) = &props.request.father_name {
@@ -220,4 +231,26 @@ pub fn RequestCard(props: RequestCardProps) -> Element {
             }
         }
     }
+}
+
+/// How a request's spouse should read on the card: a member picked from the
+/// tree, or the new person submitted alongside it. Includes the marriage state,
+/// which lives on whichever row carries the link.
+fn spouse_label(
+    request: &RequestedMember,
+    spouse_request: Option<&RequestedMember>,
+) -> Option<String> {
+    let (name, status) = match (&request.spouse_name, spouse_request) {
+        (Some(name), _) => (name.clone(), request.marriage_status),
+        (None, Some(spouse)) => (
+            format!("{} {}", spouse.name, spouse.last_name),
+            spouse.marriage_status,
+        ),
+        (None, None) => return None,
+    };
+
+    Some(match status {
+        Some(status) => format!("{name} ({})", status.label()),
+        None => name,
+    })
 }

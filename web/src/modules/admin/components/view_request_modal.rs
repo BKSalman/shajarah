@@ -14,6 +14,9 @@ pub struct ViewRequestModalProps {
     pub show: bool,
     pub request: RequestedMember,
     pub children_requests: Vec<RequestedMember>,
+    /// The spouse submitted as a new person alongside this request, if any.
+    #[props(default)]
+    pub spouse_request: Option<RequestedMember>,
     pub on_close: EventHandler<()>,
     pub on_edit: EventHandler<Uuid>,
 }
@@ -52,6 +55,7 @@ pub fn ViewRequestModal(props: ViewRequestModalProps) -> Element {
                     FamilyRelationshipsSection {
                         request: props.request.clone(),
                         children_requests: props.children_requests,
+                        spouse_request: props.spouse_request,
                     }
                 }
                 if let Some(personal_info) = &props.request.personal_info {
@@ -205,6 +209,7 @@ fn BasicInformationSection(props: BasicInformationSectionProps) -> Element {
 struct FamilyRelationshipsSectionProps {
     request: RequestedMember,
     children_requests: Vec<RequestedMember>,
+    spouse_request: Option<RequestedMember>,
 }
 
 #[component]
@@ -224,6 +229,25 @@ fn FamilyRelationshipsSection(props: FamilyRelationshipsSectionProps) -> Element
                 div {
                     label { class: "text-sm font-medium text-gray-500", "الوالدة" }
                     p { class: "text-gray-900", "{mother_name}" }
+                }
+            }
+            if props.request.spouse_name.is_some() || props.spouse_request.is_some() {
+                div {
+                    label { class: "text-sm font-medium text-gray-500", "الزوج/الزوجة" }
+                    p { class: "text-gray-900 text-sm",
+                        if let Some(spouse_name) = &props.request.spouse_name {
+                            "{spouse_name}"
+                        } else if let Some(spouse) = &props.spouse_request {
+                            "{spouse.name} {spouse.last_name} (جديد)"
+                        }
+                    }
+                    if let Some(status) = props
+                        .request
+                        .marriage_status
+                        .or_else(|| props.spouse_request.as_ref().and_then(|s| s.marriage_status))
+                    {
+                        p { class: "text-xs text-gray-500", "{status.label()}" }
+                    }
                 }
             }
             if !props.children_requests.is_empty() {
