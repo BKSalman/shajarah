@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE marriages SET status = $1 WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "marriage_status",
+            "kind": {
+              "Enum": [
+                "married",
+                "separated"
+              ]
+            }
+          }
+        },
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "eb30430cc27fe53c0451291db482eeb1fd37f5de2655e528e51198173b2a5e82"
+}

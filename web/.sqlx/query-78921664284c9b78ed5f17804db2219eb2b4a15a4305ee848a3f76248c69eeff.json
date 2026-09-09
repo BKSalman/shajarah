@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO member_add_requests (id, name, gender, birthday, last_name, father_id, mother_id, image, image_type, personal_info, submitted_at, spouse_id, marriage_status)\n            VALUES ($1, $2, $3, $4::text::timestamptz, $5, $6, $7, $8, $9, $10, now(), $11, $12)\n            RETURNING id;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        {
+          "Custom": {
+            "name": "gender",
+            "kind": {
+              "Enum": [
+                "male",
+                "female"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Int8",
+        "Int8",
+        "Bytea",
+        "Text",
+        "Jsonb",
+        "Int8",
+        {
+          "Custom": {
+            "name": "marriage_status",
+            "kind": {
+              "Enum": [
+                "married",
+                "separated"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "78921664284c9b78ed5f17804db2219eb2b4a15a4305ee848a3f76248c69eeff"
+}

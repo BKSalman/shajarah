@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE member_add_requests\n            SET status = 'disapproved',\n                reviewed_at = NOW(),\n                reviewed_by = $1\n            WHERE id = $2\n            OR mother_request_id = $2\n            OR father_request_id = $2\n            OR spouse_of_request_id = $2;\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b774889b36ca508d63d7d5c05bf29ecea33a9a11fe14fae0235be2f842b12827"
+}

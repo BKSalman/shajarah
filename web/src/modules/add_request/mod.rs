@@ -68,6 +68,7 @@ fn AddMemberRequestForm() -> Element {
             info: seed_info(&rules),
             image: None,
             image_type: None,
+            spouse: None,
             children: Vec::new(),
         }
     });

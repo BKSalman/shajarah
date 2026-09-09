@@ -1,0 +1,90 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH names AS (\n            SELECT m.id, m.name, m.last_name, m.gender,\n                   CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name\n            FROM members m\n            LEFT JOIN members p2 ON m.father_id = p2.id\n            LEFT JOIN members p3 ON p2.father_id = p3.id\n            LEFT JOIN members p4 ON p3.father_id = p4.id\n        )\n        SELECT\n            mar.husband_id AS \"member_id!\",\n            mar.id AS \"marriage_id!\",\n            n.id AS \"id!\",\n            n.name AS \"name!\",\n            n.last_name AS \"last_name!\",\n            COALESCE(n.full_name, n.name) AS \"full_name!\",\n            n.gender AS \"gender!: Gender\",\n            mar.status AS \"status!: MarriageStatus\"\n        FROM marriages mar\n        JOIN names n ON n.id = mar.wife_id\n        UNION ALL\n        SELECT\n            mar.wife_id,\n            mar.id,\n            n.id,\n            n.name,\n            n.last_name,\n            COALESCE(n.full_name, n.name),\n            n.gender AS \"gender: Gender\",\n            mar.status AS \"status: MarriageStatus\"\n        FROM marriages mar\n        JOIN names n ON n.id = mar.husband_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "member_id!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "marriage_id!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "id!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "last_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "full_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "gender!: Gender",
+        "type_info": {
+          "Custom": {
+            "name": "gender",
+            "kind": {
+              "Enum": [
+                "male",
+                "female"
+              ]
+            }
+          }
+        },
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "status!: MarriageStatus",
+        "type_info": {
+          "Custom": {
+            "name": "marriage_status",
+            "kind": {
+              "Enum": [
+                "married",
+                "separated"
+              ]
+            }
+          }
+        },
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "9749aef54244058ade8ee5a56091853a1b6acc5588fe1c15b160a1e18218062b"
+}

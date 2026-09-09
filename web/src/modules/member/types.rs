@@ -52,6 +52,71 @@ impl FromStr for Gender {
     }
 }
 
+#[cfg_attr(feature = "server", derive(sqlx::Type))]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(
+    feature = "server",
+    sqlx(type_name = "marriage_status", rename_all = "snake_case")
+)]
+pub enum MarriageStatus {
+    #[default]
+    Married,
+    Separated,
+}
+
+impl core::fmt::Display for MarriageStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MarriageStatus::Married => write!(f, "married"),
+            MarriageStatus::Separated => write!(f, "separated"),
+        }
+    }
+}
+
+impl IntoAttributeValue for MarriageStatus {
+    fn into_value(self) -> dioxus_core::AttributeValue {
+        AttributeValue::Text(self.to_string())
+    }
+}
+
+impl FromStr for MarriageStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "married" => Ok(MarriageStatus::Married),
+            "separated" => Ok(MarriageStatus::Separated),
+            _ => Err(String::from("Invalid marriage status")),
+        }
+    }
+}
+
+/// The Arabic label shown for a marriage state.
+impl MarriageStatus {
+    pub fn label(&self) -> &'static str {
+        match self {
+            MarriageStatus::Married => "متزوج",
+            MarriageStatus::Separated => "منفصل",
+        }
+    }
+}
+
+/// One spouse as seen from a member. `member_id` is the member this row is a
+/// spouse *of*, used to group the flat query in Rust the way [`ChildMember`] is.
+#[cfg_attr(feature = "server", derive(sqlx::FromRow))]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub struct SpouseLink {
+    pub member_id: i64,
+    pub marriage_id: i64,
+    pub id: i64,
+    pub name: String,
+    pub last_name: String,
+    pub full_name: String,
+    pub gender: Gender,
+    pub status: MarriageStatus,
+}
+
 #[derive(Store, Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct MemberResponse {
     pub id: i64,
@@ -64,13 +129,18 @@ pub struct MemberResponse {
     pub mother_id: Option<i64>,
     pub personal_info: Option<IndexMap<String, String>>,
     pub children: Vec<MemberResponse>,
+    pub spouses: Vec<SpouseLink>,
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
 }
 
 impl MemberResponse {
     #[cfg(feature = "server")]
-    pub fn add_all_children(&mut self, all_members: &[MemberRowWithParents]) {
+    pub fn add_all_children(
+        &mut self,
+        all_members: &[MemberRowWithParents],
+        all_spouses: &[SpouseLink],
+    ) {
         use jiff::tz::TimeZone;
 
         self.children = all_members
@@ -97,12 +167,17 @@ impl MemberResponse {
                     })
                 }),
                 children: vec![],
+                spouses: all_spouses
+                    .iter()
+                    .filter(|spouse| spouse.member_id == m.id)
+                    .cloned()
+                    .collect(),
                 image: m.image.clone(),
                 image_type: m.image_type.clone(),
             })
             .collect();
         for child in &mut self.children {
-            child.add_all_children(all_members);
+            child.add_all_children(all_members, all_spouses);
         }
     }
 }
@@ -133,6 +208,7 @@ pub struct MemberResponseFlat {
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
     pub children: Vec<ChildMember>,
+    pub spouses: Vec<SpouseLink>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -248,4 +324,45 @@ pub struct EditMember {
     pub gender: Option<Gender>,
     pub birthday: EditField<Zoned>,
     pub personal_info: EditField<IndexMap<String, String>>,
+}
+
+/// Orders a couple into the `(husband_id, wife_id)` column pair. `None` when the
+/// two are the same person or share a gender — a marriage the schema rejects.
+pub fn spouse_columns(a: (i64, Gender), b: (i64, Gender)) -> Option<(i64, i64)> {
+    if a.0 == b.0 {
+        return None;
+    }
+
+    match (a.1, b.1) {
+        (Gender::Male, Gender::Female) => Some((a.0, b.0)),
+        (Gender::Female, Gender::Male) => Some((b.0, a.0)),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn spouse_columns_orders_by_gender() {
+        assert_eq!(
+            spouse_columns((1, Gender::Male), (2, Gender::Female)),
+            Some((1, 2))
+        );
+        assert_eq!(
+            spouse_columns((2, Gender::Female), (1, Gender::Male)),
+            Some((1, 2))
+        );
+    }
+
+    #[test]
+    fn spouse_columns_rejects_impossible_pairs() {
+        assert_eq!(spouse_columns((1, Gender::Male), (2, Gender::Male)), None);
+        assert_eq!(
+            spouse_columns((1, Gender::Female), (2, Gender::Female)),
+            None
+        );
+        assert_eq!(spouse_columns((1, Gender::Male), (1, Gender::Male)), None);
+    }
 }

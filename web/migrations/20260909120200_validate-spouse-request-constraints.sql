@@ -1,0 +1,6 @@
+ALTER TABLE member_add_requests VALIDATE CONSTRAINT fk_spouse;
+ALTER TABLE member_add_requests VALIDATE CONSTRAINT fk_spouse_request;
+ALTER TABLE member_add_requests VALIDATE CONSTRAINT chk_not_self_spouse;
+ALTER TABLE member_add_requests VALIDATE CONSTRAINT chk_one_spouse;
+ALTER TABLE member_add_requests VALIDATE CONSTRAINT chk_spouse_not_parent;
+ALTER TABLE member_add_requests VALIDATE CONSTRAINT chk_marriage_status_with_spouse;

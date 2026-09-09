@@ -1,0 +1,240 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE member_add_requests request\n            SET reviewed_at = now(), reviewed_by = $1, status = 'approved'\n            WHERE request.spouse_of_request_id = $2\n            RETURNING id, name, gender as \"gender: Gender\", birthday as \"birthday: jiff_sqlx::Timestamp\", last_name, image, status as \"status: RequestStatus\",\n                image_type, mother_id, father_id, personal_info as \"personal_info: Json<IndexMap<String, String>>\",\n                mother_request_id, father_request_id, spouse_id, spouse_of_request_id,\n                marriage_status as \"marriage_status: MarriageStatus\";\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "gender: Gender",
+        "type_info": {
+          "Custom": {
+            "name": "gender",
+            "kind": {
+              "Enum": [
+                "male",
+                "female"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "gender"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "birthday: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "birthday"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "last_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "last_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "image",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "image"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "status: RequestStatus",
+        "type_info": {
+          "Custom": {
+            "name": "request_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "approved",
+                "disapproved"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "image_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "image_type"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "mother_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "mother_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "father_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "father_id"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "personal_info: Json<IndexMap<String, String>>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "personal_info"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "mother_request_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "mother_request_id"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "father_request_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "father_request_id"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "spouse_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "spouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "spouse_of_request_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "spouse_of_request_id"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "marriage_status: MarriageStatus",
+        "type_info": {
+          "Custom": {
+            "name": "marriage_status",
+            "kind": {
+              "Enum": [
+                "married",
+                "separated"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "member_add_requests",
+            "name": "marriage_status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "97b00c215e8a51b83b750dbbc98ff2cbede7f61a9cd834034eaea5d215833f3e"
+}

@@ -16,7 +16,7 @@ mod server_imports {
 
 use crate::modules::member::types::{EditMember, MemberUnauthorizedResponseFlat};
 
-use super::types::{Gender, MemberResponse, MemberResponseFlat};
+use super::types::{Gender, MarriageStatus, MemberResponse, MemberResponseFlat, SpouseLink};
 #[cfg(feature = "server")]
 use server_imports::*;
 
@@ -60,6 +60,8 @@ pub async fn members() -> anyhow::Result<MemberResponse> {
     .fetch_all(&state.db_pool)
     .await?;
 
+    let spouses = all_spouse_links(&state.db_pool).await?;
+
     let family_name = state.config.family_name.clone().unwrap_or_default();
 
     // XXX: this is kinda hacky, maybe send the family name and let egui handle it
@@ -74,6 +76,8 @@ pub async fn members() -> anyhow::Result<MemberResponse> {
         mother_id: None,
         personal_info: None,
         children: Vec::new(),
+        // the synthetic family root is not a person and never marries
+        spouses: Vec::new(),
         image: None,
         image_type: None,
     };
@@ -100,16 +104,71 @@ pub async fn members() -> anyhow::Result<MemberResponse> {
                 })
             }),
             children: Vec::new(),
+            spouses: spouses_of(&spouses, root.id),
             image: root.image.clone(),
             image_type: root.image_type.clone(),
         };
 
-        root.add_all_children(&recs);
+        root.add_all_children(&recs, &spouses);
 
         family_node.children.push(root);
     }
 
     Ok(family_node)
+}
+
+/// The spouses of one member, picked out of [`all_spouse_links`]'s flat result.
+#[cfg(feature = "server")]
+fn spouses_of(all_spouses: &[SpouseLink], member_id: i64) -> Vec<SpouseLink> {
+    all_spouses
+        .iter()
+        .filter(|spouse| spouse.member_id == member_id)
+        .cloned()
+        .collect()
+}
+
+/// Every marriage, flattened twice — once under each partner — so callers can
+/// group by `member_id` exactly like [`ChildMember`]s are grouped.
+#[cfg(feature = "server")]
+async fn all_spouse_links(db_pool: &sqlx::PgPool) -> Result<Vec<SpouseLink>, sqlx::Error> {
+    sqlx::query_as!(
+        SpouseLink,
+        r#"
+        WITH names AS (
+            SELECT m.id, m.name, m.last_name, m.gender,
+                   CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name
+            FROM members m
+            LEFT JOIN members p2 ON m.father_id = p2.id
+            LEFT JOIN members p3 ON p2.father_id = p3.id
+            LEFT JOIN members p4 ON p3.father_id = p4.id
+        )
+        SELECT
+            mar.husband_id AS "member_id!",
+            mar.id AS "marriage_id!",
+            n.id AS "id!",
+            n.name AS "name!",
+            n.last_name AS "last_name!",
+            COALESCE(n.full_name, n.name) AS "full_name!",
+            n.gender AS "gender!: Gender",
+            mar.status AS "status!: MarriageStatus"
+        FROM marriages mar
+        JOIN names n ON n.id = mar.wife_id
+        UNION ALL
+        SELECT
+            mar.wife_id,
+            mar.id,
+            n.id,
+            n.name,
+            n.last_name,
+            COALESCE(n.full_name, n.name),
+            n.gender AS "gender: Gender",
+            mar.status AS "status: MarriageStatus"
+        FROM marriages mar
+        JOIN names n ON n.id = mar.husband_id
+        "#,
+    )
+    .fetch_all(db_pool)
+    .await
 }
 
 #[get("/api/v1/members/admin/flat", Extension(state): Extension<AppState>, _user: AuthExtractor<{ UserRole::User as u8 }>)]
@@ -170,6 +229,10 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
     .await
     .with_context(|| "get members children")?;
 
+    let all_spouses = all_spouse_links(&state.db_pool)
+        .await
+        .with_context(|| "get members spouses")?;
+
     let members: Vec<MemberResponseFlat> = recs
         .into_iter()
         .map(|m| {
@@ -199,6 +262,7 @@ pub async fn members_flat() -> anyhow::Result<Vec<MemberResponseFlat>> {
                 image: m.image,
                 image_type: m.image_type,
                 children,
+                spouses: spouses_of(&all_spouses, m.id),
             }
         })
         .collect();
@@ -280,6 +344,73 @@ pub async fn members_flat_unauthorized() -> anyhow::Result<Vec<MemberUnauthorize
         .collect();
 
     Ok(members)
+}
+
+#[post("/api/v1/members/{id}/marriages", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, Extension(state): Extension<AppState>)]
+pub async fn add_marriage(id: i64, spouse_id: i64, status: MarriageStatus) -> anyhow::Result<i64> {
+    use crate::modules::member::types::spouse_columns;
+
+    let pair = sqlx::query!(
+        r#"SELECT id, gender as "gender: Gender" FROM members WHERE id = $1 OR id = $2"#,
+        id,
+        spouse_id,
+    )
+    .fetch_all(&state.db_pool)
+    .await?;
+
+    let (Some(member), Some(spouse)) = (
+        pair.iter().find(|m| m.id == id),
+        pair.iter().find(|m| m.id == spouse_id),
+    ) else {
+        return Err(anyhow::anyhow!("لم يتم العثور على أحد الطرفين"));
+    };
+
+    let Some((husband_id, wife_id)) =
+        spouse_columns((member.id, member.gender), (spouse.id, spouse.gender))
+    else {
+        return Err(anyhow::anyhow!("لا يمكن ربط شخصين من نفس الجنس"));
+    };
+
+    // Re-adding a couple that was separated reads as a state change, not a clash.
+    let marriage = sqlx::query!(
+        r#"
+            INSERT INTO marriages (husband_id, wife_id, status)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (husband_id, wife_id)
+            DO UPDATE SET status = EXCLUDED.status
+            RETURNING id;
+        "#,
+        husband_id,
+        wife_id,
+        status as _,
+    )
+    .fetch_one(&state.db_pool)
+    .await?;
+
+    Ok(marriage.id)
+}
+
+#[put("/api/v1/marriages/{id}", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, Extension(state): Extension<AppState>)]
+pub async fn set_marriage_status(id: i64, status: MarriageStatus) -> anyhow::Result<()> {
+    sqlx::query!(
+        r#"UPDATE marriages SET status = $1 WHERE id = $2"#,
+        status as _,
+        id,
+    )
+    .execute(&state.db_pool)
+    .await?;
+
+    Ok(())
+}
+
+/// Removes the marriage only — both people stay in the tree.
+#[delete("/api/v1/marriages/{id}", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, Extension(state): Extension<AppState>)]
+pub async fn remove_marriage(id: i64) -> anyhow::Result<()> {
+    sqlx::query!(r#"DELETE FROM marriages WHERE id = $1"#, id)
+        .execute(&state.db_pool)
+        .await?;
+
+    Ok(())
 }
 
 #[post("/api/v1/members", _admin: AuthExtractor<{ UserRole::Admin as u8 }>, state: Extension<AppState>)]

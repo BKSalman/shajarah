@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO marriages (husband_id, wife_id, status)\n                VALUES ($1, $2, $3)\n                ON CONFLICT (husband_id, wife_id)\n                DO UPDATE SET status = EXCLUDED.status;\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        {
+          "Custom": {
+            "name": "marriage_status",
+            "kind": {
+              "Enum": [
+                "married",
+                "separated"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "67614ad8effc79fcaa138e3bf95583bf6af69eeef5a4a7d714cd882c9cb04993"
+}

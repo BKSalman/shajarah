@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO members (name, gender, birthday, last_name, father_id, mother_id, personal_info, image, image_type)\n                    VALUES ($1, $2, $3::text::timestamptz, $4, NULL, NULL, $5, $6, $7)\n                    RETURNING id;\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "members",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        {
+          "Custom": {
+            "name": "gender",
+            "kind": {
+              "Enum": [
+                "male",
+                "female"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Jsonb",
+        "Bytea",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f4f74bc228498e0db2c290742ccd374d7e8f40689ebdaf38d29c77ee3d812685"
+}

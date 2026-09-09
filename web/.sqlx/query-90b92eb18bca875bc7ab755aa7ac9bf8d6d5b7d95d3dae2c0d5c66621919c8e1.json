@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                INSERT INTO member_add_requests (id, name, gender, birthday, last_name, image, image_type, personal_info, submitted_at, mother_request_id, father_request_id)\n                VALUES ($1, $2, $3, $4::text::timestamptz, $5, $6, $7, $8, now(), $9, $10)\n            ",
+  "query": "\n                INSERT INTO member_add_requests (id, name, gender, birthday, last_name, image, image_type, personal_info, submitted_at, mother_request_id, father_request_id, mother_id, father_id)\n                VALUES ($1, $2, $3, $4::text::timestamptz, $5, $6, $7, $8, now(), $9, $10, $11, $12)\n            ",
   "describe": {
     "columns": [],
     "parameters": {
@@ -24,10 +24,12 @@
         "Text",
         "Jsonb",
         "Uuid",
-        "Uuid"
+        "Uuid",
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": []
   },
-  "hash": "57277534ce9da6aa34dd734898723e0c832d20b750430b956ccd135d0531d95c"
+  "hash": "90b92eb18bca875bc7ab755aa7ac9bf8d6d5b7d95d3dae2c0d5c66621919c8e1"
 }

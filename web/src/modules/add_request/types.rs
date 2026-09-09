@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::i18n::Arabic;
-use crate::modules::member::types::Gender;
+use crate::modules::member::types::{Gender, MarriageStatus};
 use crate::modules::settings::types::RequestRules;
 
 /// Fields whose requiredness the admin controls are validated with
@@ -35,7 +35,47 @@ pub struct RequestData {
     #[garde(skip)]
     pub image_type: Option<String>,
     #[garde(dive)]
+    pub spouse: Option<RequestSpouseData>,
+    #[garde(dive)]
     pub children: Vec<RequestChildData>,
+}
+
+/// Which of the two ways a spouse was given: an existing member of the tree, or
+/// somebody from outside it who gets created when the request is approved.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpouseKind {
+    #[default]
+    Existing,
+    New,
+}
+
+/// The fields for [`SpouseKind::New`] mirror [`RequestChildData`], with one
+/// addition: an outside spouse keeps their own family name instead of
+/// inheriting the requested member's.
+#[derive(Default, Debug, Clone, Store, garde::Validate, Serialize, Deserialize)]
+#[garde(context(RequestRules as rules))]
+pub struct RequestSpouseData {
+    #[garde(skip)]
+    pub kind: SpouseKind,
+    #[garde(custom(require_picked_member(self.kind)))]
+    pub member_id: Option<i64>,
+    #[garde(custom(require_new_spouse_text(self.kind)))]
+    pub name: Option<String>,
+    #[garde(custom(require_new_spouse_text(self.kind)))]
+    pub last_name: Option<String>,
+    #[garde(custom(require_new_spouse_gender(self.kind)))]
+    pub gender: Option<Gender>,
+    #[garde(custom(require_new_spouse_birthday(self.kind)))]
+    pub birthday: Option<Zoned>,
+    #[garde(custom(require_new_spouse_info(self.kind)))]
+    pub info: IndexMap<String, String>,
+    #[garde(custom(require_new_spouse_image(self.kind, self.gender)))]
+    pub image: Option<Vec<u8>>,
+    #[garde(skip)]
+    pub image_type: Option<String>,
+    #[garde(required)]
+    pub status: Option<MarriageStatus>,
 }
 
 #[derive(Default, Debug, Clone, Store, garde::Validate, Serialize, Deserialize)]
@@ -53,6 +93,10 @@ pub struct RequestChildData {
     pub image: Option<Vec<u8>>,
     #[garde(skip)]
     pub image_type: Option<String>,
+    /// The child belongs to the couple, not just to the requested member.
+    /// Ignored when the request carries no spouse.
+    #[garde(skip)]
+    pub from_spouse: bool,
 }
 
 pub fn missing_required_info(info: &IndexMap<String, String>, keys: &[String]) -> Vec<String> {
@@ -95,6 +139,79 @@ fn require_image(
 
 pub fn image_required_for(gender: Option<Gender>, rules: &RequestRules) -> bool {
     rules.require_image && gender != Some(Gender::Female)
+}
+
+fn require_picked_member(
+    kind: SpouseKind,
+) -> impl FnOnce(&Option<i64>, &RequestRules) -> garde::Result {
+    move |value, _| {
+        if kind == SpouseKind::Existing && value.is_none() {
+            return Err(required_message());
+        }
+
+        Ok(())
+    }
+}
+
+fn require_new_spouse_text(
+    kind: SpouseKind,
+) -> impl FnOnce(&Option<String>, &RequestRules) -> garde::Result {
+    move |value, _| {
+        if kind == SpouseKind::New && value.as_ref().is_none_or(|v| v.trim().is_empty()) {
+            return Err(required_message());
+        }
+
+        Ok(())
+    }
+}
+
+fn require_new_spouse_gender(
+    kind: SpouseKind,
+) -> impl FnOnce(&Option<Gender>, &RequestRules) -> garde::Result {
+    move |value, _| {
+        if kind == SpouseKind::New && value.is_none() {
+            return Err(required_message());
+        }
+
+        Ok(())
+    }
+}
+
+fn require_new_spouse_birthday(
+    kind: SpouseKind,
+) -> impl FnOnce(&Option<Zoned>, &RequestRules) -> garde::Result {
+    move |value, rules| {
+        if kind == SpouseKind::New {
+            return require_birthday(value, rules);
+        }
+
+        Ok(())
+    }
+}
+
+fn require_new_spouse_info(
+    kind: SpouseKind,
+) -> impl FnOnce(&IndexMap<String, String>, &RequestRules) -> garde::Result {
+    move |value, rules| {
+        if kind == SpouseKind::New {
+            return require_info_keys(value, rules);
+        }
+
+        Ok(())
+    }
+}
+
+fn require_new_spouse_image(
+    kind: SpouseKind,
+    gender: Option<Gender>,
+) -> impl FnOnce(&Option<Vec<u8>>, &RequestRules) -> garde::Result {
+    move |value, rules| {
+        if kind == SpouseKind::New {
+            return require_image(gender)(value, rules);
+        }
+
+        Ok(())
+    }
 }
 
 fn require_info_keys(value: &IndexMap<String, String>, rules: &RequestRules) -> garde::Result {
@@ -142,6 +259,10 @@ pub struct RequestedMember {
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
     pub status: RequestStatus,
+    pub spouse_id: Option<i64>,
+    pub spouse_of_request_id: Option<Uuid>,
+    pub spouse_name: Option<String>,
+    pub marriage_status: Option<MarriageStatus>,
 }
 
 #[cfg(feature = "server")]
@@ -158,6 +279,11 @@ pub struct RequestedMemberBrief {
     pub image: Option<Vec<u8>>,
     pub image_type: Option<String>,
     pub status: RequestStatus,
+    pub mother_request_id: Option<Uuid>,
+    pub father_request_id: Option<Uuid>,
+    pub spouse_id: Option<i64>,
+    pub spouse_of_request_id: Option<Uuid>,
+    pub marriage_status: Option<MarriageStatus>,
 }
 
 #[cfg(feature = "server")]
@@ -184,6 +310,10 @@ pub struct RequestedMemberRowWithParents {
     pub father_birthday: Option<jiff_sqlx::Timestamp>,
     pub father_last_name: Option<String>,
     pub status: RequestStatus,
+    pub spouse_id: Option<i64>,
+    pub spouse_of_request_id: Option<Uuid>,
+    pub spouse_name: Option<String>,
+    pub marriage_status: Option<MarriageStatus>,
 }
 
 #[cfg(test)]
@@ -202,7 +332,17 @@ mod tests {
             info: IndexMap::new(),
             image: None,
             image_type: None,
+            spouse: None,
             children: Vec::new(),
+        }
+    }
+
+    fn picked_spouse() -> RequestSpouseData {
+        RequestSpouseData {
+            kind: SpouseKind::Existing,
+            member_id: Some(42),
+            status: Some(MarriageStatus::Married),
+            ..RequestSpouseData::default()
         }
     }
 
@@ -280,6 +420,100 @@ mod tests {
             .validate_with(&rules)
             .expect_err("the son still needs an image");
         assert_eq!(error_paths(&report), ["children[1].image"]);
+    }
+
+    #[test]
+    fn a_picked_spouse_only_needs_a_member_and_a_state() {
+        let rules = RequestRules {
+            require_birthday: false,
+            require_image: true,
+            required_info_keys: vec!["المهنة".to_string()],
+            ..RequestRules::default()
+        };
+
+        let mut request = valid_request();
+        request
+            .info
+            .insert("المهنة".to_string(), "محامي".to_string());
+        request.image = Some(vec![0]);
+        request.spouse = Some(picked_spouse());
+
+        // None of the admin's field rules apply to somebody already in the tree.
+        assert!(request.validate_with(&rules).is_ok());
+
+        request.spouse = Some(RequestSpouseData {
+            member_id: None,
+            ..picked_spouse()
+        });
+        let report = request
+            .validate_with(&rules)
+            .expect_err("a picked spouse needs a member");
+        assert_eq!(error_paths(&report), ["spouse.member_id"]);
+    }
+
+    #[test]
+    fn a_new_spouse_reports_the_paths_the_form_uses() {
+        let rules = RequestRules {
+            require_birthday: false,
+            ..RequestRules::default()
+        };
+
+        let mut request = valid_request();
+        request.spouse = Some(RequestSpouseData {
+            kind: SpouseKind::New,
+            ..RequestSpouseData::default()
+        });
+
+        let report = request
+            .validate_with(&rules)
+            .expect_err("a blank new spouse is not valid");
+
+        let mut paths = error_paths(&report);
+        paths.sort();
+        assert_eq!(
+            paths,
+            [
+                "spouse.gender",
+                "spouse.last_name",
+                "spouse.name",
+                "spouse.status",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_new_spouse_follows_the_admins_field_rules() {
+        let rules = RequestRules {
+            require_birthday: false,
+            require_image: true,
+            ..RequestRules::default()
+        };
+
+        let mut spouse = RequestSpouseData {
+            kind: SpouseKind::New,
+            name: Some("نورة".to_string()),
+            last_name: Some("القحطاني".to_string()),
+            gender: Some(Gender::Female),
+            status: Some(MarriageStatus::Married),
+            ..RequestSpouseData::default()
+        };
+
+        let mut request = valid_request();
+        request.image = Some(vec![0]);
+        request.spouse = Some(spouse.clone());
+
+        // the female exemption reaches an outside spouse too
+        assert!(request.validate_with(&rules).is_ok());
+
+        spouse.gender = Some(Gender::Male);
+        spouse.name = Some("خالد".to_string());
+        request.gender = Some(Gender::Female);
+        request.spouse = Some(spouse);
+
+        let report = request
+            .validate_with(&rules)
+            .expect_err("a male outside spouse still needs an image");
+        assert_eq!(error_paths(&report), ["spouse.image"]);
     }
 
     #[test]
