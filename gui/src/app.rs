@@ -1,4 +1,9 @@
-use crate::{Message, bidi::bidi_job, load_family_data, setup_fonts, tree::TreeUi};
+use crate::{
+    Message,
+    bidi::bidi_job,
+    load_family_data, setup_fonts,
+    tree::{MarriageStatus, TreeUi},
+};
 use eframe::egui::{self, Align, TextFormat, Widget as _};
 use shared::EguiCommand;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -110,6 +115,22 @@ impl eframe::App for App {
                             ..Default::default()
                         };
                         ui.label(bidi_job(node.full_name(), heading.clone()));
+                        // Spouses drawn in their own right get no card beside
+                        // this node, so this is where they show up.
+                        if !node.spouses().is_empty() {
+                            ui.add_space(10.);
+                            ui.label(bidi_job("الزواج:", heading.clone()));
+                            for spouse in node.spouses() {
+                                let status = match spouse.status {
+                                    MarriageStatus::Married => "متزوج",
+                                    MarriageStatus::Separated => "منفصل",
+                                };
+                                ui.label(bidi_job(
+                                    &format!("{}: {status}", spouse.full_name),
+                                    heading.clone(),
+                                ));
+                            }
+                        }
                         if let Some(personal_info) = node.personal_info()
                             && !personal_info.is_empty()
                         {

@@ -120,6 +120,23 @@ fn yes() -> bool {
     true
 }
 
+/// Mirrors the server's `marriage_status` enum.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MarriageStatus {
+    Married,
+    Separated,
+}
+
+/// One spouse of a node. Extra fields the server sends are ignored.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Spouse {
+    pub id: i64,
+    pub name: String,
+    pub full_name: String,
+    pub status: MarriageStatus,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node {
     pub id: i64,
@@ -132,6 +149,10 @@ pub struct Node {
     mother_id: Option<i64>,
     pub personal_info: Option<IndexMap<String, String>>,
     pub children: Vec<Node>,
+    /// Defaulted so the canvas still loads against a server that predates
+    /// marriages, or a cached response from one.
+    #[serde(default)]
+    pub spouses: Vec<Spouse>,
     image: Option<Vec<u8>>,
     #[serde(default = "yes")]
     collapsed: bool,
@@ -150,6 +171,10 @@ impl Node {
 
     pub fn full_name(&self) -> &str {
         &self.full_name
+    }
+
+    pub fn spouses(&self) -> &[Spouse] {
+        &self.spouses
     }
 
     pub fn personal_info(&self) -> Option<&IndexMap<String, String>> {

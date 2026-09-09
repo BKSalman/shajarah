@@ -4,11 +4,14 @@ use egui::Stroke;
 use egui::StrokeKind;
 use egui::epaint::PathStroke;
 use egui::{
-    Color32, CornerRadius, FontFamily, FontId, PointerButton, Pos2, Rect, Sense, Shape, TextFormat,
-    Vec2, epaint::CubicBezierShape, text::LayoutJob,
+    Color32, CornerRadius, FontFamily, FontId, PointerButton, Pos2, Rect, Response, Sense, Shape,
+    TextFormat, Vec2, epaint::CubicBezierShape, text::LayoutJob,
 };
 
-use super::{DEFAULT_IMAGE, NODE_RADIUS, Node, TreeUi, layout::LayoutTree};
+use super::{
+    DEFAULT_IMAGE, MarriageStatus, NODE_RADIUS, Node, Spouse, TreeUi,
+    layout::{LayoutTree, SPOUSE_SLOT},
+};
 use crate::bidi::append_bidi;
 use crate::zoom::Zoom;
 
@@ -119,6 +122,39 @@ impl Node {
         );
         let image_res = ui.allocate_rect(image_rect, Sense::click());
 
+        // A spouse who has a node of their own is already drawn there; only the
+        // ones from outside the tree get a card beside this node. Cards go to
+        // the right, the side the expand indicator leaves free.
+        let spouses: Vec<Spouse> = self
+            .spouses
+            .iter()
+            .filter(|spouse| !layout_tree.has_node(spouse.id))
+            .cloned()
+            .collect();
+
+        let spouse_cards: Vec<(Spouse, Pos2, Rect)> = spouses
+            .into_iter()
+            .enumerate()
+            .map(|(i, spouse)| {
+                let center = node_coords + Vec2::new(SPOUSE_SLOT * (i + 1) as f32, 0.) * scale;
+                let rect = Rect::from_center_size(
+                    center,
+                    (Vec2::splat(NODE_RADIUS as f32 * 2.) * scale) + Vec2::splat(1.0),
+                );
+                (spouse, center, rect)
+            })
+            .collect();
+
+        // Hover only: the bottom panel shows a real node, and a spouse card
+        // isn't one.
+        let spouse_responses: Vec<Response> = spouse_cards
+            .iter()
+            .map(|(spouse, _, rect)| {
+                ui.allocate_rect(*rect, Sense::hover())
+                    .on_hover_text(&spouse.full_name)
+            })
+            .collect();
+
         let indicator_rect = Rect::from_min_size(
             image_rect.min - Vec2::new(EXPAND_INDICATOR_SIZE * 2., 0.),
             Vec2::new(EXPAND_INDICATOR_SIZE * 2., image_rect.height()),
@@ -168,6 +204,29 @@ impl Node {
         );
         let text_size = galley.size();
         painter.galley(text_coords, galley, Color32::WHITE);
+
+        // Each segment joins a card to the one on its left, and carries the
+        // state of the marriage it stands for: solid married, dashed separated.
+        let mut link_from = node_coords;
+        for (spouse, center, _) in &spouse_cards {
+            let a = Pos2::new(link_from.x + NODE_RADIUS as f32 * scale, link_from.y);
+            let b = Pos2::new(center.x - NODE_RADIUS as f32 * scale, center.y);
+            let link_stroke = Stroke::new(stroke.width * 2., stroke.color);
+
+            match spouse.status {
+                MarriageStatus::Married => {
+                    painter.line_segment([a, b], link_stroke);
+                }
+                MarriageStatus::Separated => painter.extend(Shape::dashed_line(
+                    &[a, b],
+                    Stroke::new(link_stroke.width, link_stroke.color.gamma_multiply(0.6)),
+                    5.0 * scale,
+                    4.0 * scale,
+                )),
+            }
+
+            link_from = *center;
+        }
 
         if !self.collapsed {
             for child in self.children.iter() {
@@ -286,6 +345,41 @@ impl Node {
             let painter = ui.painter();
             painter.circle_stroke(node_coords, NODE_RADIUS as f32 * scale, stroke);
         }
+
+        for ((spouse, center, rect), response) in spouse_cards.iter().zip(&spouse_responses) {
+            let painter = ui.painter();
+            painter.circle_filled(*center, NODE_RADIUS as f32 * scale, Color32::LIGHT_GRAY);
+
+            let mut job = LayoutJob::default();
+            append_bidi(
+                &mut job,
+                &spouse.name,
+                &TextFormat {
+                    font_id: FontId::new(20.0 * scale, FontFamily::Proportional),
+                    color: ui.visuals().text_color(),
+                    ..Default::default()
+                },
+            );
+            let galley = painter.layout_job(job);
+            painter.galley(
+                Pos2::new(
+                    center.x - galley.size().x / 2.,
+                    center.y + NODE_RADIUS as f32 * scale,
+                ),
+                galley,
+                Color32::WHITE,
+            );
+
+            egui::Image::new(DEFAULT_IMAGE)
+                .corner_radius(CornerRadius::same(NODE_RADIUS) * scale)
+                .maintain_aspect_ratio(true)
+                .paint_at(ui, *rect);
+
+            if response.hovered() {
+                ui.painter()
+                    .circle_stroke(*center, NODE_RADIUS as f32 * scale, stroke);
+            }
+        }
         #[cfg(feature = "debug-ui")]
         painter.rect_stroke(
             Rect {
@@ -299,5 +393,131 @@ impl Node {
             Stroke::new(1., Color32::GREEN),
             StrokeKind::Middle,
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tree::layout::LayoutTree;
+
+    fn tree_with_spouse(status: &str, spouse_id: i64) -> (Node, LayoutTree) {
+        let root: Node = serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "name": "فهد",
+            "full_name": "فهد العتيبي",
+            "gender": "male",
+            "birthday": null,
+            "last_name": "العتيبي",
+            "father_id": null,
+            "mother_id": null,
+            "personal_info": null,
+            "children": [],
+            "spouses": [{
+                "id": spouse_id,
+                "name": "نورة",
+                "full_name": "نورة القحطاني",
+                "status": status,
+            }],
+            "image": null,
+            "collapsed": false,
+        }))
+        .expect("node json");
+
+        let mut layout_tree = LayoutTree::new();
+        layout_tree.update_tree(root.clone());
+        layout_tree.layout();
+
+        (root, layout_tree)
+    }
+
+    /// Runs one headless frame and hands back what was painted.
+    fn painted(node: &mut Node, layout_tree: &mut LayoutTree) -> Vec<Shape> {
+        let ctx = egui::Context::default();
+        ctx.set_fonts(egui::FontDefinitions::empty());
+
+        let mut offset = Vec2::ZERO;
+        let mut selected = None;
+
+        let mut output = ctx.run_ui(Default::default(), |ui| {
+            node.draw(ui, &mut offset, 1.0, layout_tree, &mut selected, false);
+        });
+
+        let shapes = output
+            .shapes
+            .drain(..)
+            .map(|clipped| clipped.shape)
+            .collect();
+
+        // the frame is never painted, so its texture deltas go unapplied
+        output.textures_delta.clear();
+
+        shapes
+    }
+
+    fn circles(shapes: &[Shape]) -> Vec<Pos2> {
+        shapes
+            .iter()
+            .filter_map(|shape| match shape {
+                Shape::Circle(circle) => Some(circle.center),
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn line_segments(shapes: &[Shape]) -> usize {
+        shapes
+            .iter()
+            .filter(|shape| matches!(shape, Shape::LineSegment { .. }))
+            .count()
+    }
+
+    #[test]
+    fn an_outside_spouse_is_drawn_beside_the_member() {
+        let (mut root, mut layout_tree) = tree_with_spouse("married", 99);
+        let shapes = painted(&mut root, &mut layout_tree);
+
+        let centers = circles(&shapes);
+        assert_eq!(
+            centers.len(),
+            2,
+            "the member and the spouse each get a card"
+        );
+        assert_eq!(
+            centers[1].x - centers[0].x,
+            crate::tree::layout::SPOUSE_SLOT,
+            "the spouse sits one slot to the right"
+        );
+        assert_eq!(centers[1].y, centers[0].y, "and on the same row");
+    }
+
+    #[test]
+    fn a_married_link_is_solid_and_a_separated_one_is_dashed() {
+        let (mut root, mut layout_tree) = tree_with_spouse("married", 99);
+        let married = line_segments(&painted(&mut root, &mut layout_tree));
+
+        let (mut root, mut layout_tree) = tree_with_spouse("separated", 99);
+        let separated = line_segments(&painted(&mut root, &mut layout_tree));
+
+        assert_eq!(married, 1, "a marriage is one unbroken line");
+        assert!(
+            separated > married,
+            "a separated marriage is dashed, got {separated} segments"
+        );
+    }
+
+    #[test]
+    fn a_spouse_with_their_own_node_is_not_drawn_twice() {
+        // The spouse's id is the member's own node id here, standing in for the
+        // cousin case where the spouse is already somewhere in the tree.
+        let (mut root, mut layout_tree) = tree_with_spouse("married", 1);
+        let shapes = painted(&mut root, &mut layout_tree);
+
+        assert_eq!(
+            circles(&shapes).len(),
+            1,
+            "only the member's own card should be painted"
+        );
+        assert_eq!(line_segments(&shapes), 0, "and no marriage link");
     }
 }

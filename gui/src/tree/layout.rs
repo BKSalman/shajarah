@@ -1,17 +1,36 @@
 use super::{NODE_RADIUS, Node};
 use crate::Gender;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 const NODE_PADDING: f32 = NODE_RADIUS as f32 * 1.2;
+/// Gap between a member's card and each spouse card drawn beside it.
+pub const SPOUSE_GAP: f32 = 24.0;
+/// What one spouse card adds to a node's width.
+pub const SPOUSE_SLOT: f32 = NODE_RADIUS as f32 * 2. + SPOUSE_GAP;
 /// this holds all the nodes, and acts as an arena allocator.
 /// this is done to be able to mutate nodes while iterating them
 /// in different orders
-pub struct LayoutTree(Vec<LayoutNode>);
+pub struct LayoutTree {
+    nodes: Vec<LayoutNode>,
+    /// Every id drawn as a node, so a spouse who has their own place in the
+    /// tree is never drawn a second time beside their partner.
+    ids: HashSet<i64>,
+}
 impl LayoutTree {
     pub fn new() -> Self {
-        Self(Vec::new())
+        Self {
+            nodes: Vec::new(),
+            ids: HashSet::new(),
+        }
+    }
+
+    /// Whether this member is drawn somewhere in the tree in their own right.
+    pub fn has_node(&self, id: i64) -> bool {
+        self.ids.contains(&id)
     }
     pub fn update_tree(&mut self, root: Node) {
         let mut tree = Vec::new();
+        let mut spouses_by_node: Vec<Vec<i64>> =
+            vec![root.spouses.iter().map(|spouse| spouse.id).collect()];
         tree.push(LayoutNode {
             id: root.id,
             order: 0,
@@ -25,6 +44,7 @@ impl LayoutTree {
             y: 0.,
             mod_: 0.,
             collapsed: root.collapsed,
+            spouse_extra: 0.,
         });
         let mut queue = std::collections::VecDeque::new();
         queue.push_back((0, root));
@@ -55,28 +75,43 @@ impl LayoutTree {
                     y: 0.,
                     mod_: 0.,
                     collapsed: child.collapsed,
+                    spouse_extra: 0.,
                 });
+                spouses_by_node.push(child.spouses.iter().map(|spouse| spouse.id).collect());
                 queue.push_back((index, child));
             }
         }
-        self.0 = tree;
+        // A spouse only gets a card when they have no node of their own, so the
+        // widths can only be worked out once every id is known.
+        let ids: HashSet<i64> = tree.iter().map(|node| node.id).collect();
+        for (node, spouses) in tree.iter_mut().zip(spouses_by_node) {
+            node.spouse_extra = spouses
+                .iter()
+                .filter(|spouse_id| !ids.contains(spouse_id))
+                .count() as f32
+                * SPOUSE_SLOT;
+        }
+
+        self.nodes = tree;
+        self.ids = ids;
     }
     pub fn set_root(&mut self, root: Option<Node>) {
         if let Some(root) = root {
             self.update_tree(root)
         } else {
-            self.0 = vec![];
+            self.nodes = vec![];
+            self.ids.clear();
         }
     }
     pub fn reset_positions(&mut self) {
-        for node in &mut self.0 {
+        for node in &mut self.nodes {
             node.x = 0.;
             node.y = 0.;
             node.mod_ = 0.;
         }
     }
     pub fn root(&self) -> Option<usize> {
-        if self.0.is_empty() { None } else { Some(0) }
+        if self.nodes.is_empty() { None } else { Some(0) }
     }
     fn post_order(&self, node: usize) -> Vec<usize> {
         let mut breadth_first = vec![node];
@@ -173,11 +208,22 @@ impl LayoutTree {
             self[right].mod_ += shift;
         }
     }
+    /// Where `node` sits given the sibling to its left: the two boxes touch
+    /// with SIBLING_GAP between them, which for spouse-less nodes is the same
+    /// 2R + 2P pitch this used to hard-code.
+    fn sibling_x(&self, sibling: usize, node: usize) -> f32 {
+        // half_right + half_left is 4R, so this gap keeps the spouse-less pitch
+        // at the 2R + 2P (176) it has always been.
+        const SIBLING_GAP: f32 = 16.0;
+
+        self[sibling].x + self[sibling].half_right() + self[node].half_left() + SIBLING_GAP
+    }
+
     fn initialize_x(&mut self, root: usize) {
         for node in self.post_order(root) {
             if self[node].is_leaf() {
                 self[node].x = if let Some(sibling) = self.previous_sibling(node) {
-                    self[sibling].x + NODE_RADIUS as f32 * 2. + NODE_PADDING * 2.
+                    self.sibling_x(sibling, node)
                 } else {
                     0.0
                 };
@@ -196,7 +242,7 @@ impl LayoutTree {
                     (first + last) / 2.0
                 };
                 if let Some(sibling) = self.previous_sibling(node) {
-                    self[node].x = self[sibling].x + NODE_RADIUS as f32 * 2. + NODE_PADDING * 2.;
+                    self[node].x = self.sibling_x(sibling, node);
                     self[node].mod_ = self[node].x - mid;
                 } else {
                     self[node].x = mid;
@@ -241,32 +287,28 @@ impl LayoutTree {
         }
     }
     pub fn get(&self, id: i64) -> Option<&LayoutNode> {
-        self.0.iter().find(|n| n.id == id)
+        self.nodes.iter().find(|n| n.id == id)
     }
     pub fn get_mut(&mut self, id: i64) -> Option<&mut LayoutNode> {
-        self.0.iter_mut().find(|n| n.id == id)
+        self.nodes.iter_mut().find(|n| n.id == id)
     }
 }
 impl std::ops::Index<usize> for LayoutTree {
     type Output = LayoutNode;
     fn index(&self, index: usize) -> &Self::Output {
-        &self.0[index]
+        &self.nodes[index]
     }
 }
 impl std::ops::IndexMut<usize> for LayoutTree {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.0[index]
+        &mut self.nodes[index]
     }
 }
 fn left_contour(tree: &LayoutTree, node: usize) -> HashMap<usize, f32> {
-    contour(tree, node, f32::min, |n| {
-        n.x - NODE_RADIUS as f32 * 2. + NODE_PADDING
-    })
+    contour(tree, node, f32::min, |n| n.x - n.half_left())
 }
 fn right_contour(tree: &LayoutTree, node: usize) -> HashMap<usize, f32> {
-    contour(tree, node, f32::max, |n| {
-        n.x + NODE_RADIUS as f32 * 2. + NODE_PADDING
-    })
+    contour(tree, node, f32::max, |n| n.x + n.half_right())
 }
 fn contour<C, E>(tree: &LayoutTree, node: usize, cmp: C, edge: E) -> HashMap<usize, f32>
 where
@@ -316,10 +358,28 @@ pub struct LayoutNode {
     /// How much to shift this node's children by
     mod_: f32,
     pub collapsed: bool,
+    /// Width taken by the spouse cards drawn to the right of this node.
+    spouse_extra: f32,
 }
 impl LayoutNode {
     pub fn is_leaf(&self) -> bool {
         self.children.is_empty() || self.collapsed
+    }
+
+    /// How far this node's box reaches left of its centre. Unchanged by
+    /// spouses: they are drawn on the right, where the expand indicator isn't.
+    fn half_left(&self) -> f32 {
+        NODE_RADIUS as f32 * 2. - NODE_PADDING
+    }
+
+    /// How far the box reaches right of centre, spouse cards included.
+    fn half_right(&self) -> f32 {
+        NODE_RADIUS as f32 * 2. + NODE_PADDING + self.spouse_extra
+    }
+
+    /// Number of spouse cards drawn beside this node.
+    pub fn drawn_spouses(&self) -> usize {
+        (self.spouse_extra / SPOUSE_SLOT).round() as usize
     }
 }
 
@@ -344,6 +404,98 @@ mod tests {
             "collapsed": false,
         }))
         .expect("node json")
+    }
+
+    fn node_with_spouses(id: i64, spouses: serde_json::Value) -> Node {
+        let mut value = serde_json::to_value(node(id, "male", serde_json::json!([]))).unwrap();
+        value["spouses"] = spouses;
+        serde_json::from_value(value).expect("node json")
+    }
+
+    fn spouse(id: i64, status: &str) -> serde_json::Value {
+        serde_json::json!({
+            "id": id,
+            "name": format!("زوج {id}"),
+            "full_name": format!("زوج {id}"),
+            "status": status,
+        })
+    }
+
+    #[test]
+    fn siblings_keep_their_spacing_when_nobody_has_a_spouse() {
+        let root = node(
+            1,
+            "male",
+            serde_json::json!([
+                node(2, "male", serde_json::json!([])),
+                node(3, "male", serde_json::json!([])),
+            ]),
+        );
+
+        let mut tree = LayoutTree::new();
+        tree.update_tree(root);
+        tree.layout();
+
+        assert_eq!(
+            tree[2].x - tree[1].x,
+            NODE_RADIUS as f32 * 2. + NODE_PADDING * 2.,
+            "the spouse-less pitch must not move"
+        );
+    }
+
+    #[test]
+    fn a_spouse_card_widens_its_node() {
+        let mut root = node(
+            1,
+            "male",
+            serde_json::json!([
+                node(2, "male", serde_json::json!([])),
+                node(3, "male", serde_json::json!([])),
+            ]),
+        );
+        // the first child marries somebody from outside the tree
+        root.children[0] = node_with_spouses(2, serde_json::json!([spouse(99, "married")]));
+
+        let mut tree = LayoutTree::new();
+        tree.update_tree(root);
+        tree.layout();
+
+        assert_eq!(tree[1].drawn_spouses(), 1);
+        assert_eq!(
+            tree[2].x - tree[1].x,
+            NODE_RADIUS as f32 * 2. + NODE_PADDING * 2. + SPOUSE_SLOT,
+            "a spouse card must push the next sibling over"
+        );
+    }
+
+    #[test]
+    fn a_spouse_already_in_the_tree_gets_no_card() {
+        let mut root = node(
+            1,
+            "male",
+            serde_json::json!([
+                node(2, "male", serde_json::json!([])),
+                node(3, "female", serde_json::json!([])),
+            ]),
+        );
+        // cousins: the spouse is node 3, who is drawn in their own right
+        root.children[0] = node_with_spouses(2, serde_json::json!([spouse(3, "married")]));
+
+        let mut tree = LayoutTree::new();
+        tree.update_tree(root);
+        tree.layout();
+
+        assert!(tree.has_node(3));
+        assert_eq!(
+            tree[1].drawn_spouses(),
+            0,
+            "a spouse with a node of their own must not be drawn twice"
+        );
+        assert_eq!(
+            tree[2].x - tree[1].x,
+            NODE_RADIUS as f32 * 2. + NODE_PADDING * 2.,
+            "and must not take any width"
+        );
     }
 
     #[test]
