@@ -32,7 +32,6 @@ pub fn SearchBar(props: SearchBarProps) -> Element {
                     class: "input w-full ps-10 pe-10",
                     placeholder,
                     value: "{value}",
-                    dir: "auto",
                     oninput: move |evt| props.on_input.call(evt.value()),
                 }
                 if searching {

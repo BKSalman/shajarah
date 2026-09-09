@@ -9,6 +9,8 @@
     justify-content: space-between;
     padding: var(--spacing-2) var(--spacing-3);
     font-size: var(--font-size-base);
+    text-align: start;
+    unicode-bidi: plaintext;
     border: 1px solid var(--color-gray-300);
     border-radius: var(--radius);
     background-color: white;
