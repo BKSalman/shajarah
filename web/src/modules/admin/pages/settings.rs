@@ -5,30 +5,67 @@ use crate::modules::settings::{
     types::{RequestRules, Settings},
 };
 
+/// A titled group of related options, drawn as its own panel so the sections
+/// read apart from the rows inside them.
+#[component]
+fn SettingsSection(icon: String, title: String, description: String, children: Element) -> Element {
+    rsx! {
+        section { class: "rounded-lg border border-(--color-forest-light) bg-white shadow-sm overflow-hidden",
+            div { class: "flex items-start gap-3 px-5 py-4 bg-(--color-forest-background) border-b border-(--color-forest-light)",
+                span { class: "flex items-center justify-center shrink-0 w-9 h-9 rounded-lg bg-white border border-(--color-forest-light) text-(--color-forest-primary)",
+                    i { class: "fa-solid {icon}" }
+                }
+                div { class: "min-w-0",
+                    h2 { class: "text-lg font-bold text-(--color-forest-dark)", "{title}" }
+                    p { class: "text-sm text-gray-600 mt-0.5", "{description}" }
+                }
+            }
+
+            div { class: "divide-y divide-gray-100", {children} }
+        }
+    }
+}
+
 #[component]
 fn SettingToggle(
     title: String,
     description: String,
     enabled: bool,
     busy: bool,
+    /// State labels for the pill beside the switch, e.g. `("مطلوب", "اختياري")`.
+    #[props(default = (String::from("مفعّلة"), String::from("معطّلة")))]
+    state_labels: (String, String),
     on_toggle: EventHandler<bool>,
 ) -> Element {
+    let (on_label, off_label) = state_labels;
+
     rsx! {
-        div { class: "flex items-start justify-between gap-6 py-4",
-            div {
-                h3 { class: "font-medium text-forest-dark arabic-text", "{title}" }
-                p { class: "text-sm text-gray-500 mt-1 arabic-text", "{description}" }
+        div { class: "flex items-start justify-between gap-6 px-5 py-4 transition-colors hover:bg-gray-50",
+            div { class: "min-w-0",
+                h3 { class: "text-base font-semibold text-gray-900", "{title}" }
+                p { class: "text-sm text-gray-500 mt-1 leading-relaxed", "{description}" }
             }
 
-            button {
-                r#type: "button",
-                class: "switch",
-                "role": "switch",
-                "aria-checked": "{enabled}",
-                "aria-label": "{title}",
-                disabled: busy,
-                onclick: move |_| on_toggle.call(!enabled),
-                div { class: "switch-knob" }
+            div { class: "flex items-center gap-3 shrink-0",
+                span {
+                    class: "text-xs font-medium px-2 py-1 rounded-full",
+                    class: if enabled { "bg-(--color-forest-light) text-(--color-forest-dark)" } else { "bg-gray-100 text-gray-500" },
+                    if enabled {
+                        "{on_label}"
+                    } else {
+                        "{off_label}"
+                    }
+                }
+                button {
+                    r#type: "button",
+                    class: "switch",
+                    "role": "switch",
+                    "aria-checked": "{enabled}",
+                    "aria-label": "{title}",
+                    disabled: busy,
+                    onclick: move |_| on_toggle.call(!enabled),
+                    div { class: "switch-knob" }
+                }
             }
         }
     }
@@ -58,15 +95,15 @@ fn RequiredInfoKeys(
     };
 
     rsx! {
-        div { class: "py-4",
-            h3 { class: "font-medium text-forest-dark arabic-text",
+        div { class: "px-5 py-4",
+            h3 { class: "text-base font-semibold text-gray-900",
                 "معلومات إضافية مطلوبة"
             }
-            p { class: "text-sm text-gray-500 mt-1 arabic-text",
+            p { class: "text-sm text-gray-500 mt-1 leading-relaxed",
                 "تظهر هذه الحقول في نموذج الإضافة بمفتاح ثابت، ولا يمكن إرسال الطلب دون تعبئتها."
             }
 
-            div { class: "space-y-2 mt-3",
+            div { class: "space-y-2 mt-3 max-w-xl",
                 for key in keys.clone() {
                     div { key: "{key}", class: "flex gap-3 items-center",
                         input {
@@ -92,6 +129,10 @@ fn RequiredInfoKeys(
                             "حذف"
                         }
                     }
+                }
+
+                if keys.is_empty() {
+                    p { class: "text-sm text-gray-400", "لا توجد حقول إضافية مطلوبة." }
                 }
 
                 div { class: "flex gap-3 items-center",
@@ -140,12 +181,19 @@ pub fn AdminSettings() -> Element {
         anyhow::Ok(())
     });
 
+    let required_labels = || (String::from("مطلوب"), String::from("اختياري"));
+
     let body = match &*settings_resource.read() {
         Some(Ok(settings)) => {
             let settings = settings.clone();
             let rules = settings.add_request_rules.clone();
+
             rsx! {
-                div { class: "divide-y divide-gray-100",
+                SettingsSection {
+                    icon: "fa-door-open",
+                    title: "صفحة الإضافة العامة",
+                    description: "الرابط الذي يستخدمه أفراد العائلة لإرسال طلبات إضافة.",
+
                     SettingToggle {
                         title: "صفحة إضافة الأفراد",
                         description: "عند التعطيل، يصبح رابط /add غير متاح لأفراد العائلة ولا يمكن إرسال طلبات إضافة جديدة.",
@@ -163,19 +211,17 @@ pub fn AdminSettings() -> Element {
                     }
                 }
 
-                h2 { class: "text-lg font-semibold text-forest-dark arabic-heading mt-6 mb-1",
-                    "الحقول المطلوبة في طلبات الإضافة"
-                }
-                p { class: "text-sm text-gray-500 arabic-text",
-                    "الاسم الأول واسم العائلة والجنس والوالد مطلوبة دائماً."
-                }
+                SettingsSection {
+                    icon: "fa-list-check",
+                    title: "الحقول المطلوبة في طلبات الإضافة",
+                    description: "الاسم الأول واسم العائلة والجنس والوالد مطلوبة دائماً.",
 
-                div { class: "divide-y divide-gray-100",
                     SettingToggle {
                         title: "تاريخ الولادة",
                         description: "إلزام مُقدّم الطلب بإدخال تاريخ ولادة الفرد وكل طفل.",
                         enabled: rules.require_birthday,
                         busy: save.pending(),
+                        state_labels: required_labels(),
                         on_toggle: {
                             let settings = settings.clone();
                             move |enabled| {
@@ -194,6 +240,7 @@ pub fn AdminSettings() -> Element {
                         description: "إلزام مُقدّم الطلب بإرفاق صورة شخصية للفرد وكل طفل. لا ينطبق هذا على الإناث، فالصورة تبقى اختيارية لهنّ دائماً.",
                         enabled: rules.require_image,
                         busy: save.pending(),
+                        state_labels: required_labels(),
                         on_toggle: {
                             let settings = settings.clone();
                             move |enabled| {
@@ -207,24 +254,24 @@ pub fn AdminSettings() -> Element {
                             }
                         },
                     }
-                }
 
-                RequiredInfoKeys {
-                    settings: settings.clone(),
-                    busy: save.pending(),
-                    on_change: move |keys: Vec<String>| {
-                        save.call(Settings {
-                            add_request_rules: RequestRules {
-                                required_info_keys: keys,
-                                ..settings.add_request_rules.clone()
-                            },
-                            ..settings.clone()
-                        });
-                    },
+                    RequiredInfoKeys {
+                        settings: settings.clone(),
+                        busy: save.pending(),
+                        on_change: move |keys: Vec<String>| {
+                            save.call(Settings {
+                                add_request_rules: RequestRules {
+                                    required_info_keys: keys,
+                                    ..settings.add_request_rules.clone()
+                                },
+                                ..settings.clone()
+                            });
+                        },
+                    }
                 }
 
                 if let Some(Err(e)) = save.value() {
-                    div { class: "rounded-lg bg-red-50 text-red-700 px-4 py-3 arabic-text mt-2",
+                    div { class: "rounded-lg bg-red-50 text-red-700 px-4 py-3",
                         "تعذّر حفظ الإعدادات: {e}"
                     }
                 }
@@ -232,29 +279,31 @@ pub fn AdminSettings() -> Element {
         }
         Some(Err(e)) => {
             rsx! {
-                div { class: "rounded-lg bg-red-50 text-red-700 px-4 py-3 arabic-text",
+                div { class: "rounded-lg bg-red-50 text-red-700 px-4 py-3",
                     "تعذّر تحميل الإعدادات: {e}"
                 }
             }
         }
         None => {
             rsx! {
-                div { class: "text-center text-gray-500 py-12 arabic-text",
-                    "جارٍ التحميل..."
-                }
+                div { class: "text-center text-gray-500 py-12", "جارٍ التحميل..." }
             }
         }
     };
 
     rsx! {
         div { dir: "rtl", class: "w-full",
-            div { class: "card card-forest fade-in",
-                div { class: "card-body",
-                    h1 { class: "text-2xl lg:text-3xl font-bold text-forest-dark arabic-heading mb-4",
+            div { class: "max-w-4xl mx-auto space-y-5",
+                div {
+                    h1 { class: "text-2xl lg:text-3xl font-bold text-(--color-forest-dark)",
                         "الإعدادات"
                     }
-                    {body}
+                    p { class: "text-gray-600 mt-1",
+                        "تحكّم في صفحة الإضافة العامة وفي الحقول التي يلزم تعبئتها في الطلبات."
+                    }
                 }
+
+                {body}
             }
         }
     }
