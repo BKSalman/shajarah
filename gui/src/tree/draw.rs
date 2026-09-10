@@ -61,10 +61,12 @@ impl TreeUi {
                 if !self.centered {
                     if let Some(layout_root) = self.layout_tree.root() {
                         let root_coords = &self.layout_tree[layout_root];
-                        let center = viewport.center().to_vec2();
-                        self.offset = Vec2::new(-root_coords.x + center.x, center.y);
-                        #[cfg(feature = "debug-ui")]
-                        log::debug!("offset: {:?}", self.offset);
+                        let center = self.viewport.center().to_vec2();
+                        let final_offset = Vec2::new(
+                            -root_coords.x * self.scale + center.x,
+                            -root_coords.y * self.scale + center.y,
+                        );
+                        self.offset = final_offset;
                     }
                     self.centered = true;
                 }
