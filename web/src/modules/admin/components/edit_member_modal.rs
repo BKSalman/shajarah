@@ -1,6 +1,6 @@
 use crate::{
     modules::{
-        admin::types::{MemberFormData, MemberFormDataStoreExt},
+        admin::components::spouse_fields::{SpouseDraft, SpouseFields, SpouseSubmission},
         member::types::{
             EditMember, EditMemberStoreExt, Gender, MarriageStatus, MemberResponseFlat,
         },
@@ -23,10 +23,9 @@ pub struct EditMemberModalProps {
     pub members: Vec<MemberResponseFlat>,
     pub on_close: EventHandler<()>,
     pub on_submit: EventHandler<(i64, EditMember, Option<FileStream>)>,
-    /// Marries this member to somebody already in the tree.
-    pub on_marriage_add: EventHandler<(i64, i64, MarriageStatus)>,
-    /// Creates a spouse from outside the family, then marries them.
-    pub on_marriage_new: EventHandler<(i64, MemberFormData, Option<FileStream>, MarriageStatus)>,
+    /// Marries this member to the chosen spouse, creating them when they come
+    /// from outside the family.
+    pub on_marriage_apply: EventHandler<(i64, SpouseSubmission)>,
     pub on_marriage_status: EventHandler<(i64, MarriageStatus)>,
     pub on_marriage_remove: EventHandler<i64>,
 }
@@ -38,13 +37,8 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
 
     // The spouse panel acts on its own: marriages are their own rows, not
     // columns on the member, so they are saved as you go rather than on submit.
-    let mut spouse_from_outside = use_signal(|| false);
-    let mut new_spouse = use_store(MemberFormData::default);
-    let mut new_spouse_image = use_signal(|| None::<FileStream>);
-    let mut spouse_pick = use_signal(|| None::<i64>);
-    let mut spouse_status = use_signal(|| MarriageStatus::Married);
-
-    let married_ids: Vec<i64> = props.member.spouses.iter().map(|s| s.id).collect();
+    let mut spouse_draft = use_store(SpouseDraft::default);
+    let mut spouse_image = use_signal(|| None::<FileStream>);
 
     rsx! {
         Modal {
@@ -282,146 +276,26 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                     }
 
                     div { class: "mt-4 pt-4 border-t border-gray-100 space-y-3",
-                        div { class: "flex gap-4",
-                            label { class: "flex items-center gap-2",
-                                input {
-                                    r#type: "radio",
-                                    name: "spouse_source",
-                                    checked: !spouse_from_outside(),
-                                    onchange: move |_| spouse_from_outside.set(false),
-                                }
-                                "من العائلة"
-                            }
-                            label { class: "flex items-center gap-2",
-                                input {
-                                    r#type: "radio",
-                                    name: "spouse_source",
-                                    checked: spouse_from_outside(),
-                                    onchange: move |_| spouse_from_outside.set(true),
-                                }
-                                "من خارج العائلة"
-                            }
+                        SpouseFields {
+                            draft: spouse_draft,
+                            image: spouse_image,
+                            members: props.members.clone(),
+                            exclude_id: Some(props.member.id),
+                            member_gender: Some(props.member.gender),
                         }
 
-                        if spouse_from_outside() {
-                            div { class: "grid grid-cols-1 md:grid-cols-2 gap-3",
-                                input {
-                                    r#type: "text",
-                                    class: "input w-full",
-                                    placeholder: "الاسم الأول",
-                                    value: "{new_spouse.name()}",
-                                    oninput: move |evt| new_spouse.name().set(evt.value()),
-                                }
-                                input {
-                                    r#type: "text",
-                                    class: "input w-full",
-                                    placeholder: "اسم العائلة",
-                                    value: "{new_spouse.last_name()}",
-                                    oninput: move |evt| new_spouse.last_name().set(evt.value()),
-                                }
-                                select {
-                                    class: "dropdown w-full",
-                                    onchange: move |evt| {
-                                        new_spouse.gender().set(evt.value().parse::<Gender>().ok());
-                                    },
-                                    option { value: "", selected: new_spouse.gender()().is_none(), "اختر الجنس" }
-                                    option {
-                                        value: "male",
-                                        selected: new_spouse.gender()() == Some(Gender::Male),
-                                        "ذكر"
-                                    }
-                                    option {
-                                        value: "female",
-                                        selected: new_spouse.gender()() == Some(Gender::Female),
-                                        "أنثى"
-                                    }
-                                }
-                                input {
-                                    r#type: "date",
-                                    class: "input w-full",
-                                    onchange: move |evt| {
-                                        new_spouse
-                                            .birthday()
-                                            .set(
-                                                evt
-                                                    .value()
-                                                    .parse::<jiff::civil::Date>()
-                                                    .ok()
-                                                    .and_then(|d| d.to_zoned(jiff::tz::TimeZone::UTC).ok()),
-                                            );
-                                    },
-                                }
-                                input {
-                                    r#type: "file",
-                                    accept: "image/*",
-                                    class: "input w-full md:col-span-2",
-                                    oninput: move |evt| {
-                                        if let Some(file) = evt.files().into_iter().next() {
-                                            new_spouse_image.set(Some(file.into()));
-                                        }
-                                    },
-                                }
-                            }
-                        } else {
-                            MemberPicker {
-                                members: props.members.clone().into_iter().map(|m| m.into()).collect(),
-                                exclude_id: Some(props.member.id),
-                                required_gender: Some(props.member.gender.opposite()),
-                                placeholder: "ابحث عن الزوج/الزوجة بالاسم...".to_string(),
-                                on_select: move |id: Option<i64>| spouse_pick.set(id),
-                            }
-                        }
-
-                        div { class: "flex items-center gap-3",
-                            select {
-                                class: "dropdown",
-                                onchange: move |evt| {
-                                    if let Ok(status) = evt.value().parse::<MarriageStatus>() {
-                                        spouse_status.set(status);
-                                    }
-                                },
-                                option {
-                                    value: "married",
-                                    selected: spouse_status() == MarriageStatus::Married,
-                                    "متزوج"
-                                }
-                                option {
-                                    value: "separated",
-                                    selected: spouse_status() == MarriageStatus::Separated,
-                                    "منفصل"
-                                }
-                            }
-                            button {
-                                r#type: "button",
-                                class: "btn btn-primary btn-sm",
-                                onclick: move |_| {
-                                    if spouse_from_outside() {
-                                        let data = new_spouse();
-                                        if data.name.trim().is_empty() || data.last_name.trim().is_empty()
-                                            || data.gender.is_none()
-                                        {
-                                            return;
-                                        }
-                                        props
-                                            .on_marriage_new
-                                            .call((
-                                                props.member.id,
-                                                data,
-                                                new_spouse_image.take(),
-                                                spouse_status(),
-                                            ));
-                                        new_spouse.set(MemberFormData::default());
-                                    } else if let Some(spouse_id) = spouse_pick()
-                                        && !married_ids.contains(&spouse_id)
-                                    {
-                                        props
-                                            .on_marriage_add
-                                            .call((props.member.id, spouse_id, spouse_status()));
-                                        spouse_pick.set(None);
-                                    }
-                                },
-                                "إضافة زوج/زوجة"
-                            }
+                        button {
+                            r#type: "button",
+                            class: "btn btn-primary btn-sm",
+                            onclick: move |_| {
+                                let Some(submission) = spouse_draft().submission(spouse_image.take())
+                                else {
+                                    return;
+                                };
+                                props.on_marriage_apply.call((props.member.id, submission));
+                                spouse_draft.set(SpouseDraft::default());
+                            },
+                            "إضافة زوج/زوجة"
                         }
                     }
                 }

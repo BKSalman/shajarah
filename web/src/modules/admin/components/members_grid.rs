@@ -3,15 +3,15 @@ use dioxus::{fullstack::FileStream, prelude::*};
 use crate::{
     components::loading::FullPageLoading,
     modules::{
+        admin::components::spouse_fields::{SpouseSubmission, apply_spouse},
         admin::components::{
             edit_member_modal::EditMemberModal, family_management_header::FamilyManagementHeader,
             member_card::MemberCard, view_member_modal::ViewMemberModal,
         },
-        admin::types::MemberFormData,
         member::{
             server::{
-                add_marriage, add_member, delete_member, edit_member, edit_member_image,
-                remove_marriage, set_marriage_status, upload_members_csv,
+                delete_member, edit_member, edit_member_image, remove_marriage,
+                set_marriage_status, upload_members_csv,
             },
             types::{EditMember, MarriageStatus, MemberResponseFlat},
         },
@@ -93,35 +93,9 @@ pub fn MembersGrid(
 
     // Marriages are their own rows, so the spouse panel saves as you go instead
     // of riding along with the member edit form.
-    let mut on_marriage_add = use_action(
-        move |(member_id, spouse_id, status): (i64, i64, MarriageStatus)| async move {
-            add_marriage(member_id, spouse_id, status).await?;
-            members_resource.restart();
-
-            anyhow::Ok(())
-        },
-    );
-
-    let mut on_marriage_new = use_action(
-        move |(member_id, data, image, status): (
-            i64,
-            MemberFormData,
-            Option<FileStream>,
-            MarriageStatus,
-        )| async move {
-            let Some(gender) = data.gender else {
-                anyhow::bail!("Gender must be set");
-            };
-
-            // An outside spouse is a member like any other, just with no parents.
-            let spouse_id =
-                add_member(data.name, data.last_name, None, None, gender, data.birthday).await?;
-
-            if let Some(image) = image {
-                edit_member_image(spouse_id, image).await?;
-            }
-
-            add_marriage(member_id, spouse_id, status).await?;
+    let mut on_marriage_apply = use_action(
+        move |(member_id, submission): (i64, SpouseSubmission)| async move {
+            apply_spouse(member_id, submission).await?;
             members_resource.restart();
 
             anyhow::Ok(())
@@ -203,8 +177,7 @@ pub fn MembersGrid(
                                 on_submit: move |(id, data, image): (i64, EditMember, Option<FileStream>)| {
                                     on_member_edit.call(id, data, image)
                                 },
-                                on_marriage_add: move |args| on_marriage_add.call(args),
-                                on_marriage_new: move |args| on_marriage_new.call(args),
+                                on_marriage_apply: move |args| on_marriage_apply.call(args),
                                 on_marriage_status: move |args| on_marriage_status.call(args),
                                 on_marriage_remove: move |id| on_marriage_remove.call(id),
                             }

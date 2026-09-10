@@ -1,7 +1,7 @@
 use crate::{
     modules::{
         admin::types::{MemberFormData, MemberFormDataStoreExt},
-        member::types::{Gender, MarriageStatus, MemberResponseFlat},
+        member::types::{Gender, MemberResponseFlat},
     },
     ui::{
         form::FormSection,
@@ -11,6 +11,9 @@ use crate::{
 };
 use dioxus::{fullstack::FileStream, prelude::*};
 
+use crate::modules::admin::components::spouse_fields::{
+    SpouseDraft, SpouseFields, SpouseSubmission,
+};
 use crate::modules::member::components::member_picker::MemberPicker;
 
 #[derive(Props, Clone, PartialEq)]
@@ -18,13 +21,15 @@ pub struct AddMemberModalProps {
     pub show: bool,
     pub members: Vec<MemberResponseFlat>,
     pub on_close: EventHandler<()>,
-    pub on_submit: EventHandler<(MemberFormData, Option<FileStream>)>,
+    pub on_submit: EventHandler<(MemberFormData, Option<FileStream>, Option<SpouseSubmission>)>,
 }
 
 #[component]
 pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
     let mut form_data = use_store(MemberFormData::default);
     let mut image = use_signal(|| None::<FileStream>);
+    let mut spouse_draft = use_store(SpouseDraft::default);
+    let mut spouse_image = use_signal(|| None::<FileStream>);
 
     rsx! {
         Modal {
@@ -38,8 +43,15 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                 autocomplete: "off",
                 onsubmit: move |evt| {
                     evt.prevent_default();
-                    props.on_submit.call((form_data(), image.take()));
+                    props
+                        .on_submit
+                        .call((
+                            form_data(),
+                            image.take(),
+                            spouse_draft().submission(spouse_image.take()),
+                        ));
                     form_data.set(MemberFormData::default());
+                    spouse_draft.set(SpouseDraft::default());
                 },
                 FormSection {
                     title: "المعلومات الأساسية".to_string(),
@@ -156,35 +168,13 @@ pub fn AddMemberModal(props: AddMemberModalProps) -> Element {
                                 on_select: move |id| form_data.mother_id().set(id),
                             }
                         }
-                        div { class: "form-group",
+                        div { class: "form-group md:col-span-2",
                             label { class: "form-label", "الزوج/الزوجة" }
-                            if let Some(gender) = form_data.gender()() {
-                                MemberPicker {
-                                    members: props.members.clone().into_iter().map(|m| m.into()).collect(),
-                                    required_gender: Some(gender.opposite()),
-                                    placeholder: "ابحث عن الزوج/الزوجة بالاسم...".to_string(),
-                                    on_select: move |id| form_data.spouse_id().set(id),
-                                }
-                                select {
-                                    class: "dropdown w-full mt-2",
-                                    onchange: move |evt| {
-                                        if let Ok(status) = evt.value().parse::<MarriageStatus>() {
-                                            form_data.marriage_status().set(status);
-                                        }
-                                    },
-                                    option {
-                                        value: "married",
-                                        selected: form_data.marriage_status()() == MarriageStatus::Married,
-                                        "متزوج"
-                                    }
-                                    option {
-                                        value: "separated",
-                                        selected: form_data.marriage_status()() == MarriageStatus::Separated,
-                                        "منفصل"
-                                    }
-                                }
-                            } else {
-                                p { class: "text-sm text-gray-500", "اختر الجنس أولاً" }
+                            SpouseFields {
+                                draft: spouse_draft,
+                                image: spouse_image,
+                                members: props.members.clone(),
+                                member_gender: form_data.gender()(),
                             }
                         }
                     }

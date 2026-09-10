@@ -8,14 +8,17 @@ use crate::{
         add_request::{server::member_requests, types::RequestStatus},
         admin::{
             components::{
-                ShowModal, add_member_modal::AddMemberModal, add_requests_grid::AddRequestsGrid,
+                ShowModal,
+                add_member_modal::AddMemberModal,
+                add_requests_grid::AddRequestsGrid,
                 members_grid::MembersGrid,
+                spouse_fields::{SpouseSubmission, apply_spouse},
             },
             server::get_admin,
             types::MemberFormData,
         },
         invite::server::create_invite,
-        member::server::{add_marriage, add_member, edit_member_image, members_flat},
+        member::server::{add_member, edit_member_image, members_flat},
         user::server::logout_user,
     },
     ui::modal::Modal,
@@ -299,7 +302,11 @@ pub fn Admin() -> Element {
         .unwrap_or(0);
 
     let mut on_member_add = use_action(
-        move |(data, image): (MemberFormData, Option<FileStream>)| async move {
+        move |(data, image, spouse): (
+            MemberFormData,
+            Option<FileStream>,
+            Option<SpouseSubmission>,
+        )| async move {
             let Some(gender) = data.gender else {
                 anyhow::bail!("Gender must be set");
             };
@@ -316,8 +323,8 @@ pub fn Admin() -> Element {
             if let Some(image) = image {
                 edit_member_image(id, image).await?;
             }
-            if let Some(spouse_id) = data.spouse_id {
-                add_marriage(id, spouse_id, data.marriage_status).await?;
+            if let Some(spouse) = spouse {
+                apply_spouse(id, spouse).await?;
             }
             members_resource.restart();
             show_modal.set(None);
@@ -459,9 +466,11 @@ pub fn Admin() -> Element {
                 on_close: move |_| {
                     show_modal.set(None);
                 },
-                on_submit: move |(data, image): (MemberFormData, Option<FileStream>)| {
-                    on_member_add.call((data, image))
-                },
+                on_submit: move |args: (
+                    MemberFormData,
+                    Option<FileStream>,
+                    Option<SpouseSubmission>,
+                )| on_member_add.call(args),
             }
 
             match &*tab.read() {

@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use indexmap::IndexMap;
 use jiff::Zoned;
 
-use crate::modules::member::types::{Gender, MarriageStatus};
+use crate::modules::member::types::Gender;
 
 #[derive(Default, Clone, Store, PartialEq)]
 pub struct MemberFormData {
@@ -13,6 +13,4 @@ pub struct MemberFormData {
     pub mother_id: Option<i64>,
     pub father_id: Option<i64>,
     pub personal_info: Option<IndexMap<String, String>>,
-    pub spouse_id: Option<i64>,
-    pub marriage_status: MarriageStatus,
 }
