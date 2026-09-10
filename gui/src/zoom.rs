@@ -121,7 +121,6 @@ impl Zoom for TextCursorStyle {
 impl Zoom for Visuals {
     #[inline(always)]
     fn zoom(&mut self, zoom: f32) {
-        self.clip_rect_margin.zoom(zoom);
         self.menu_corner_radius.zoom(zoom);
         self.popup_shadow.zoom(zoom);
         self.resize_corner_size.zoom(zoom);
