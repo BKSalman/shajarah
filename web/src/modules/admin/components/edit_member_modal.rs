@@ -245,31 +245,34 @@ pub fn EditMemberModal(props: EditMemberModalProps) -> Element {
                             p { class: "text-sm text-gray-500", "لا توجد زيجات مسجلة" }
                         }
                         for spouse in props.member.spouses.clone() {
-                            div { key: "{spouse.marriage_id}", class: "flex items-center gap-3",
-                                span { class: "flex-1 min-w-0 truncate", "{spouse.full_name}" }
-                                select {
-                                    class: "dropdown",
-                                    onchange: move |evt| {
-                                        if let Ok(status) = evt.value().parse::<MarriageStatus>() {
-                                            props.on_marriage_status.call((spouse.marriage_id, status));
+                            div { key: "{spouse.marriage_id}", class: "py-2",
+                                p { class: "font-medium text-gray-900 truncate", "{spouse.full_name}" }
+                                div { class: "flex items-center gap-2 mt-1",
+                                    select {
+                                        class: "dropdown",
+                                        onchange: move |evt| {
+                                            if let Ok(status) = evt.value().parse::<MarriageStatus>() {
+                                                props.on_marriage_status.call((spouse.marriage_id, status));
+                                            }
+                                        },
+                                        option {
+                                            value: "married",
+                                            selected: spouse.status == MarriageStatus::Married,
+                                            "متزوج"
                                         }
-                                    },
-                                    option {
-                                        value: "married",
-                                        selected: spouse.status == MarriageStatus::Married,
-                                        "متزوج"
+                                        option {
+                                            value: "separated",
+                                            selected: spouse.status == MarriageStatus::Separated,
+                                            "منفصل"
+                                        }
                                     }
-                                    option {
-                                        value: "separated",
-                                        selected: spouse.status == MarriageStatus::Separated,
-                                        "منفصل"
+                                    button {
+                                        r#type: "button",
+                                        class: "btn btn-danger btn-sm shrink-0",
+                                        title: "إزالة {spouse.full_name}",
+                                        onclick: move |_| { props.on_marriage_remove.call(spouse.marriage_id) },
+                                        "إزالة"
                                     }
-                                }
-                                button {
-                                    r#type: "button",
-                                    class: "btn btn-danger btn-sm",
-                                    onclick: move |_| props.on_marriage_remove.call(spouse.marriage_id),
-                                    "إزالة"
                                 }
                             }
                         }
