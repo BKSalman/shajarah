@@ -192,6 +192,52 @@ impl MemberResponse {
     }
 }
 
+#[derive(Store, Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub struct MemberResponseUnauthorized {
+    pub id: i64,
+    pub name: String,
+    pub full_name: String,
+    pub gender: Gender,
+    pub birthday: Option<Zoned>,
+    pub last_name: String,
+    pub father_id: Option<i64>,
+    pub mother_id: Option<i64>,
+    pub children: Vec<MemberResponseUnauthorized>,
+    pub image: Option<Vec<u8>>,
+    pub image_type: Option<String>,
+}
+
+impl MemberResponseUnauthorized {
+    #[cfg(feature = "server")]
+    pub fn add_all_children(&mut self, all_members: &[MemberRowWithParents]) {
+        use jiff::tz::TimeZone;
+
+        self.children = all_members
+            .iter()
+            .filter(|m| {
+                m.father_id.is_some_and(|fid| fid == self.id)
+                    || m.mother_id.is_some_and(|mid| mid == self.id)
+            })
+            .map(|m| MemberResponseUnauthorized {
+                id: m.id,
+                name: m.name.clone(),
+                full_name: m.full_name.clone().unwrap_or_else(|| m.name.clone()),
+                gender: m.gender,
+                birthday: m.birthday.map(|t| t.to_jiff().to_zoned(TimeZone::UTC)),
+                last_name: m.last_name.clone(),
+                father_id: m.father_id,
+                mother_id: m.mother_id,
+                children: vec![],
+                image: m.image.clone(),
+                image_type: m.image_type.clone(),
+            })
+            .collect();
+        for child in &mut self.children {
+            child.add_all_children(all_members);
+        }
+    }
+}
+
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct ChildMember {

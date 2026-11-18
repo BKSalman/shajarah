@@ -16,7 +16,11 @@ mod server_imports {
 
 use crate::modules::member::types::{EditMember, MemberUnauthorizedResponseFlat};
 
-use super::types::{Gender, MarriageStatus, MemberResponse, MemberResponseFlat, SpouseLink};
+use super::types::{
+    Gender, MarriageStatus, MemberResponse, MemberResponseFlat, MemberResponseUnauthorized,
+    SpouseLink,
+};
+
 #[cfg(feature = "server")]
 use server_imports::*;
 
@@ -110,6 +114,89 @@ pub async fn members() -> anyhow::Result<MemberResponse> {
         };
 
         root.add_all_children(&recs, &spouses);
+
+        family_node.children.push(root);
+    }
+
+    Ok(family_node)
+}
+
+#[get("/api/v1/members", Extension(state): Extension<AppState>)]
+pub async fn members_unauthorized() -> anyhow::Result<MemberResponseUnauthorized> {
+    let recs = sqlx::query_as!(
+        MemberRowWithParents,
+        r#"
+            SELECT
+                m.id,
+                m.name,
+                CONCAT_WS(' ', m.name, p2.name, p3.name, p4.name, m.last_name) AS full_name,
+                m.gender as "gender: Gender",
+                m.birthday as "birthday: jiff_sqlx::Timestamp",
+                m.last_name,
+                m.image,
+                m.image_type,
+                m.email,
+                m.personal_info,
+                mother.id AS mother_id,
+                mother.name AS mother_name,
+                mother.gender AS "mother_gender: Gender",
+                mother.birthday AS "mother_birthday: jiff_sqlx::Timestamp",
+                mother.last_name AS mother_last_name,
+                father.id AS father_id,
+                CONCAT_WS(' ', p2.name, p3.name, p4.name, p2.last_name) AS father_name,
+                father.gender AS "father_gender: Gender",
+                father.birthday AS "father_birthday: jiff_sqlx::Timestamp",
+                father.last_name AS father_last_name
+            FROM
+                members m
+            LEFT JOIN
+                members mother ON m.mother_id = mother.id
+            LEFT JOIN
+                members father ON m.father_id = father.id
+            LEFT JOIN members p2 ON m.father_id = p2.id
+            LEFT JOIN members p3 ON p2.father_id = p3.id
+            LEFT JOIN members p4 ON p3.father_id = p4.id;
+        "#,
+    )
+    .fetch_all(&state.db_pool)
+    .await?;
+
+    let family_name = state.config.family_name.clone().unwrap_or_default();
+
+    // XXX: this is kinda hacky, maybe send the family name and let egui handle it
+    let mut family_node = MemberResponseUnauthorized {
+        id: i64::MAX,
+        name: family_name.clone(),
+        full_name: family_name.clone(),
+        gender: Gender::Male,
+        birthday: None,
+        last_name: String::new(),
+        father_id: None,
+        mother_id: None,
+        children: Vec::new(),
+        image: None,
+        image_type: None,
+    };
+
+    if let Some(root) = recs
+        .iter()
+        .find(|rec| rec.father_id.is_none() && rec.mother_id.is_none())
+    {
+        let mut root = MemberResponseUnauthorized {
+            id: root.id,
+            name: root.name.clone(),
+            full_name: root.full_name.clone().unwrap_or_else(|| root.name.clone()),
+            gender: root.gender,
+            birthday: root.birthday.map(|t| t.to_jiff().to_zoned(TimeZone::UTC)),
+            last_name: root.last_name.clone(),
+            father_id: None,
+            mother_id: None,
+            children: Vec::new(),
+            image: root.image.clone(),
+            image_type: root.image_type.clone(),
+        };
+
+        root.add_all_children(&recs);
 
         family_node.children.push(root);
     }

@@ -14,12 +14,14 @@ pub struct App {
     message_sender: Sender<Message>,
     backend_address: String,
     commands_rx: futures::channel::mpsc::Receiver<EguiCommand>,
+    fetch_path: String,
 }
 
 impl App {
     pub fn new(
         cc: &eframe::CreationContext<'_>,
         commands_rx: futures::channel::mpsc::Receiver<EguiCommand>,
+        fetch_path: String,
     ) -> Self {
         setup_fonts(&cc.egui_ctx);
         egui_extras::install_image_loaders(&cc.egui_ctx);
@@ -28,13 +30,14 @@ impl App {
         let address = "http://localhost:3001";
         #[cfg(target_arch = "wasm32")]
         let address = "";
-        load_family_data(address, sender.clone(), &cc.egui_ctx);
+        load_family_data(address, &fetch_path, sender.clone(), &cc.egui_ctx);
         Self {
             tree: TreeUi::new(None, &cc.egui_ctx),
             message_sender: sender.clone(),
             message_receiver: receiver,
             backend_address: address.to_string(),
             commands_rx,
+            fetch_path: fetch_path,
         }
     }
 }
@@ -86,7 +89,12 @@ impl eframe::App for App {
 
                     let reload = ui.button("⟳").on_hover_text("Refresh tree");
                     if reload.clicked() {
-                        load_family_data(&self.backend_address, self.message_sender.clone(), ui);
+                        load_family_data(
+                            &self.backend_address,
+                            &self.fetch_path,
+                            self.message_sender.clone(),
+                            ui,
+                        );
                         self.tree.request_recenter();
                     }
 
@@ -149,7 +157,12 @@ impl eframe::App for App {
 
         egui::CentralPanel::default().show(ui, |ui| {
             if ui.input(|i| i.key_pressed(egui::Key::F5)) {
-                load_family_data(&self.backend_address, self.message_sender.clone(), ui);
+                load_family_data(
+                    &self.backend_address,
+                    &self.fetch_path,
+                    self.message_sender.clone(),
+                    ui,
+                );
             }
             self.tree.draw(ui, tree_rect);
         });

@@ -3,6 +3,7 @@ use shared::EguiCommand;
 
 use crate::{
     components::combobox::{Combobox, ComboboxOption},
+    config,
     modules::member::search::{get_member_by_name, search_member},
 };
 
@@ -22,13 +23,21 @@ pub fn Tree() -> Element {
     });
     let mut commands = use_signal(move || None::<futures::channel::mpsc::Sender<EguiCommand>>);
 
+    let config = use_context::<config::client::Config>();
+
     use_future(move || async move {
         #[cfg(target_arch = "wasm32")]
         {
+            let fetch_path = if config.public {
+                "/api/v1/members"
+            } else {
+                "/api/v1/members/admin"
+            };
+
             let (send, recv) = futures::channel::mpsc::channel(10);
             let (ctx_send, mut ctx_recv) = futures::channel::mpsc::channel(1);
 
-            gui::run_eframe(recv, ctx_send);
+            gui::run_eframe(recv, ctx_send, fetch_path.to_string());
 
             if let Ok(egui_ctx) = ctx_recv.recv().await {
                 ctx.set(Some(egui_ctx));
@@ -102,7 +111,6 @@ pub fn Tree() -> Element {
             dir: "rtl",
             h3 { "شجرة العائلة" }
             div { class: "flex w-full gap-2",
-
                 button {
                     class: "btn btn-primary",
                     onclick: move |_| on_search_button.call(member_query()),
@@ -137,7 +145,12 @@ pub fn Tree() -> Element {
             div {
                 dir: "rtl",
                 class: "flex flex-col w-full",
-                class: if fullscreen_tree() { "h-dvh fixed top-0 left-0 w-full z-100 bg-white" } else { "h-[60dvh] sm:h-150 lg:h-200" },
+                class:
+                if fullscreen_tree() {
+                    "h-dvh fixed top-0 left-0 w-full z-100 bg-white"
+                } else {
+                    "h-[60dvh] sm:h-150 lg:h-200"
+                },
                 button {
                     class: "btn-rect btn-primary rounded-t-sm",
                     onclick: move |_| {

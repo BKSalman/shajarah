@@ -27,6 +27,7 @@ const FONT: &[u8] = include_bytes!("../fonts/arial.ttf");
 pub fn run_eframe(
     commands_rx: futures::channel::mpsc::Receiver<shared::EguiCommand>,
     mut ctx_sender: futures::channel::mpsc::Sender<egui::Context>,
+    fetch_path: String,
 ) {
     use eframe::wasm_bindgen::JsCast as _;
 
@@ -58,7 +59,7 @@ pub fn run_eframe(
                             log::error!("Failed to send context: {e}");
                         }
                     });
-                    Ok(Box::new(crate::App::new(cc, commands_rx)))
+                    Ok(Box::new(crate::App::new(cc, commands_rx, fetch_path)))
                 }),
             )
             .await;
@@ -99,9 +100,9 @@ fn setup_fonts(ctx: &egui::Context) {
     ctx.set_fonts(fonts);
 }
 
-fn load_family_data(address: &str, sender: Sender<Message>, ctx: &egui::Context) {
+fn load_family_data(address: &str, fetch_path: &str, sender: Sender<Message>, ctx: &egui::Context) {
     let ctx = ctx.clone();
-    let request = ehttp::Request::get(format!("{address}/api/v1/members/admin"));
+    let request = ehttp::Request::get(format!("{address}{fetch_path}"));
     ehttp::fetch(request, move |res| match res {
         Ok(res) => {
             if !res.ok {
@@ -115,7 +116,10 @@ fn load_family_data(address: &str, sender: Sender<Message>, ctx: &egui::Context)
                     ctx.request_repaint();
                 }
                 Err(e) => {
-                    log::error!("failed to fetch family data: {e}");
+                    log::error!(
+                        "failed to fetch family data: {e}: {}",
+                        res.text().unwrap_or_default()
+                    );
                 }
             }
         }
