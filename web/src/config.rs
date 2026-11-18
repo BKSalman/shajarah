@@ -196,6 +196,17 @@ pub mod server {
                 );
                 self.family_description = Some(family_description);
             }
+            if let Ok(public) = env::var("SHAJARAH_PUBLIC_TREE") {
+                tracing::debug!("Using public tree option from environment: {}", public);
+                match public.parse() {
+                    Ok(public) => {
+                        self.public = public;
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to use public tree option from environemnt: {}", e);
+                    }
+                }
+            }
             self.apply_email_env_overrides()?;
             Ok(())
         }
